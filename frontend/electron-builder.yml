@@ -7,6 +7,10 @@ files:
   - '!**/.vscode/*'
   - '!**/.swc/*'
   - '!src/*'
+  # Python externals are dev-time build inputs; packaged apps use the copies
+  # placed under resources/bin by extraResources (the venv symlinks to the
+  # system Python also break electron-builder's asar packaging).
+  - '!externals/**'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
