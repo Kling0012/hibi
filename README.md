@@ -14,7 +14,7 @@
 
 | リポジトリ | 役割 |
 |---|---|
-| **hibi**（ここ） | デスクトップアプリ（Mac / Windows）。画面の記録、作業の宣言、閲覧 |
+| **hibi**（ここ） | デスクトップアプリ（Apple シリコンの Mac / Windows）。画面の記録、作業の宣言、閲覧 |
 | [hibi-server](https://github.com/Kling0012/hibi-server) | 同期サーバ。記録の集約、検索、作業終了の判定、日報・ブログ、スマホ用の画面 |
 | [hibi-memory](https://github.com/Kling0012/hibi-memory) | AI の共有記憶。AI エージェントの作業記録の置き場 |
 
@@ -53,7 +53,7 @@ cd frontend && pnpm install && pnpm run dev
 | `config/` | 既定の設定（`config.yaml`） |
 | `docs/` | ドキュメントサイト（GitHub Pages） |
 
-配布用のビルドは、Python 部分を PyInstaller で固めるため OS ごとにその OS 上で行います。GitHub Actions の `release.yml` を手動で動かすと、macOS / Windows / Linux 版を下書きのリリースに添付します。
+配布用のビルドは、Python 部分を PyInstaller で固めるため OS ごとにその OS 上で行います。GitHub Actions の `release.yml` を手動で動かすと、macOS（Apple シリコン）版と Windows 版を下書きのリリースに添付します。
 
 ```sh
 gh workflow run release.yml -R Kling0012/hibi -f tag=v0.1.0

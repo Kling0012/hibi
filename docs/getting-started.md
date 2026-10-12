@@ -17,7 +17,7 @@ nav_order: 2
 | もの | 用途 | 備考 |
 |---|---|---|
 | 常時動いている Linux マシン 1 台 | 同期サーバ（と共有記憶） | 2 コア・2 GB で足ります。Docker Compose が必要 |
-| Mac または Windows | デスクトップアプリ | 複数台でも可 |
+| Mac（Apple シリコン）または Windows | デスクトップアプリ | 複数台でも可。Intel Mac と Linux には対応しません |
 | 閉じたネットワーク | 端末とサーバをつなぐ | [Tailscale](https://tailscale.com/) を推奨。サーバには認証がありません |
 | 画面を読む AI の API キー | 画面の要約 | [Google AI Studio](https://aistudio.google.com/) の Gemini（無料枠あり）、または OpenAI 互換 API |
 | 文章を書く AI の API キー | 作業終了の判定・日報・ブログ | OpenAI 互換 API。例: Zhipu の GLM-5.3 / GLM-5.3-Flash |
@@ -96,7 +96,6 @@ DB の作成と移行は起動時に自動で行われます。詳しい設定�
 |---|---|---|
 | macOS（Apple シリコン） | `Hibi-<版>.dmg` | 署名していないため、入れたあと一度だけ `xattr -dr com.apple.quarantine /Applications/Hibi.app` を実行 |
 | Windows | `Hibi-<版>-setup.exe` | SmartScreen が出たら「詳細情報」→「実行」 |
-| Linux | `.AppImage` / `.deb` | — |
 
 macOS では、初回の記録開始時に「画面収録」の許可を求められます。
 

@@ -6,7 +6,7 @@ nav_order: 4
 # デスクトップアプリ（hibi）
 {: .no_toc }
 
-Mac / Windows で動くアプリです。画面を記録して AI に要約させ、同期サーバへ送ります。リポジトリ: [Kling0012/hibi](https://github.com/Kling0012/hibi)
+Apple シリコンの Mac と Windows で動くアプリです。画面を記録して AI に要約させ、同期サーバへ送ります。リポジトリ: [Kling0012/hibi](https://github.com/Kling0012/hibi)
 {: .fs-5 .fw-300 }
 
 1. TOC
@@ -125,7 +125,6 @@ Gemini Live（`gemini-3.8-live`）は無料枠が大きく、画面を流し続�
 |---|---|
 | macOS | `~/Library/Application Support/Hibi` |
 | Windows | `%APPDATA%\Hibi` |
-| Linux | `~/.config/Hibi` |
 
 API キーのファイルの既定の場所は `~/.config/minecontext/gemini-key` と `~/.config/minecontext/zhipu-key` です（環境変数 `GEMINI_KEY_FILE` / `ZHIPU_KEY_FILE` で変えられます）。
 
@@ -143,13 +142,13 @@ cd frontend && pnpm install && pnpm run dev
 
 ### 配布用のビルド
 
-Python 部分を PyInstaller で固めるため、**各 OS のビルドはその OS の上で**行います。GitHub Actions の `release.yml` を手動で動かすと、macOS / Windows / Linux 版を作って下書きのリリースに添付します。
+Python 部分を PyInstaller で固めるため、**各 OS のビルドはその OS の上で**行います。GitHub Actions の `release.yml` を手動で動かすと、macOS（Apple シリコン）版と Windows 版を作って下書きのリリースに添付します。
 
 ```sh
 gh workflow run release.yml -R Kling0012/hibi -f tag=v0.1.0
 ```
 
-手元で作る場合は `frontend/` で `pnpm run build:mac` / `build:win` / `build:linux` です。
+手元で作る場合は `frontend/` で `pnpm run build:mac` / `build:win` です。対応するのは Apple シリコンの Mac と Windows だけです。
 
 ## 元のプロジェクトとの違い
 
