@@ -26,10 +26,10 @@ import { getLogger } from '@shared/logger/main'
 import { monitor } from '@shared/logger/performance'
 import { TrayService } from './services/TrayService'
 import { workSessionService } from './services/WorkSessionService'
-import { declareWindowService } from './services/DeclareWindowService'
 import { ScreenMonitorTask } from './background/task/screen-monitor-task'
 import { autoUpdater } from 'electron-updater'
 import { IpcChannel } from '@shared/IpcChannel'
+import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
 import { LatestActivityTask } from './background/task/latest-activity'
 
 initLog()
@@ -278,10 +278,18 @@ app.whenReady().then(() => {
   trayService.create()
   logger.info('Tray service initialized')
 
-  // Work session declaration (P4-A) - fail-soft, only affects tray/tooltip
-  workSessionService.subscribe(() => trayService?.onWorkSessionStateChanged())
+  // Work session declaration (home page panel) - fail-soft: push failures only
+  // affect the panel, never the rest of the app
+  workSessionService.subscribe((state) => {
+    try {
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IpcServerPushChannel.WorkSession_StateChanged, state)
+      }
+    } catch (error) {
+      logger.warn('failed to push work session state:', error)
+    }
+  })
   workSessionService.start()
-  declareWindowService.init()
 
   // Start screenshot cleanup scheduled task
   startScreenshotCleanup()
@@ -359,7 +367,6 @@ app.on('before-quit', () => {
 
   // Work session declaration cleanup
   workSessionService.stop()
-  declareWindowService.destroy()
 
   if (server) {
     server.close()

@@ -40,7 +40,6 @@ import { type Dayjs } from 'dayjs'
 import AppUpdater from './services/AppUpdater'
 import { HeatmapService } from './services/HeatmapService'
 import { workSessionService } from './services/WorkSessionService'
-import { declareWindowService } from './services/DeclareWindowService'
 
 const logger = getLogger('IPC')
 
@@ -609,14 +608,16 @@ export function registerIpc(mainWindow: BrowserWindow, app: Electron.App) {
     return HeatmapService.getHeatmapData(startTime, endTime)
   })
 
-  // Work session declaration (P4-A)
+  // Work session declaration (home page panel)
   ipcMain.handle(IpcChannel.WorkSession_GetState, () => workSessionService.getState())
   ipcMain.handle(IpcChannel.WorkSession_Declare, (_, title: string) => workSessionService.declare(title))
   ipcMain.handle(IpcChannel.WorkSession_End, () => workSessionService.endActive())
-  ipcMain.handle(IpcChannel.WorkSession_OpenManageUi, () => declareWindowService.openManageUi())
-  ipcMain.handle(IpcChannel.WorkSession_GetShortcut, () => declareWindowService.getShortcut())
-  ipcMain.handle(IpcChannel.WorkSession_SetShortcut, (_, accelerator: string) =>
-    declareWindowService.setShortcut(accelerator)
-  )
-  ipcMain.handle(IpcChannel.DeclareWindow_Hide, () => declareWindowService.hide())
+  ipcMain.handle(IpcChannel.WorkSession_OpenManageUi, () => {
+    const { serverUrl } = workSessionService.getState()
+    if (!serverUrl) {
+      logger.warn('manage UI requested but server_url is unknown')
+      return
+    }
+    void shell.openExternal(`${serverUrl.replace(/\/+$/, '')}/ui/`)
+  })
 }

@@ -6,16 +6,8 @@ import path from 'path'
 import { getLogger } from '@shared/logger/main'
 import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
 import screenshotService from './ScreenshotService'
-import { declareWindowService } from './DeclareWindowService'
-import { workSessionService } from './WorkSessionService'
-import { formatElapsed } from './workSessionApi'
 
 const logger = getLogger('TrayService')
-
-/** Menu labels get truncated around this width. */
-function truncateLabel(text: string, max = 24): string {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text
-}
 
 export class TrayService {
   private tray: Tray | null = null
@@ -130,7 +122,7 @@ export class TrayService {
       this.tray = new Tray(this.trayIcon)
 
       // Set tooltip
-      this.tray.setToolTip(this.buildTooltip())
+      this.tray.setToolTip('MineContext')
 
       // Platform-specific behavior
       if (process.platform === 'win32') {
@@ -184,9 +176,9 @@ export class TrayService {
         label: recordingStatusLabel,
         enabled: false
       },
-      { type: 'separator' },
-      ...this.buildWorkSessionMenuItems(),
-      { type: 'separator' },
+      {
+        type: 'separator'
+      },
       {
         label: '显示主窗口',
         click: () => {
@@ -212,88 +204,6 @@ export class TrayService {
     ]
 
     return Menu.buildFromTemplate(menuTemplate)
-  }
-
-  /**
-   * Work session declaration block (P4-A): declare / end / recent / manage UI.
-   * Purely additive - when the sync server is unreachable only these items
-   * degrade (fail-soft), the rest of the menu keeps working.
-   */
-  private buildWorkSessionMenuItems(): Electron.MenuItemConstructorOptions[] {
-    const state = workSessionService.getState()
-    const items: Electron.MenuItemConstructorOptions[] = []
-
-    if (!state.ready) {
-      items.push({ label: '同期設定を取得中…', enabled: false })
-    } else if (!state.enabled) {
-      items.push({ label: '同期サーバが無効です', enabled: false })
-    } else if (!state.connected) {
-      items.push({ label: '同期サーバに接続できません', enabled: false })
-    }
-
-    items.push({
-      label: '作業を宣言…',
-      enabled: state.connected,
-      click: () => {
-        declareWindowService.show()
-      }
-    })
-
-    if (state.active) {
-      const elapsed = formatElapsed(state.active.startedAt)
-      items.push({
-        label: `作業を終了（${truncateLabel(state.active.title)} 経過 ${elapsed}）`,
-        click: () => {
-          void workSessionService.endActive()
-        }
-      })
-    }
-
-    if (state.recentTitles.length > 0) {
-      items.push({
-        label: '最近の作業',
-        submenu: state.recentTitles.map((title) => ({
-          label: truncateLabel(title),
-          click: () => {
-            void workSessionService.declare(title)
-          }
-        }))
-      })
-    }
-
-    items.push({
-      label: '管理画面を開く',
-      enabled: Boolean(state.serverUrl),
-      click: () => {
-        declareWindowService.openManageUi()
-      }
-    })
-
-    return items
-  }
-
-  /** Tooltip combining recording status and the active work session. */
-  private buildTooltip(): string {
-    const parts: string[] = ['MineContext']
-    parts.push(this.isRecording ? '录制中' : '已暂停')
-    const { active } = workSessionService.getState()
-    if (active) {
-      parts.push(`作業中: ${truncateLabel(active.title, 40)}（経過 ${formatElapsed(active.startedAt)}）`)
-    }
-    return parts.join(' - ')
-  }
-
-  /** Rebuild menu + tooltip after a work-session state change (poll / action). */
-  onWorkSessionStateChanged(): void {
-    if (!this.tray) {
-      return
-    }
-    try {
-      this.tray.setToolTip(this.buildTooltip())
-      this.tray.setContextMenu(this.buildContextMenu())
-    } catch (error) {
-      logger.warn('failed to refresh tray for work session state:', error)
-    }
   }
 
   /**
@@ -353,7 +263,8 @@ export class TrayService {
       }
 
       // Update tooltip
-      this.tray.setToolTip(this.buildTooltip())
+      const tooltip = isRecording ? 'MineContext - 录制中' : 'MineContext - 已暂停'
+      this.tray.setToolTip(tooltip)
 
       // Update context menu
       this.tray.setContextMenu(this.buildContextMenu())

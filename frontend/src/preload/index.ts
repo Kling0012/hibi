@@ -120,17 +120,13 @@ const eventLoop = {
   getHomeLatestActivity: (status: string) => ipcRenderer.invoke(IpcChannel.Get_Home_LatestActivity, status)
 }
 
-// Work session declaration (P4-A), used by the declare window page
+// Work session declaration, used by the home page WorkSessionPanel
 const workSessionAPI = {
   getState: (): Promise<WorkSessionState> => ipcRenderer.invoke(IpcChannel.WorkSession_GetState),
   declare: (title: string): Promise<WorkSessionResult> =>
     ipcRenderer.invoke(IpcChannel.WorkSession_Declare, title),
   endActive: (): Promise<WorkSessionResult> => ipcRenderer.invoke(IpcChannel.WorkSession_End),
   openManageUi: (): Promise<void> => ipcRenderer.invoke(IpcChannel.WorkSession_OpenManageUi),
-  getShortcut: (): Promise<string> => ipcRenderer.invoke(IpcChannel.WorkSession_GetShortcut),
-  setShortcut: (accelerator: string): Promise<{ ok: boolean; accelerator?: string; error?: string }> =>
-    ipcRenderer.invoke(IpcChannel.WorkSession_SetShortcut, accelerator),
-  hide: (): Promise<void> => ipcRenderer.invoke(IpcChannel.DeclareWindow_Hide),
   onStateChanged: (callback: (state: WorkSessionState) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, state: WorkSessionState): void => callback(state)
     ipcRenderer.on(IpcServerPushChannel.WorkSession_StateChanged, listener)

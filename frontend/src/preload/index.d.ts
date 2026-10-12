@@ -15,9 +15,6 @@ declare global {
       declare: (title: string) => Promise<WorkSessionResult>
       endActive: () => Promise<WorkSessionResult>
       openManageUi: () => Promise<void>
-      getShortcut: () => Promise<string>
-      setShortcut: (accelerator: string) => Promise<{ ok: boolean; accelerator?: string; error?: string }>
-      hide: () => Promise<void>
       onStateChanged: (callback: (state: WorkSessionState) => void) => () => void
     }
     dbAPI: {

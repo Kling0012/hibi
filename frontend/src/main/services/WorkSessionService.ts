@@ -1,13 +1,13 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-// Work session declaration service (P4-A).
+// Work session declaration service.
 //
 // Reads the sync settings (server_url / device_id / device_name) from the
 // local backend (/api/sync_settings), then keeps the single global "active"
 // declaration in sync with the sync-server by polling GET /v1/sessions/active
 // every 30s. Everything here is fail-soft: any failure only degrades this
-// feature (menu shows the error) and never affects the rest of the app.
+// feature (the home page panel shows the error) and never affects the rest.
 
 import os from 'node:os'
 import { getLogger } from '@shared/logger/main'

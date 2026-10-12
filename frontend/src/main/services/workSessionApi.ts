@@ -132,16 +132,3 @@ export async function registerDevice(
     body: { name, os }
   })
 }
-
-/** "h:mm:ss" over an hour, otherwise "mm:ss". */
-export function formatElapsed(startedAtIso: string, now: Date = new Date()): string {
-  const started = new Date(startedAtIso).getTime()
-  if (!Number.isFinite(started)) return '00:00'
-  let sec = Math.max(0, Math.floor((now.getTime() - started) / 1000))
-  const h = Math.floor(sec / 3600)
-  sec -= h * 3600
-  const m = Math.floor(sec / 60)
-  const s = sec - m * 60
-  const pad = (n: number): string => String(n).padStart(2, '0')
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
-}
