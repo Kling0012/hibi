@@ -117,6 +117,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml -p hibi up -d --
 | `TZ_DEFAULT` | `Asia/Tokyo` | 日付の区切りに使うタイムゾーン |
 | `API_PORT` | `18741` | 開発用の待ち受けポート |
 | `PROD_TAILNET_IP` / `PROD_PORT` | — / `18740` | 本番の待ち受け |
+| `MCP_ALLOWED_HOSTS` | — | MCP（`/mcp`）で受け付ける Host（例: `100.x.y.z:18740`、カンマ区切り）。空なら Host を確かめない |
 
 ## データ
 
