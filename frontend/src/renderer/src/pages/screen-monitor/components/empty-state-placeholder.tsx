@@ -3,7 +3,6 @@ import { Typography, Button } from '@arco-design/web-react'
 import Stopped from '@renderer/assets/images/screen-monitor/stopped.png'
 import NeedPermission from '@renderer/assets/images/screen-monitor/need-permission.svg'
 import screenMonitorEmpty from '@renderer/assets/images/screen-monitor/screen-monitor-empty.svg'
-import { SCREEN_INTERVAL_TIME } from '../constant'
 
 const { Text } = Typography
 
@@ -22,28 +21,27 @@ const EmptyStatePlaceholder: React.FC<EmptyStatePlaceholderProps> = ({ hasPermis
             <>
               <img src={Stopped} alt="Screen recording" style={{ width: 66, height: 78 }} />
               <Text style={{ marginTop: 16, width: 270, color: '#6C7191', fontSize: 12 }}>
-                Start screen recording, and then it will take screenshots and summarize your work records every{' '}
-                {SCREEN_INTERVAL_TIME} minutes
+                記録を開始すると、画面の変化を AI が読み取り、作業の記録として残します。
               </Text>
             </>
           ) : (
             <>
               <img src={screenMonitorEmpty} alt="Screen recording" style={{ width: 66, height: 78 }} />
-              <Text style={{ marginTop: 16, width: 270, color: '#6C7191', fontSize: 12 }}>No data available</Text>
+              <Text style={{ marginTop: 16, width: 270, color: '#6C7191', fontSize: 12 }}>この日の記録はありません</Text>
             </>
           )
         ) : (
           <>
             <img src={NeedPermission} alt="Need permission" style={{ width: 286, height: 168, marginLeft: 67 }} />
             <Text style={{ marginTop: 16, width: 440, color: '#6C7191', fontSize: 12 }}>
-              Enable screen recording permission, summary with AI every {SCREEN_INTERVAL_TIME} minutes
+              画面収録の許可をオンにすると、AI が画面から作業を記録できるようになります。
             </Text>
             <Button
               type="primary"
               size="large"
               onClick={onGrantPermission}
               className="[&_.arco-btn-primary]: !mt-6 [&_.arco-btn-primary]: !font-medium [&_.arco-btn-primary]: !bg-black">
-              Enable Permission
+              許可する
             </Button>
           </>
         )}

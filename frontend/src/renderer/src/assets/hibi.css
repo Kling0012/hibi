@@ -435,3 +435,17 @@
 .hb-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ---------- settings ---------- */
+.hb-settings .hb-scroll {
+  padding: 0 22px 22px;
+}
+.hb-tabs .arco-tabs-header-nav::before {
+  background-color: var(--hb-line);
+}
+.hb-tabs .arco-tabs-header-title {
+  font-size: 14px;
+}
+.hb-tabs .arco-tabs-content {
+  padding-top: 16px;
+}

@@ -46,7 +46,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   return (
     <Modal
-      title="Settings"
+      title="記録の対象"
       visible={visible}
       autoFocus={false}
       focusLock
@@ -67,7 +67,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       <Form layout="vertical" form={form}>
         <div className="flex w-full flex-1 mt-5">
           <div className="flex flex-col flex-1 pr-[24px]">
-            <Form.Item label="Record Interval" className="[&_.arco-form-item-label]:!text-xs">
+            <Form.Item label="記録の間隔" className="[&_.arco-form-item-label]:!text-xs">
               <Slider
                 value={tempRecordInterval}
                 onChange={(value) => onSetTempRecordInterval(value as number)}
@@ -81,7 +81,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 formatTooltip={(value) => `${value}s`}
               />
             </Form.Item>
-            <Form.Item label="Choose what to record" shouldUpdate>
+            <Form.Item label="記録するもの" shouldUpdate>
               {(values) => {
                 const { screenSources = [], windowSources = [] } = values || {}
                 const screenList = screenAllSources?.filter((source) => screenSources.includes(source.id)) || []
@@ -98,7 +98,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 )
               }}
             </Form.Item>
-            <Form.Item label="Enable recording hours" className="[&_.arco-form-item-label]:!text-xs !mb-0">
+            <Form.Item label="記録する時間帯を決める" className="[&_.arco-form-item-label]:!text-xs !mb-0">
               <Switch
                 checked={tempEnableRecordingHours}
                 onChange={onSetTempEnableRecordingHours}
@@ -109,20 +109,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </Form.Item>
             {tempEnableRecordingHours && (
               <div className="!mt-3">
-                <Form.Item label="Set recording hours" className="[&_.arco-form-item-label]:!text-xs">
+                <Form.Item label="時間帯" className="[&_.arco-form-item-label]:!text-xs">
                   <TimePicker.RangePicker
                     format="HH:mm"
                     value={tempRecordingHours}
                     onChange={(value) => onSetTempRecordingHours(value as [string, string])}
                   />
                 </Form.Item>
-                <Form.Item label="Apply to days" className="[&_.arco-form-item-label]: !text-xs">
+                <Form.Item label="曜日" className="[&_.arco-form-item-label]: !text-xs">
                   <Radio.Group value={tempApplyToDays} onChange={onSetTempApplyToDays}>
                     <Radio value="weekday" className="[&_.arco-radio-mask]: !border-[#d7daea]">
-                      Only weekday
+                      平日のみ
                     </Radio>
                     <Radio value="everyday" className="[&_.arco-radio-mask]: !border-[#d7daea]">
-                      Everyday
+                      毎日
                     </Radio>
                   </Radio.Group>
                 </Form.Item>
@@ -134,9 +134,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               'flex flex-col flex-1 border-l border-[#efeff4] max-h-[360px] h-[360px] overflow-x-hidden overflow-y-auto px-[16px]  [&_.arco-checkbox-checked_.arco-checkbox-mask]:!bg-[#000000] [&_.arco-checkbox-checked_.arco-checkbox-mask]:!border-[#000000]',
               { hidden: !applicationVisible }
             )}>
-            <div className="text-[15px] leading-[18px] text-[#42464e] mb-[12px] font-medium">Choose what to record</div>
+            <div className="text-[15px] leading-[18px] text-[#42464e] mb-[12px] font-medium">記録するもの</div>
             <div className="[&_.arco-checkbox]:!flex [&_.arco-checkbox]:!items-center">
-              <div className="text-[14px] leading-[20px] text-[#42464e] mb-[4px]">Screen</div>
+              <div className="text-[14px] leading-[20px] text-[#42464e] mb-[4px]">画面</div>
               <Form.Item field="screenSources">
                 <Checkbox.Group className="!grid grid-cols-3 gap-4 relative [&_label]:!mr-0 [&_.arco-checkbox-text]:!ml-0">
                   {screenAllSources.map((source) => (
@@ -179,9 +179,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </Form.Item>
             </div>
             <div className="[&_.arco-checkbox]:!flex [&_.arco-checkbox]:!items-center">
-              <div className="text-[14px] leading-[20px] text-[#42464e] mb-[4px]">Window</div>
+              <div className="text-[14px] leading-[20px] text-[#42464e] mb-[4px]">ウィンドウ</div>
               <div className="text-[10px] leading-[12px] text-[#737a87] mb-[4px]">
-                Only opened applications can be selected
+                開いているアプリだけ選べます
               </div>
               <Form.Item field="windowSources">
                 <Checkbox.Group className="flex flex-col space-y-4">

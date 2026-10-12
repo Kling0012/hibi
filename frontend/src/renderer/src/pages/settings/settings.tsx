@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { FC, useCallback, useEffect, useState } from 'react'
-import { Button, Input, InputNumber, Message, Select, Spin, Switch, Typography } from '@arco-design/web-react'
+import { Button, Input, InputNumber, Message, Select, Spin, Switch, Tabs, Typography } from '@arco-design/web-react'
 import { get } from 'lodash'
 
 import {
@@ -26,11 +26,11 @@ const { Text } = Typography
 
 const ROUTE_KEYS = ['vision', 'chat', 'structured', 'embedding', 'exact'] as const
 const ROUTE_LABELS: Record<string, string> = {
-  vision: 'Vision (image understanding)',
-  chat: 'Chat / agent',
-  structured: 'Structured (JSON output)',
-  embedding: 'Embedding',
-  exact: 'Exact (verbatim screen text)'
+  vision: '画像の理解（vision）',
+  chat: 'チャット・エージェント（chat）',
+  structured: '構造化出力・JSON（structured）',
+  embedding: '埋め込み（embedding）',
+  exact: '画面の文字の正確な記録（exact）'
 }
 const KIND_OPTIONS = [
   { value: 'openai_compat', label: 'openai_compat' },
@@ -163,7 +163,7 @@ const Settings: FC<SettingsProps> = (props) => {
   const save = async () => {
     const ids = providers.map((p) => p.id.trim()).filter(Boolean)
     if (providers.length === 0 || new Set(ids).size !== ids.length) {
-      Message.error('Provider ids must be unique and non-empty')
+      Message.error('ID は空にできず、重複もできません')
       return
     }
     setSaving(true)
@@ -178,11 +178,11 @@ const Settings: FC<SettingsProps> = (props) => {
         output_language: outputLanguage
       }
       await updateAISettings(payload)
-      Message.success('AI settings saved')
+      Message.success('AI の設定を保存しました')
       await load()
       if (init) closeSetting?.()
     } catch (e) {
-      Message.error(get(e, 'response.data.message') || get(e, 'message') || 'Failed to save')
+      Message.error(get(e, 'response.data.message') || get(e, 'message') || '保存できませんでした')
     } finally {
       setSaving(false)
     }
@@ -198,9 +198,9 @@ const Settings: FC<SettingsProps> = (props) => {
           .map((s) => s.trim())
           .filter(Boolean)
       })
-      Message.success('Capture settings saved')
+      Message.success('画面の記録の設定を保存しました')
     } catch (e) {
-      Message.error(get(e, 'response.data.message') || get(e, 'message') || 'Failed to save')
+      Message.error(get(e, 'response.data.message') || get(e, 'message') || '保存できませんでした')
     } finally {
       setCaptureSaving(false)
     }
@@ -215,9 +215,9 @@ const Settings: FC<SettingsProps> = (props) => {
         setSync(syncData.sync || {})
         setSyncStatus(syncData.status || null)
       }
-      Message.success('Sync settings saved')
+      Message.success('同期の設定を保存しました')
     } catch (e) {
-      Message.error(get(e, 'response.data.message') || get(e, 'message') || 'Failed to save')
+      Message.error(get(e, 'response.data.message') || get(e, 'message') || '保存できませんでした')
     } finally {
       setSyncSaving(false)
     }
@@ -225,13 +225,18 @@ const Settings: FC<SettingsProps> = (props) => {
 
   return (
     <Spin loading={loading} block className="[&_.arco-spin-children]:!h-full !h-full">
-      <div className="top-0 left-0 flex flex-col h-full overflow-y-hidden py-2 pr-2 relative">
-        <div className="bg-white rounded-[16px] pl-6 flex flex-col h-full overflow-y-auto overflow-x-hidden scrollbar-hide pb-2">
+      <div className={`hb-page hb-settings${init ? ' hb-settings-init' : ''}`} style={{ height: '100%' }}>
+        <div className="hb-page-head">
+          <h1>{init ? 'Hibi へようこそ' : '設定'}</h1>
+          {init && <span className="hb-sub">まず AI の接続先を設定してください</span>}
+        </div>
+        <div className="hb-scroll">
+          <Tabs defaultActiveTab="ai" className="hb-tabs">
+          <Tabs.TabPane key="ai" title="AI">
           <div className="mb-[12px]">
-            <div className="mt-[26px] mb-[10px] text-[24px] font-bold text-[#000]">AI providers</div>
             <Text type="secondary" className="text-[13px]">
-              Providers are tried in route order; on failure the next one is used automatically.
-              Keys are read from a file path or an inline value.
+              AI の接続先は用途ごとの順番で使われ、失敗すると次の候補に自動で切り替わります。
+              鍵はファイルのパスか、直接入力で指定します。
             </Text>
           </div>
 
@@ -243,7 +248,7 @@ const Settings: FC<SettingsProps> = (props) => {
                   <Input
                     value={provider.id}
                     onChange={(v) => updateProvider(index, { id: v })}
-                    placeholder="id (unique)"
+                    placeholder="ID（重複不可）"
                     className="!w-[160px]"
                   />
                   <Select
@@ -255,14 +260,14 @@ const Settings: FC<SettingsProps> = (props) => {
                   <Input
                     value={provider.model}
                     onChange={(v) => updateProvider(index, { model: v })}
-                    placeholder="model name"
+                    placeholder="モデル名"
                     className="flex-1"
                   />
                   <Button size="small" onClick={() => test(provider)} loading={testing[provider.id]}>
-                    Test
+                    接続テスト
                   </Button>
                   <Button size="small" status="danger" onClick={() => removeProvider(provider.id)}>
-                    Remove
+                    削除
                   </Button>
                 </div>
                 <div className="flex items-center gap-2">
@@ -270,14 +275,14 @@ const Settings: FC<SettingsProps> = (props) => {
                     <Input
                       value={provider.base_url || ''}
                       onChange={(v) => updateProvider(index, { base_url: v })}
-                      placeholder="base URL (https://...)"
+                      placeholder="ベース URL（https://…）"
                       className="flex-1"
                     />
                   )}
                   <Input
                     value={provider.api_key_file || ''}
                     onChange={(v) => updateProvider(index, { api_key_file: v })}
-                    placeholder="API key file path (~ allowed)"
+                    placeholder="API キーのファイルパス（~ 可）"
                     className="flex-1"
                   />
                 </div>
@@ -285,14 +290,14 @@ const Settings: FC<SettingsProps> = (props) => {
                   <Input.Password
                     value={provider.api_key || ''}
                     onChange={(v) => updateProvider(index, { api_key: v })}
-                    placeholder={provider.has_api_key ? 'API key (saved — leave blank to keep)' : 'API key value (optional if file path set)'}
+                    placeholder={provider.has_api_key ? 'API キー（保存済み。空欄なら変更しません）' : 'API キー（ファイルパスを指定した場合は不要）'}
                     className="flex-1"
                     defaultVisibility={false}
                   />
                 </div>
                 {testResults[provider.id] && (
                   <Text type={testResults[provider.id].ok ? 'success' : 'error'} className="text-[12px]">
-                    {testResults[provider.id].ok ? 'OK' : 'Failed'}: {testResults[provider.id].message}
+                    {testResults[provider.id].ok ? 'OK' : '失敗'}: {testResults[provider.id].message}
                   </Text>
                 )}
               </div>
@@ -301,12 +306,12 @@ const Settings: FC<SettingsProps> = (props) => {
               className="!w-[160px]"
               onClick={() => setProviders((prev) => [...prev, emptyProvider(prev.length + 1)])}
             >
-              + Add provider
+              ＋ 接続先を追加
             </Button>
           </div>
 
           {/* Routes */}
-          <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">Route priorities</div>
+          <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">用途ごとの優先順</div>
           <div className="flex flex-col gap-4 mb-6">
             {ROUTE_KEYS.map((route) => (
               <div key={route} className="flex flex-col gap-1">
@@ -333,12 +338,12 @@ const Settings: FC<SettingsProps> = (props) => {
                   ))}
                   {(routes[route] || []).length === 0 && (
                     <Text type="secondary" className="text-[12px]">
-                      empty (features using this route are disabled)
+                      未設定（この用途を使う機能は止まります）
                     </Text>
                   )}
                 </div>
                 <Select
-                  placeholder="+ add provider to this route"
+                  placeholder="＋ この用途に接続先を追加"
                   value={undefined as unknown as string}
                   options={providers
                     .filter((p) => !(routes[route] || []).includes(p.id))
@@ -352,7 +357,7 @@ const Settings: FC<SettingsProps> = (props) => {
 
           {/* Output language */}
           <div className="mb-6 flex items-center gap-3">
-            <Text className="text-[14px] font-medium">Output language</Text>
+            <Text className="text-[14px] font-medium">出力の言語</Text>
             <Select
               value={outputLanguage}
               options={LANGUAGE_OPTIONS}
@@ -360,27 +365,34 @@ const Settings: FC<SettingsProps> = (props) => {
               className="!w-[160px]"
             />
             <Text type="secondary" className="text-[12px]">
-              Appended to prompts so generated text (summaries, reports) uses this language.
+              要約や日報などの生成文をこの言語で書かせます。
             </Text>
           </div>
 
+          <Spin loading={saving}>
+            <Button type="primary" onClick={save} disabled={saving}>
+              {init ? 'はじめる' : 'AI の設定を保存'}
+            </Button>
+          </Spin>
+          </Tabs.TabPane>
+
           {/* Screen recording (P1-B) */}
-          <div className="mb-[24px] pt-[16px] border-t border-[#E5E6EB]">
-            <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">Screen recording</div>
+          <Tabs.TabPane key="capture" title="画面の記録">
+          <div>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">Recording paused</Text>
+                <Text className="text-[14px] w-[240px]">記録を一時停止</Text>
                 <Switch
                   size="small"
                   checked={!!capture.paused}
                   onChange={(v) => setCapture((prev) => ({ ...prev, paused: v }))}
                 />
                 <Text type="secondary" className="text-[12px]">
-                  Temporarily stop live screen recording (frames are not captured at all).
+                  画面の記録を一時的に止めます（画面は一切取得しません）。
                 </Text>
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">Live frame rate (fps)</Text>
+                <Text className="text-[14px] w-[240px]">ライブのフレームレート（fps）</Text>
                 <InputNumber
                   size="small"
                   min={0.2}
@@ -391,11 +403,11 @@ const Settings: FC<SettingsProps> = (props) => {
                   className="!w-[120px]"
                 />
                 <Text type="secondary" className="text-[12px]">
-                  0.2 - 1. Restart recording to apply.
+                  0.2〜1。記録を再開すると反映されます。
                 </Text>
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">Live summary interval (s)</Text>
+                <Text className="text-[14px] w-[240px]">ライブ要約の間隔（秒）</Text>
                 <InputNumber
                   size="small"
                   min={5}
@@ -406,11 +418,11 @@ const Settings: FC<SettingsProps> = (props) => {
                   className="!w-[120px]"
                 />
                 <Text type="secondary" className="text-[12px]">
-                  How often the ongoing screen stream is summarized into an activity.
+                  画面の流れを何秒ごとに活動としてまとめるか。
                 </Text>
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">Min capture interval (s)</Text>
+                <Text className="text-[14px] w-[240px]">文字記録の最小間隔（秒）</Text>
                 <InputNumber
                   size="small"
                   min={5}
@@ -421,11 +433,11 @@ const Settings: FC<SettingsProps> = (props) => {
                   className="!w-[120px]"
                 />
                 <Text type="secondary" className="text-[12px]">
-                  Minimum seconds between verbatim screen-text captures.
+                  画面の文字を正確に記録する間隔の下限。
                 </Text>
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">Change threshold (dhash distance)</Text>
+                <Text className="text-[14px] w-[240px]">変化のしきい値（dhash 距離）</Text>
                 <InputNumber
                   size="small"
                   min={1}
@@ -436,11 +448,11 @@ const Settings: FC<SettingsProps> = (props) => {
                   className="!w-[120px]"
                 />
                 <Text type="secondary" className="text-[12px]">
-                  Larger = only bigger screen changes trigger a capture.
+                  大きいほど、大きな画面の変化でだけ記録します。
                 </Text>
               </div>
               <div className="flex flex-col gap-1">
-                <Text className="text-[14px]">Excluded apps (one per line)</Text>
+                <Text className="text-[14px]">記録しないアプリ（1行に1つ）</Text>
                 <Input.TextArea
                   value={excludeAppsText}
                   onChange={(v) => setExcludeAppsText(v)}
@@ -449,33 +461,35 @@ const Settings: FC<SettingsProps> = (props) => {
                   className="!w-[400px]"
                 />
                 <Text type="secondary" className="text-[12px]">
-                  Frontmost apps never recorded (matched by app name substring).
+                  最前面にあるとき記録しません（アプリ名の部分一致）。
                 </Text>
               </div>
               <Button className="!w-[120px]" loading={captureSaving} onClick={saveCapture}>
-                Save capture
+                保存
               </Button>
             </div>
           </div>
 
+          </Tabs.TabPane>
+
           {/* Sync server (P1-B) */}
-          <div className="mb-[24px] pt-[16px] border-t border-[#E5E6EB]">
-            <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">Sync server</div>
+          <Tabs.TabPane key="sync" title="同期">
+          <div>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">Upload to sync server</Text>
+                <Text className="text-[14px] w-[240px]">同期サーバへ送る</Text>
                 <Switch
                   size="small"
                   checked={!!sync.enabled}
                   onChange={(v) => setSync((prev) => ({ ...prev, enabled: v }))}
                 />
                 <Text type="secondary" className="text-[12px]">
-                  Recorded events are queued locally and uploaded in batches. Local recording
-                  continues even when the server is unreachable.
+                  記録はいったん手元に貯めてからまとめて送ります。サーバに届かない間も
+                  記録は続きます。
                 </Text>
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">Server URL</Text>
+                <Text className="text-[14px] w-[240px]">サーバの URL</Text>
                 <Input
                   value={sync.server_url || ''}
                   onChange={(v) => setSync((prev) => ({ ...prev, server_url: v }))}
@@ -485,41 +499,37 @@ const Settings: FC<SettingsProps> = (props) => {
                 />
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">Device name</Text>
+                <Text className="text-[14px] w-[240px]">端末名</Text>
                 <Input
                   value={sync.device_name || ''}
                   onChange={(v) => setSync((prev) => ({ ...prev, device_name: v }))}
-                  placeholder="(hostname)"
+                  placeholder="（ホスト名）"
                   className="!w-[340px]"
                   size="small"
                 />
               </div>
               {syncStatus && (
                 <div className="flex flex-col gap-1 text-[12px] text-[#6E718C]">
-                  <span>Device ID: {syncStatus.device_id || '(not generated yet)'}</span>
-                  <span>Last upload: {syncStatus.last_sync_at || 'never'}</span>
-                  <span>Pending events: {syncStatus.pending_count ?? '—'}</span>
+                  <span>端末 ID: {syncStatus.device_id || '（未発行）'}</span>
+                  <span>最後の送信: {syncStatus.last_sync_at || 'まだありません'}</span>
+                  <span>未送信: {syncStatus.pending_count ?? '—'} 件</span>
                   {syncStatus.last_error && (
-                    <Text type="error">Last error: {syncStatus.last_error}</Text>
+                    <Text type="error">直近のエラー: {syncStatus.last_error}</Text>
                   )}
                 </div>
               )}
               <Button className="!w-[120px]" loading={syncSaving} onClick={saveSync}>
-                Save sync
+                保存
               </Button>
             </div>
           </div>
 
-          <Spin loading={saving}>
-            <Button type="primary" onClick={save} disabled={saving} className="!bg-[#000]">
-              {init ? 'Get started' : 'Save'}
-            </Button>
-          </Spin>
+          </Tabs.TabPane>
 
-          <div className="mt-[32px] pt-[16px] border-t border-[#E5E6EB]">
-            <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">Application</div>
+          <Tabs.TabPane key="app" title="アプリ">
+          <div>
             <div className="mb-[4px] flex items-center justify-between">
-              <span className="text-[14px] text-[#0B0B0F]">Automatically check for updates</span>
+              <span className="text-[14px] text-[#0B0B0F]">更新を自動で確認する</span>
               <Switch
                 size="small"
                 checked={autoCheckUpdate}
@@ -527,10 +537,12 @@ const Settings: FC<SettingsProps> = (props) => {
               />
             </div>
             <Text type="secondary" className="text-[12px]">
-              Off by default. When enabled, Hibi checks for updates from GitHub releases on
-              startup and downloads them in the background.
+              既定はオフです。オンにすると、起動時に GitHub のリリースを確認し、
+              新しい版を裏でダウンロードします。
             </Text>
           </div>
+          </Tabs.TabPane>
+          </Tabs>
         </div>
       </div>
     </Spin>

@@ -59,7 +59,7 @@ const RecordingStatsCard: React.FC<RecordingStatsCardProps> = ({ stats }) => {
             <Tooltip
               content={
                 <div className="max-w-xs">
-                  <div className="font-medium mb-1">Recent Errors:</div>
+                  <div className="font-medium mb-1">最近のエラー:</div>
                   {stats.recent_errors.length > 0 ? (
                     <ul className="text-xs space-y-1">
                       {stats.recent_errors.map((error, index) => (
@@ -69,7 +69,7 @@ const RecordingStatsCard: React.FC<RecordingStatsCardProps> = ({ stats }) => {
                       ))}
                     </ul>
                   ) : (
-                    <span className="text-xs">No detailed error information available</span>
+                    <span className="text-xs">エラーの詳細はありません</span>
                   )}
                 </div>
               }>
