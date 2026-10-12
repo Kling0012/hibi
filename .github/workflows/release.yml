@@ -173,10 +173,9 @@ jobs:
       - name: Release
         uses: ncipollo/release-action@v1
         with:
-          workingDirectory: frontend
           draft: true
           allowUpdates: true
           makeLatest: false
           tag: ${{ steps.get-tag.outputs.tag }}
-          artifacts: 'dist/*.exe,dist/*.zip,dist/*.dmg,dist/*.AppImage,dist/*.snap,dist/*.deb,dist/*.rpm,dist/*.tar.gz,dist/latest*.yml,dist/rc*.yml,dist/beta*.yml,dist/*.blockmap'
+          artifacts: 'frontend/dist/*.exe,frontend/dist/*.zip,frontend/dist/*.dmg,frontend/dist/*.AppImage,frontend/dist/*.snap,frontend/dist/*.deb,frontend/dist/*.rpm,frontend/dist/*.tar.gz,frontend/dist/latest*.yml,frontend/dist/rc*.yml,frontend/dist/beta*.yml,frontend/dist/*.blockmap'
           token: ${{ secrets.GITHUB_TOKEN }}
