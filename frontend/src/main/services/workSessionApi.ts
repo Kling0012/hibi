@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Pure sync-server work-session client (P4-A). Deliberately free of any
-// Electron import so the declare/end logic can be exercised from plain Node
-// (see ~/.claude/work/minecontext/ verification scripts). Endpoints follow
-// sync-server/README.md "sessions" section.
+// Electron import so the declare/end logic can be exercised from plain Node.
+// Endpoints follow the "sessions" section of the hibi-server README
+// (https://github.com/Kling0012/hibi-server).
 
 import type { WorkSession } from '@shared/work-session'
 
