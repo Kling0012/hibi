@@ -1,0 +1,14 @@
+title: Hibi
+description: 自分の作業記録と AI の作業記録をひとつのタイムラインにまとめる
+lang: ja
+remote_theme: just-the-docs/just-the-docs@v0.12.0
+plugins:
+  - jekyll-remote-theme
+color_scheme: light
+search_enabled: true
+heading_anchors: true
+aux_links:
+  "GitHub": "https://github.com/Kling0012/hibi"
+footer_content: "Hibi は volcengine/MineContext（Apache-2.0）をもとにした個人用のアプリです。"
+exclude:
+  - upstream/
