@@ -130,7 +130,17 @@ jobs:
       - name: Build Mac
         if: matrix.os == 'macos-latest'
         working-directory: frontend
+        shell: bash
         run: |
+          # electron-builder 26 treats an empty-string CSC_LINK as a relative
+          # certificate path (resolves to the project dir and fails with
+          # "not a file"). Unset empty signing envs so the build falls back
+          # to an unsigned / ad-hoc build when the secrets are absent.
+          [ -n "$CSC_LINK" ] || unset CSC_LINK
+          [ -n "$CSC_KEY_PASSWORD" ] || unset CSC_KEY_PASSWORD
+          [ -n "$APPLE_ID" ] || unset APPLE_ID
+          [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] || unset APPLE_APP_SPECIFIC_PASSWORD
+          [ -n "$APPLE_TEAM_ID" ] || unset APPLE_TEAM_ID
           pnpm run build:mac
         env:
           CSC_LINK: ${{ secrets.CSC_LINK }}
