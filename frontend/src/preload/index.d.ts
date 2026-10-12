@@ -4,11 +4,22 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 
 import type { WindowApiType } from './index'
+import type { WorkSessionResult, WorkSessionState } from '@shared/work-session'
 
 declare global {
   interface Window {
     electron: ElectronAPI
     api: WindowApiType
+    workSessionAPI: {
+      getState: () => Promise<WorkSessionState>
+      declare: (title: string) => Promise<WorkSessionResult>
+      endActive: () => Promise<WorkSessionResult>
+      openManageUi: () => Promise<void>
+      getShortcut: () => Promise<string>
+      setShortcut: (accelerator: string) => Promise<{ ok: boolean; accelerator?: string; error?: string }>
+      hide: () => Promise<void>
+      onStateChanged: (callback: (state: WorkSessionState) => void) => () => void
+    }
     dbAPI: {
       getAllVaults: (type?: string) => Promise<any>
       getVaultsByParentId: (parentId: number | null) => Promise<any>

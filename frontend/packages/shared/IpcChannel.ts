@@ -324,6 +324,15 @@ export enum IpcChannel {
 
   // Backend 服务相关
   Backend_GetPort = 'backend:get-port',
+
+  // Work session declaration (P4-A)
+  WorkSession_GetState = 'worksession:get-state',
+  WorkSession_Declare = 'worksession:declare',
+  WorkSession_End = 'worksession:end',
+  WorkSession_OpenManageUi = 'worksession:open-manage-ui',
+  WorkSession_GetShortcut = 'worksession:get-shortcut',
+  WorkSession_SetShortcut = 'worksession:set-shortcut',
+  DeclareWindow_Hide = 'declarewindow:hide',
   Backend_GetStatus = 'backend:get-status',
   Backend_StatusChanged = 'backend:status-changed',
 

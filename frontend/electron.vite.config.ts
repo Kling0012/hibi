@@ -60,6 +60,14 @@ export default defineConfig({
         }
       }
     },
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve('src/renderer/index.html'),
+          declare: resolve('src/renderer/declare.html')
+        }
+      }
+    },
     plugins: [
       tailwindcss(),
       react({}),

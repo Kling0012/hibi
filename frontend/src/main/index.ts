@@ -25,6 +25,8 @@ import { initLog } from '@shared/logger/init'
 import { getLogger } from '@shared/logger/main'
 import { monitor } from '@shared/logger/performance'
 import { TrayService } from './services/TrayService'
+import { workSessionService } from './services/WorkSessionService'
+import { declareWindowService } from './services/DeclareWindowService'
 import { ScreenMonitorTask } from './background/task/screen-monitor-task'
 import { autoUpdater } from 'electron-updater'
 import { IpcChannel } from '@shared/IpcChannel'
@@ -276,6 +278,11 @@ app.whenReady().then(() => {
   trayService.create()
   logger.info('Tray service initialized')
 
+  // Work session declaration (P4-A) - fail-soft, only affects tray/tooltip
+  workSessionService.subscribe(() => trayService?.onWorkSessionStateChanged())
+  workSessionService.start()
+  declareWindowService.init()
+
   // Start screenshot cleanup scheduled task
   startScreenshotCleanup()
   task.init()
@@ -349,6 +356,10 @@ app.on('before-quit', () => {
     trayService.destroy()
     trayService = null
   }
+
+  // Work session declaration cleanup
+  workSessionService.stop()
+  declareWindowService.destroy()
 
   if (server) {
     server.close()

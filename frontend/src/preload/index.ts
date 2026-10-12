@@ -12,6 +12,8 @@ import { CaptureSource } from '@interface/common/source'
 
 import { VaultDocumentType } from '@shared/enums/global-enum'
 import { ScreenSettings } from '@renderer/store/setting'
+import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
+import type { WorkSessionResult, WorkSessionState } from '@shared/work-session'
 
 // Custom APIs for renderer
 const api = {
@@ -118,6 +120,24 @@ const eventLoop = {
   getHomeLatestActivity: (status: string) => ipcRenderer.invoke(IpcChannel.Get_Home_LatestActivity, status)
 }
 
+// Work session declaration (P4-A), used by the declare window page
+const workSessionAPI = {
+  getState: (): Promise<WorkSessionState> => ipcRenderer.invoke(IpcChannel.WorkSession_GetState),
+  declare: (title: string): Promise<WorkSessionResult> =>
+    ipcRenderer.invoke(IpcChannel.WorkSession_Declare, title),
+  endActive: (): Promise<WorkSessionResult> => ipcRenderer.invoke(IpcChannel.WorkSession_End),
+  openManageUi: (): Promise<void> => ipcRenderer.invoke(IpcChannel.WorkSession_OpenManageUi),
+  getShortcut: (): Promise<string> => ipcRenderer.invoke(IpcChannel.WorkSession_GetShortcut),
+  setShortcut: (accelerator: string): Promise<{ ok: boolean; accelerator?: string; error?: string }> =>
+    ipcRenderer.invoke(IpcChannel.WorkSession_SetShortcut, accelerator),
+  hide: (): Promise<void> => ipcRenderer.invoke(IpcChannel.DeclareWindow_Hide),
+  onStateChanged: (callback: (state: WorkSessionState) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, state: WorkSessionState): void => callback(state)
+    ipcRenderer.on(IpcServerPushChannel.WorkSession_StateChanged, listener)
+    return () => ipcRenderer.removeListener(IpcServerPushChannel.WorkSession_StateChanged, listener)
+  }
+}
+
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
@@ -130,6 +150,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('fileService', fileService)
     contextBridge.exposeInMainWorld('serverPushAPI', serverPushAPI)
     contextBridge.exposeInMainWorld('eventLoop', eventLoop)
+    contextBridge.exposeInMainWorld('workSessionAPI', workSessionAPI)
   } catch (error) {
     console.error(error)
   }
@@ -148,6 +169,8 @@ if (process.contextIsolated) {
   window.serverPushAPI = serverPushAPI
   // @ts-ignore (define in dts)
   window.eventLoop = eventLoop
+  // @ts-ignore (define in dts)
+  window.workSessionAPI = workSessionAPI
 }
 
 ipcRenderer.on('main-log', (_, ...args) => {

@@ -8,5 +8,6 @@ export enum IpcServerPushChannel {
   NotificationClick = 'push:IpcServerPushChannel.NotificationClick',
   Tray_ToggleRecording = 'push:tray-toggle-recording',
   Tray_NavigateToScreenMonitor = 'push:tray-navigate-to-screen-monitor',
-  Home_PushLatestActivity = 'push:latest-activity'
+  Home_PushLatestActivity = 'push:latest-activity',
+  WorkSession_StateChanged = 'push:worksession-state-changed'
 }

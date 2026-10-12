@@ -39,6 +39,8 @@ import { getTrayService } from './index'
 import { type Dayjs } from 'dayjs'
 import AppUpdater from './services/AppUpdater'
 import { HeatmapService } from './services/HeatmapService'
+import { workSessionService } from './services/WorkSessionService'
+import { declareWindowService } from './services/DeclareWindowService'
 
 const logger = getLogger('IPC')
 
@@ -606,4 +608,15 @@ export function registerIpc(mainWindow: BrowserWindow, app: Electron.App) {
   ipcMain.handle(IpcChannel.Get_Heatmap_Data, async (_, startTime: number, endTime: number) => {
     return HeatmapService.getHeatmapData(startTime, endTime)
   })
+
+  // Work session declaration (P4-A)
+  ipcMain.handle(IpcChannel.WorkSession_GetState, () => workSessionService.getState())
+  ipcMain.handle(IpcChannel.WorkSession_Declare, (_, title: string) => workSessionService.declare(title))
+  ipcMain.handle(IpcChannel.WorkSession_End, () => workSessionService.endActive())
+  ipcMain.handle(IpcChannel.WorkSession_OpenManageUi, () => declareWindowService.openManageUi())
+  ipcMain.handle(IpcChannel.WorkSession_GetShortcut, () => declareWindowService.getShortcut())
+  ipcMain.handle(IpcChannel.WorkSession_SetShortcut, (_, accelerator: string) =>
+    declareWindowService.setShortcut(accelerator)
+  )
+  ipcMain.handle(IpcChannel.DeclareWindow_Hide, () => declareWindowService.hide())
 }
