@@ -102,6 +102,16 @@ async def update_sync_settings(request: SyncSettingsRequest, _auth: str = auth_d
             return convert_resp(code=500, status=500, message="Failed to save settings")
         config_mgr.load_config(config_mgr.get_config_path())
 
+        # Providers with options.base_url_from_sync derive their base_url from
+        # sync.server_url: rebuild the router so the new URL is used right
+        # away. Fail-soft: never block the sync settings save.
+        try:
+            from opencontext.llm.provider_router import reinitialize_provider_router
+
+            reinitialize_provider_router()
+        except Exception as e:
+            logger.warning(f"Failed to reinitialize provider router: {e}")
+
         from opencontext.screen_record.sync_outbox import get_sync_outbox
 
         outbox = get_sync_outbox()

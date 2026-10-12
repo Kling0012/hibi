@@ -35,11 +35,23 @@ Configuration (config.yaml ``ai`` section)::
           base_url: https://open.bigmodel.cn/api/coding/paas/v4
           api_key_file: ~/.config/minecontext/zhipu-key
           options: {max_tokens: 8192}
+        - id: mcsync_embedding
+          kind: openai_compat
+          model: qwen3-embedding-0.6b
+          api_key: no-key
+          options: {base_url_from_sync: true}
       routes:
         vision: [gemini_live_38, glm_flash]
         chat: [glm_flash, glm_53]
         structured: [glm_flash]
         embedding: []
+
+openai_compat providers may set ``options.base_url_from_sync: true`` instead
+of ``base_url``: the URL is derived from ``sync.server_url`` (runtime value,
+trailing "/" stripped) + "/v1" — the sync server relays an OpenAI-compatible
+/v1 API (embeddings). When sync.server_url is empty the provider is built
+unusable and dropped from its routes (fail-soft: only embedding-dependent
+features stop; the application keeps running).
 
 Legacy ``vlm_model`` / ``embedding_model`` sections are converted into a
 single openai_compat provider per section when no ``ai.providers`` exist.
@@ -609,6 +621,32 @@ def _summarize_error(error: Any) -> str:
     return message if len(message) <= 200 else message[:197] + "..."
 
 
+def _apply_sync_base_url(provider_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Apply ``options.base_url_from_sync`` to one provider config.
+
+    base_url is derived from ``sync.server_url`` (runtime value including
+    user_setting.yaml) with trailing "/" stripped plus "/v1". When the sync
+    URL is empty any configured base_url is removed so the provider is built
+    unusable (fail-soft: only its routes go empty; nothing else stops).
+    """
+    options = provider_config.get("options") or {}
+    if not options.get("base_url_from_sync"):
+        return provider_config
+    base_url = ""
+    try:
+        from opencontext.config.global_config import get_config
+
+        server_url = str((get_config("sync") or {}).get("server_url") or "")
+        server_url = server_url.strip().rstrip("/")
+        if server_url:
+            base_url = f"{server_url}/v1"
+    except Exception as e:
+        logger.warning(f"[ProviderRouter] cannot resolve sync.server_url: {e}")
+    if base_url:
+        return {**provider_config, "base_url": base_url}
+    return {k: v for k, v in provider_config.items() if k != "base_url"}
+
+
 def _retry_after_seconds(error: Any) -> Optional[float]:
     """Extract Retry-After from an OpenAI SDK error, if present."""
     response = getattr(error, "response", None)
@@ -653,7 +691,7 @@ class ProviderRouter:
         if raw_providers:
             for provider_config in raw_providers:
                 try:
-                    provider = self._create_provider(provider_config)
+                    provider = self._create_provider(_apply_sync_base_url(provider_config))
                 except Exception as e:
                     logger.error(
                         f"[ProviderRouter] failed to init provider "
@@ -1153,7 +1191,7 @@ class ProviderRouter:
     async def _test_provider_config(self, provider_config: Dict[str, Any]) -> Tuple[bool, str]:
         """Connection test for a (possibly unsaved) provider config."""
         try:
-            provider = self._create_provider(provider_config)
+            provider = self._create_provider(_apply_sync_base_url(provider_config))
         except Exception as e:
             return False, f"init failed: {_summarize_error(e)}"
         if not provider.usable:

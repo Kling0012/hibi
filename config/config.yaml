@@ -70,10 +70,13 @@ ai:
       # holds the real provider (Cloudflare @cf/qwen/qwen3-embedding-0.6b,
       # 1024 dims; same as agent-memory). No real key involved: the relay has
       # no auth and the OpenAI client just requires a non-empty value.
-      base_url: "${MINECONTEXT_SYNC_URL:http://<sync-server-ip>:18740}/v1"
+      # base_url follows the sync server URL (options.base_url_from_sync):
+      # sync.server_url + /v1. When the sync URL is empty this provider is
+      # skipped and only embedding-dependent features stop (fail-soft).
       api_key: "no-key"
       options:
         output_dim: 1024
+        base_url_from_sync: true
   routes:
     vision: [gemini_live_38, glm_flash]
     chat: [glm_flash, glm_53]
@@ -118,7 +121,7 @@ capture:
 # to user_setting.yaml.
 sync:
   enabled: true
-  server_url: "http://<sync-server-ip>:18740"
+  server_url: "${MINECONTEXT_SYNC_URL:}"
   device_id: ""
   device_name: ""              # defaults to the hostname
 

@@ -271,14 +271,19 @@ const Settings: FC<SettingsProps> = (props) => {
                   </Button>
                 </div>
                 <div className="flex items-center gap-2">
-                  {provider.kind !== 'gemini_live' && (
-                    <Input
-                      value={provider.base_url || ''}
-                      onChange={(v) => updateProvider(index, { base_url: v })}
-                      placeholder="ベース URL（https://…）"
-                      className="flex-1"
-                    />
-                  )}
+                  {provider.kind !== 'gemini_live' &&
+                    (provider.options?.base_url_from_sync ? (
+                      <Text type="secondary" className="flex-1 text-[13px] leading-[32px]">
+                        同期サーバの URL を使います
+                      </Text>
+                    ) : (
+                      <Input
+                        value={provider.base_url || ''}
+                        onChange={(v) => updateProvider(index, { base_url: v })}
+                        placeholder="ベース URL（https://…）"
+                        className="flex-1"
+                      />
+                    ))}
                   <Input
                     value={provider.api_key_file || ''}
                     onChange={(v) => updateProvider(index, { api_key_file: v })}
