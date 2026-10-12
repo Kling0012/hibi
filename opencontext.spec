@@ -103,6 +103,8 @@ a = Analysis(
         'google.genai.types',
         'google.auth',
         'websockets.asyncio.client',
+        # sync outbox (P1-B) uploads events via httpx
+        'httpx',
     ],
     hookspath=['.'],
     hooksconfig={},

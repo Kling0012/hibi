@@ -208,6 +208,8 @@ class ConfigManager:
                 user_settings["logging"] = settings["logging"]
             if "prompts" in settings:
                 user_settings["prompts"] = settings["prompts"]
+            if "sync" in settings:
+                user_settings["sync"] = settings["sync"]
 
             # Save to file
             with open(user_setting_path, "w", encoding="utf-8") as f:

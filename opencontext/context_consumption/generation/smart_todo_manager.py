@@ -120,6 +120,24 @@ class SmartTodoManager:
                     except Exception as e:
                         logger.warning(f"Failed to store todo embedding for {todo_id}: {e}")
 
+                # Queue for upload to the sync server (fail-soft)
+                try:
+                    from opencontext.screen_record.sync_outbox import enqueue_outbox_event
+
+                    enqueue_outbox_event(
+                        kind="todo",
+                        started_at=datetime.datetime.now(),
+                        ended_at=deadline,
+                        app="",
+                        title=(content or "")[:100],
+                        text=content or "",
+                        meta={"reason": reason, "urgency": urgency,
+                              "participants": task.get("participants", [])},
+                        source="minecontext-desktop",
+                    )
+                except Exception as e:
+                    logger.warning(f"Outbox enqueue failed (non-fatal): {e}")
+
             # Return the complete result for external event processing
             return {
                 "content": f"{len(todo_ids)} tasks have been generated.",

@@ -62,7 +62,8 @@ ROUTE_VISION = "vision"
 ROUTE_CHAT = "chat"
 ROUTE_STRUCTURED = "structured"
 ROUTE_EMBEDDING = "embedding"
-ALL_ROUTES = (ROUTE_VISION, ROUTE_CHAT, ROUTE_STRUCTURED, ROUTE_EMBEDDING)
+ROUTE_EXACT = "exact"  # verbatim screen-text capture (single-shot, P1-B)
+ALL_ROUTES = (ROUTE_VISION, ROUTE_CHAT, ROUTE_STRUCTURED, ROUTE_EMBEDDING, ROUTE_EXACT)
 
 # Language directive appended to prompts (design: output_language, default ja)
 _LANGUAGE_NAMES = {
@@ -501,6 +502,63 @@ class GeminiLiveProvider(BaseProvider):
             if server_content and server_content.turn_complete:
                 break
         return collected.strip(), usage
+
+    # -- realtime stream API (P1-B live screen recording) ----------------------
+
+    async def push_realtime_frame(self, session_key: str, jpeg: bytes):
+        """Push one JPEG frame into a Live session without waiting for a
+        response. The websocket is full-duplex, so this is safe to call while
+        another coroutine is receiving. On send failure the session is dropped
+        and re-established with the resumption handle (one retry)."""
+        entry = await self._get_session(session_key)
+        session = entry["session"]
+        try:
+            await session.send_realtime_input(
+                video={"data": jpeg, "mime_type": "image/jpeg"}
+            )
+            return
+        except Exception as first_error:
+            logger.warning(
+                f"[ProviderRouter] gemini_live {self.id} live push failed on"
+                f" session '{session_key}' ({_summarize_error(first_error)}),"
+                " reconnecting"
+            )
+        handle = entry.get("handle")
+        self._sessions.pop(session_key, None)
+        try:
+            await entry["context"].__aexit__(None, None, None)
+        except Exception:
+            pass
+        entry = await self._connect(session_key, handle=handle)
+        await entry["session"].send_realtime_input(
+            video={"data": jpeg, "mime_type": "image/jpeg"}
+        )
+
+    async def ask_realtime(self, session_key: str, text: str) -> Tuple[str, Optional[Dict[str, int]]]:
+        """Send a text turn on a Live session and collect the (transcribed)
+        response. Reconnects with the resumption handle once on failure."""
+        entry = await self._get_session(session_key)
+        async with entry["lock"]:
+            try:
+                return await asyncio.wait_for(
+                    self._turn(entry, [], text), timeout=self.response_timeout
+                )
+            except Exception as first_error:
+                logger.warning(
+                    f"[ProviderRouter] gemini_live {self.id} live ask failed on"
+                    f" session '{session_key}' ({_summarize_error(first_error)}),"
+                    " reconnecting"
+                )
+                handle = entry.get("handle")
+                self._sessions.pop(session_key, None)
+                try:
+                    await entry["context"].__aexit__(None, None, None)
+                except Exception:
+                    pass
+                entry = await self._connect(session_key, handle=handle)
+                return await asyncio.wait_for(
+                    self._turn(entry, [], text), timeout=self.response_timeout
+                )
 
     async def test(self) -> Tuple[bool, str]:
         try:
@@ -1021,6 +1079,50 @@ class ProviderRouter:
                 self._mark_failure(provider, e)
                 errors.append(f"{provider.id}: {_summarize_error(e)}")
         raise self._fail(ROUTE_EMBEDDING, "; ".join(errors))
+
+    # -- live stream (P1-B) ------------------------------------------------------
+    def _live_provider(self) -> Optional[GeminiLiveProvider]:
+        """First usable Gemini Live provider of the vision route (ignores
+        cooldown: live pushes handle their own reconnection; cooldown is
+        only applied when a push hard-fails)."""
+        for provider in self._eligible(ROUTE_VISION, consider_cooldown=False):
+            if isinstance(provider, GeminiLiveProvider) and provider.usable:
+                return provider
+        return None
+
+    def has_live_provider(self) -> bool:
+        return self._live_provider() is not None
+
+    async def live_stream_frame(self, jpeg: bytes, session_key: str = "live_monitor") -> None:
+        """Push one JPEG frame into the Live session (no response expected)."""
+        provider = self._live_provider()
+        if provider is None:
+            raise ProviderRouterError(
+                "no gemini_live provider on route 'vision'; live recording disabled"
+            )
+        await _dispatch(provider.push_realtime_frame(session_key, jpeg))
+
+    async def live_ask(self, text: str, session_key: str = "live_monitor") -> str:
+        """Ask a question on the Live session and return the transcribed answer."""
+        provider = self._live_provider()
+        if provider is None:
+            raise ProviderRouterError(
+                "no gemini_live provider on route 'vision'; live recording disabled"
+            )
+        start = time.time()
+        try:
+            answer, usage = await _dispatch(provider.ask_realtime(session_key, text))
+        except Exception as e:
+            self._mark_failure(provider, e)
+            raise
+        self._mark_success(provider)
+        self._record_usage(provider, usage)
+        logger.info(
+            f"[ProviderRouter] live ask served by '{provider.id}' "
+            f"in {int((time.time() - start) * 1000)}ms "
+            f"(tokens: {(usage or {}).get('total_tokens', 'n/a')})"
+        )
+        return answer
 
     def status(self) -> Dict[str, Any]:
         """Snapshot for settings UI / monitoring."""

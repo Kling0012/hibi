@@ -36,6 +36,8 @@ document_processing:
 #   chat: free-text chat / agent flows.
 #   embedding: providers for vectorization. Leave empty to disable only the
 #     embedding-dependent features (context storage/search); the rest works.
+#   exact: verbatim on-screen text capture (single-shot GLM; P1-B screen
+#     recording). Keep this route openai_compat only.
 # Legacy vlm_model / embedding_model sections are still honored when this
 # section has no providers (backward compatibility).
 ai:
@@ -73,6 +75,7 @@ ai:
     chat: [glm_flash, glm_53]
     structured: [glm_flash]
     embedding: [glm_embedding]
+    exact: [glm_flash]
 
 vlm_model:
   base_url: "${LLM_BASE_URL}"
@@ -93,6 +96,27 @@ embedding_model:
 # components (screenshot/folder/file/vault-document monitors, web link capture).
 capture:
   enabled: true
+  # P1-B live screen recording (frames streamed to /api/live/frame by the
+  # Electron frontend).
+  live_fps: 1.0                # frames per second sent to the backend (0.2 - 1)
+  live_summary_interval: 30    # seconds between Live activity summaries
+  capture_min_interval: 20     # min seconds between 'exact' screen-text captures
+  change_hash_threshold: 10    # dhash distance that counts as a big change
+  exclude_apps:               # frontmost apps never recorded (password managers)
+    - 1Password
+    - Bitwarden
+    - KeePassXC
+  paused: false                # temporarily stop all live recording
+
+# Sync server upload (P1-B). Events (activity / screen_summary / todo / report)
+# are queued locally and uploaded in batches; failures retry with backoff and
+# never block local recording. device_id is generated on first start and saved
+# to user_setting.yaml.
+sync:
+  enabled: true
+  server_url: "http://<sync-server-ip>:18740"
+  device_id: ""
+  device_name: ""              # defaults to the hostname
 
 # Context processing module
 processing:

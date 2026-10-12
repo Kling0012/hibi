@@ -21,6 +21,7 @@ from .routes import (
     debug,
     events,
     health,
+    live,
     monitoring,
     screenshots,
     settings,
@@ -47,5 +48,6 @@ router.include_router(vaults.router)
 router.include_router(agent_chat.router)
 router.include_router(events.router)
 router.include_router(settings.router)
+router.include_router(live.router)
 router.include_router(conversation.router)
 router.include_router(messages.router)

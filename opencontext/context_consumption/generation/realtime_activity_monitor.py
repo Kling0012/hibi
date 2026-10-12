@@ -116,6 +116,16 @@ class RealtimeActivityMonitor:
             increment_recording_stat("activity", 1)
             reset_recording_stats()
 
+            # Queue for upload to the sync server (fail-soft)
+            self._enqueue_outbox(
+                kind="activity",
+                started_at=start_time,
+                end_time=end_time,
+                text=summary_result["description"],
+                title=summary_result["title"],
+                meta=metadata,
+            )
+
             logger.info(
                 f"Real-time activity summary saved to the activity table, ID: {activity_id}"
             )
@@ -340,3 +350,22 @@ class RealtimeActivityMonitor:
         else:
             logger.debug(f"Screenshot file does not exist: {screenshot_path}")
             return False
+
+    @staticmethod
+    def _enqueue_outbox(kind: str, started_at, end_at, text: str, title: str, meta: Dict[str, Any]):
+        """Queue a generated record for upload to the sync server (fail-soft)."""
+        try:
+            from opencontext.screen_record.sync_outbox import enqueue_outbox_event
+
+            enqueue_outbox_event(
+                kind=kind,
+                started_at=datetime.datetime.fromtimestamp(started_at),
+                ended_at=datetime.datetime.fromtimestamp(end_at),
+                app="",
+                title=title,
+                text=text,
+                meta=meta,
+                source="minecontext-desktop",
+            )
+        except Exception as e:
+            logger.warning(f"Outbox enqueue failed (non-fatal): {e}")

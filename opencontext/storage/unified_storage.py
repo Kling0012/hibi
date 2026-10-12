@@ -655,6 +655,43 @@ class UnifiedStorage:
             return []
         return self._document_backend.get_activities(start_time, end_time, limit, offset)
 
+    def insert_screen_summary(
+        self,
+        title: str,
+        content: str,
+        app: str = None,
+        window_title: str = None,
+        url: str = None,
+        metadata: str = None,
+    ) -> int:
+        """Insert a screen summary record (P1-B)"""
+        if not self._initialized:
+            logger.error("Unified storage system not initialized")
+            return None
+
+        if not self._document_backend:
+            return None
+        return self._document_backend.insert_screen_summary(
+            title, content, app, window_title, url, metadata
+        )
+
+    def get_screen_summaries(self, limit: int = 100, offset: int = 0) -> List[Dict]:
+        """Get screen summary records (P1-B)"""
+        if not self._initialized:
+            logger.error("Unified storage system not initialized")
+            return []
+
+        if not self._document_backend:
+            return []
+        return self._document_backend.get_screen_summaries(limit, offset)
+
+    def get_sqlite_db_path(self) -> Optional[str]:
+        """sqlite database file path (for separate connections, P1-B sync)."""
+        if not self._document_backend:
+            return None
+        getter = getattr(self._document_backend, "get_db_path", None)
+        return getter() if getter else None
+
     def insert_tip(self, content: str) -> int:
         """Insert tip"""
         if not self._initialized:

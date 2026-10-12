@@ -77,6 +77,7 @@ class OpenContext:
                 self.component_initializer.initialize_consumption_components()
             )
             self._initialize_monitoring()
+            self._initialize_sync_outbox()
             logger.info("All components initialization completed successfully")
 
         except Exception as e:
@@ -97,6 +98,19 @@ class OpenContext:
                 "Monitoring module not available, skipping monitoring initialization")
         except Exception as e:
             logger.error(f"Failed to initialize monitoring system: {e}")
+
+    def _initialize_sync_outbox(self):
+        """Start the sync outbox worker (fail-soft: sync problems never block startup)."""
+        try:
+            from opencontext.screen_record.sync_outbox import get_sync_outbox
+
+            outbox = get_sync_outbox()
+            outbox.start()
+            if outbox.status().get("enabled"):
+                outbox.wake()
+            logger.info("Sync outbox worker initialized")
+        except Exception as e:
+            logger.warning(f"Failed to initialize sync outbox (non-fatal): {e}")
 
     def _handle_captured_context(self, contexts: List[RawContextProperties]) -> bool:
         """

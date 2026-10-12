@@ -67,6 +67,24 @@ class ReportGenerator:
                     "content": result,
                 },
             )
+
+            # Queue for upload to the sync server (fail-soft)
+            try:
+                from opencontext.screen_record.sync_outbox import enqueue_outbox_event
+
+                enqueue_outbox_event(
+                    kind="report",
+                    started_at=datetime.datetime.fromtimestamp(start_time),
+                    ended_at=datetime.datetime.fromtimestamp(end_time),
+                    app="",
+                    title=f"Daily Report - {now.strftime('%Y-%m-%d')}",
+                    text=result,
+                    meta={"report_id": report_id},
+                    source="minecontext-desktop",
+                )
+            except Exception as e:
+                logger.warning(f"Outbox enqueue failed (non-fatal): {e}")
+
             return result
         except Exception as e:
             logger.exception(f"Error generating activity report: {e}")

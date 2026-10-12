@@ -162,6 +162,56 @@ class SQLiteBackend(IDocumentStorageBackend):
         """
         )
 
+        # Screen summary table (P1-B: verbatim screen-text records)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS screen_summary (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT,
+                content TEXT,
+                app TEXT,
+                window_title TEXT,
+                url TEXT,
+                metadata JSON,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_screen_summary_created ON screen_summary (created_at)"
+        )
+
+        # Sync outbox (P1-B: events pending upload to the sync server)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sync_outbox (
+                id TEXT PRIMARY KEY,
+                kind TEXT NOT NULL,
+                started_at DATETIME,
+                ended_at DATETIME,
+                app TEXT,
+                title TEXT,
+                text TEXT,
+                meta TEXT,
+                source TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_sync_outbox_created ON sync_outbox (created_at)"
+        )
+
+        # Sync state kv (last successful upload time, etc.)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sync_state (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """
+        )
+
         # Monitoring tables
         # Token usage tracking - keep 7 days of data
         cursor.execute(
@@ -830,6 +880,74 @@ class SQLiteBackend(IDocumentStorageBackend):
         except Exception as e:
             logger.exception(f"Failed to get activity record list: {e}")
             return []
+
+    # Screen summary operations (P1-B)
+    def insert_screen_summary(
+        self,
+        title: str,
+        content: str,
+        app: str = None,
+        window_title: str = None,
+        url: str = None,
+        metadata: str = None,
+    ) -> int:
+        """Insert a screen summary record (verbatim screen text, P1-B)"""
+        if not self._initialized:
+            raise RuntimeError("SQLite backend not initialized")
+
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(
+                """
+                INSERT INTO screen_summary (title, content, app, window_title, url, metadata, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    title,
+                    content,
+                    app,
+                    window_title,
+                    url,
+                    metadata,
+                    datetime.now(),
+                ),
+            )
+            summary_id = cursor.lastrowid
+            self.connection.commit()
+            logger.info(f"Screen summary inserted, ID: {summary_id}")
+            return summary_id
+        except Exception as e:
+            self.connection.rollback()
+            logger.exception(f"Failed to insert screen summary: {e}")
+            raise
+
+    def get_screen_summaries(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[Dict]:
+        """Get screen summary records (newest first)"""
+        if not self._initialized:
+            return []
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT id, title, content, app, window_title, url, metadata, created_at
+                FROM screen_summary
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            """,
+                (limit, offset),
+            )
+            return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.exception(f"Failed to get screen summaries: {e}")
+            return []
+
+    def get_db_path(self) -> Optional[str]:
+        """Path of the sqlite database file (for separate connections)."""
+        return self.db_path
 
     # Tips table operations
     def insert_tip(self, content: str) -> int:
