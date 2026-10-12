@@ -3,6 +3,7 @@
 
 import { WindowApiType } from '../../../preload'
 import { ElectronAPI } from '@electron-toolkit/preload'
+import type { WorkSessionResult, WorkSessionState } from '@shared/work-session'
 
 interface ScreenMonitorAPI {
   checkPermissions: () => Promise<boolean>
@@ -107,6 +108,13 @@ interface serverPushAPI {
   pushHomeLatestActivity: (callback: (data: Activity) => void) => any
   [propName: string]: (...args: any[]) => any
 }
+interface WorkSessionAPI {
+  getState: () => Promise<WorkSessionState>
+  declare: (title: string) => Promise<WorkSessionResult>
+  endActive: () => Promise<WorkSessionResult>
+  openManageUi: () => Promise<void>
+  onStateChanged: (callback: (state: WorkSessionState) => void) => () => void
+}
 
 declare global {
   interface Window {
@@ -117,5 +125,6 @@ declare global {
     fileService: any
     serverPushAPI: serverPushAPI
     eventLoop: EventLoopAPI
+    workSessionAPI: WorkSessionAPI
   }
 }

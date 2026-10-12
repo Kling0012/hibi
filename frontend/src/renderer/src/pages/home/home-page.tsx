@@ -10,6 +10,7 @@ import AIToggleButton from '@renderer/components/ai-toggle-button'
 import AIAssistant from '@renderer/components/ai-assistant'
 import { ProactiveFeedCard } from './components/proactive-feed-card'
 import { LatestActivityCard } from './components/latest-activity-card'
+import { WorkSessionPanel } from '@renderer/components/WorkSessionPanel'
 import { getRecentVaults } from '@renderer/utils/vault'
 import { ToDoCard } from './components/to-do-card'
 import { DocColumnsCard } from './components/doc-column-card'
@@ -71,6 +72,7 @@ const HomePage: React.FC = () => {
                 </div>
                 <div className="flex items-start gap-3 flex-1 self-stretch">
                   <div className="flex flex-col items-start gap-3 flex-1 self-stretch">
+                    <WorkSessionPanel />
                     <HeatmapEntry onChange={onChange} />
                     <ToDoCard selectedDays={selectedDays} />
                     <LatestActivityCard
