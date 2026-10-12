@@ -1,4 +1,4 @@
-; Custom NSIS script for MineContext installer
+; Custom NSIS script for the Hibi installer
 ; Add data directory selection page
 
 !include "LogicLib.nsh"
@@ -22,7 +22,7 @@ Var DataDir
   ReadRegStr $DataDir HKCU "Software\MineContext" "DataDirectory"
   ${If} $DataDir == ""
     ; Set default to AppData\Local\MineContext
-    StrCpy $DataDir "$LOCALAPPDATA\MineContext"
+    StrCpy $DataDir "$LOCALAPPDATA\Hibi"
   ${EndIf}
 !macroend
 
@@ -42,7 +42,7 @@ Function DataDirectoryPage
   ${EndIf}
 
   ; Create label with description
-  ${NSD_CreateLabel} 0 0 100% 24u "Select where MineContext will store application data (databases, files, cache). The directory requires write permissions."
+  ${NSD_CreateLabel} 0 0 100% 24u "Select where Hibi will store application data (databases, files, cache). The directory requires write permissions."
   Pop $DataDirLabel
 
   ; Create text input showing current data directory

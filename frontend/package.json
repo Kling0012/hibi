@@ -1,5 +1,6 @@
 {
-  "name": "MineContext",
+  "name": "hibi",
+  "productName": "Hibi",
   "version": "0.1.5",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",

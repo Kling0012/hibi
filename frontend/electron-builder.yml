@@ -1,5 +1,5 @@
-appId: com.vikingdb.desktop
-productName: MineContext
+appId: com.kling0012.hibi
+productName: Hibi
 directories:
   output: dist
   buildResources: build
@@ -23,10 +23,10 @@ extraResources:
 asarUnpack:
   - resources/**
 win:
-  executableName: MineContext
+  executableName: Hibi
   icon: build/icon.ico
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: Hibi-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
@@ -44,7 +44,7 @@ mac:
     - from: externals/python/window_capture/dist/window_capture/window_capture
       to: bin/window_capture
   entitlementsInherit: build/entitlements.mac.plist
-  icon: build/icon.icns
+  icon: build/icon.png
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
@@ -52,8 +52,9 @@ mac:
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
 dmg:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: Hibi-${version}.${ext}
 linux:
+  icon: build/icon.png
   target:
     - AppImage
     - snap
@@ -61,7 +62,7 @@ linux:
   maintainer: Kling0012
   category: Utility
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: Hibi-${version}.${ext}
 npmRebuild: false
 nodeGypRebuild: false
 buildDependenciesFromSource: false

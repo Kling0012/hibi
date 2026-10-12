@@ -141,7 +141,7 @@ class CaptureSourcesTools {
             const appName = window.appName
 
             // Skip Electron's own windows
-            if (appName === 'MineContext' || appName === 'Electron') continue
+            if (appName === 'Hibi' || appName === 'Electron') continue
 
             // Check if we already have windows from this app
             const existingWindows = windowsByApp.get(appName) || []

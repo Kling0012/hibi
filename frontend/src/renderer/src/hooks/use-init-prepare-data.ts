@@ -10,7 +10,7 @@ const TODOList = [
   {
     id: -3, // Auto-incrementing ID (simulated value)
     content:
-      'Click 【Start with Tutorial】 in the 【Creation】 to jump into the tutorial and master the features and usage of MineContext.',
+      'Click 【Start with Tutorial】 in the 【Creation】 to jump into the tutorial and master the features and usage of Hibi.',
     created_at: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     urgency: TaskUrgency.High, // 1=Urgent
     start_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),

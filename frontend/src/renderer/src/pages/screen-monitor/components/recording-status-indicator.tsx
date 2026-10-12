@@ -22,7 +22,7 @@ const RecordingStatusIndicator: React.FC<RecordingStatusIndicatorProps> = ({ isM
               Recording screen...
             </Text>
             <div className="text-[#C9C9D4]">
-              Every {SCREEN_INTERVAL_TIME} minutes, MineContext generates an Activity based on screen analysis.
+              Every {SCREEN_INTERVAL_TIME} minutes, Hibi generates an Activity based on screen analysis.
             </div>
           </div>
         ) : (

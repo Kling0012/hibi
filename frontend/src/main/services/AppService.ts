@@ -52,10 +52,10 @@ export class AppService {
           // Create desktop file content
           const desktopContent = `[Desktop Entry]
   Type=Application
-  Name=MineContext
+  Name=Hibi
   Comment=A powerful AI assistant for producer.
   Exec=${executablePath}
-  Icon=minecontext
+  Icon=hibi
   Terminal=false
   StartupNotify=false
   Categories=Development;Utility;

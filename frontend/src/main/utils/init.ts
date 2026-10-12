@@ -75,8 +75,33 @@ export function initAppDataDir() {
     }
 
     // If no registry setting, use the default AppData location
-    // (e.g., %LOCALAPPDATA%\MineContext)
+    // (e.g., %LOCALAPPDATA%\Hibi)
     // This is the correct fallback behavior
+  }
+}
+
+// The app was renamed from MineContext to Hibi, which also moved the default
+// userData directory (appData/MineContext -> appData/Hibi). On first launch,
+// copy the legacy directory into the new one so existing data is preserved.
+// Fail-soft: never block startup on this, and never modify the legacy directory.
+export function migrateLegacyUserData() {
+  try {
+    const appDataDir = app.getPath('appData')
+    const newDefaultPath = path.join(appDataDir, 'Hibi')
+    const legacyPath = path.join(appDataDir, 'MineContext')
+
+    // Only handle the default location; custom paths from config.json,
+    // the installer registry entry or portable mode are unaffected by the rename
+    if (app.getPath('userData') !== newDefaultPath) return
+    if (!fs.existsSync(legacyPath)) return
+
+    fs.mkdirSync(newDefaultPath, { recursive: true })
+    if (fs.readdirSync(newDefaultPath).length > 0) return // already migrated or in use
+
+    fs.cpSync(legacyPath, newDefaultPath, { recursive: true })
+    console.warn(`Migrated legacy MineContext userData from ${legacyPath} to ${newDefaultPath}`)
+  } catch (error) {
+    console.warn('Failed to migrate legacy MineContext userData:', error)
   }
 }
 

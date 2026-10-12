@@ -80,7 +80,7 @@ const Files: React.FC = () => {
               Upload Your Files
             </Title>
             <Text type="secondary" style={{ width: 519, fontSize: 12 }}>
-              Upload screenshots and docs—MineContext auto-organizes tasks and generates summaries. Simplify work
+              Upload screenshots and docs—Hibi auto-organizes tasks and generates summaries. Simplify work
               reviews and planning, and save your energy for what truly matters ✨
             </Text>
           </div>

@@ -144,7 +144,7 @@ export function getAllFiles(dirPath: string, arrayOfFiles: FileMetadata[] = []):
 }
 
 export function getTempDir() {
-  return path.join(app.getPath('temp'), 'MineContext')
+  return path.join(app.getPath('temp'), 'Hibi')
 }
 
 export function getFilesDir() {

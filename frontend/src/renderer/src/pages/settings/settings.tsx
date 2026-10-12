@@ -527,7 +527,7 @@ const Settings: FC<SettingsProps> = (props) => {
               />
             </div>
             <Text type="secondary" className="text-[12px]">
-              Off by default. When enabled, MineContext checks for updates from GitHub releases on
+              Off by default. When enabled, Hibi checks for updates from GitHub releases on
               startup and downloads them in the background.
             </Text>
           </div>

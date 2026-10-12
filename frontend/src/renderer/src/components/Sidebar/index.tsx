@@ -79,7 +79,7 @@ const Sidebar = () => {
           <div
             onClick={() => navigateToMainTab('home', '/')}
             className="text-base font-bold text-[#1d2129] m-0 whitespace-nowrap cursor-pointer">
-            MineContext
+            Hibi
           </div>
         </div>
       </div>

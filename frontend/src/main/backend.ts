@@ -165,7 +165,7 @@ async function findRunningBackendPort(startPort: number = 1733, maxAttempts: num
         healthCheckResult
       }
     } catch (error: any) {
-      logToBackendFile(`Port ${port} is occupied but not a healthy MineContext backend: ${error.message}`)
+      logToBackendFile(`Port ${port} is occupied but not a healthy Hibi backend: ${error.message}`)
     }
   }
   return null

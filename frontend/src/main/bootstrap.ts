@@ -5,12 +5,13 @@ import { occupiedDirs } from '@shared/config/constant'
 import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
-import { initAppDataDir } from './utils/init'
+import { initAppDataDir, migrateLegacyUserData } from './utils/init'
 import { mainLog } from '@shared/logger/main'
 
 // Only execute initialization after packaging
 if (app.isPackaged) {
   initAppDataDir()
+  migrateLegacyUserData()
 }
 
 /**
