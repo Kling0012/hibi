@@ -64,11 +64,21 @@ def _sync_config() -> Dict[str, Any]:
 
 
 def _iso(value) -> Optional[str]:
+    """ISO 8601 with an explicit offset; naive datetimes are local time.
+
+    The sync server reads offset-less timestamps as UTC, so a naive local
+    time would land hours off on the timeline.
+    """
     if value is None:
         return None
     if isinstance(value, datetime.datetime):
-        return value.isoformat()
-    return str(value)
+        return (value if value.tzinfo else value.astimezone()).isoformat()
+    text = str(value)
+    try:
+        parsed = datetime.datetime.fromisoformat(text)
+    except ValueError:
+        return text
+    return (parsed if parsed.tzinfo else parsed.astimezone()).isoformat()
 
 
 class SyncOutbox:
@@ -223,8 +233,9 @@ class SyncOutbox:
                     {
                         "id": row["id"],
                         "kind": row["kind"],
-                        "started_at": row["started_at"],
-                        "ended_at": row["ended_at"],
+                        # rows queued before the offset fix are naive local times
+                        "started_at": _iso(row["started_at"]),
+                        "ended_at": _iso(row["ended_at"]),
                         "app": row["app"],
                         "title": row["title"],
                         "text": row["text"],
