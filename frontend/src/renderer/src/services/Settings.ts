@@ -6,7 +6,7 @@ import { get } from 'lodash'
 
 // Model configuration interface
 export interface ModelConfigProps {
-  modelPlatform: string // Model platform, e.g., doubao, openai, custom
+  modelPlatform: string // Model platform, e.g., openai, custom
   modelId: string // VLM model ID
   baseUrl: string // API base URL
   embeddingModelId: string // Embedding model ID

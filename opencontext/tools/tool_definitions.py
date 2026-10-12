@@ -1,8 +1,12 @@
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
 """
 Tool: tool_definitions
 """
 
-from opencontext.tools.operation_tools import *
 from opencontext.tools.profile_tools import *
 from opencontext.tools.retrieval_tools import *
 
@@ -28,12 +32,6 @@ ALL_PROFILE_TOOL_DEFINITIONS = [
     {"type": "function", "function": ProfileEntityTool.get_definition()},
 ]
 
-WEB_SEARCH_TOOL_DEFINITION = [
-    {"type": "function", "function": WebSearchTool.get_definition()},
-]
-
 ALL_RETRIEVAL_TOOL_DEFINITIONS = CONTEXT_RETRIEVAL_TOOLS + DOCUMENT_RETRIEVAL_TOOLS
 
-ALL_TOOL_DEFINITIONS = (
-    ALL_RETRIEVAL_TOOL_DEFINITIONS + ALL_PROFILE_TOOL_DEFINITIONS + WEB_SEARCH_TOOL_DEFINITION
-)
+ALL_TOOL_DEFINITIONS = ALL_RETRIEVAL_TOOL_DEFINITIONS + ALL_PROFILE_TOOL_DEFINITIONS

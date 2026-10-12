@@ -21,7 +21,6 @@ logger = get_logger(__name__)
 
 class LLMProvider(Enum):
     OPENAI = "openai"
-    DOUBAO = "doubao"
 
 
 class LLMType(Enum):
@@ -44,24 +43,6 @@ class LLMClient:
         self.async_client = AsyncOpenAI(
             api_key=self.api_key, base_url=self.base_url, timeout=self.timeout
         )
-        if self.provider == LLMProvider.DOUBAO.value and self.llm_type == LLMType.EMBEDDING:
-            # Doubao multimodal embeddings need the Volcengine Ark SDK. Import it
-            # lazily so the rest of the backend works without the optional "ark"
-            # extra (fail-soft: only this client becomes unavailable).
-            try:
-                from volcenginesdkarkruntime import Ark
-            except ImportError as e:
-                logger.error(
-                    "Doubao embedding requires the optional Ark SDK "
-                    "(install with: uv sync --extra ark). "
-                    f"Doubao embedding is disabled: {e}"
-                )
-                raise ValueError(
-                    "Doubao embedding requires the optional dependency "
-                    "'volcengine-python-sdk[ark]' (uv sync --extra ark)"
-                ) from e
-            self.client = Ark(api_key=self.api_key, base_url=self.base_url, timeout=self.timeout)
-            self.async_client = None
 
     def generate(self, prompt: str, **kwargs) -> str:
         messages = [{"role": "user", "content": prompt}]
@@ -113,7 +94,6 @@ class LLMClient:
             # Stage: LLM request preparation
 
             tools = kwargs.get("tools", None)
-            thinking = kwargs.get("thinking", None)
 
             create_params = {
                 "model": self.model,
@@ -122,10 +102,6 @@ class LLMClient:
             if tools:
                 create_params["tools"] = tools
                 create_params["tool_choice"] = "auto"
-
-            if thinking:
-                if self.provider == LLMProvider.DOUBAO.value:
-                    create_params["extra_body"] = {"thinking": {"type": thinking}}
 
             # Stage: LLM API call
             api_start = time.time()
@@ -171,7 +147,6 @@ class LLMClient:
         request_start = time.time()
         try:
             tools = kwargs.get("tools", None)
-            thinking = kwargs.get("thinking", None)
 
             create_params = {
                 "model": self.model,
@@ -180,10 +155,6 @@ class LLMClient:
             if tools:
                 create_params["tools"] = tools
                 create_params["tool_choice"] = "auto"
-
-            if thinking:
-                if self.provider == LLMProvider.DOUBAO.value:
-                    create_params["extra_body"] = {"thinking": {"type": thinking}}
             # Stage: LLM API call
             api_start = time.time()
             response = await self.async_client.chat.completions.create(**create_params)
@@ -222,7 +193,6 @@ class LLMClient:
         """Sync stream chat completion"""
         try:
             tools = kwargs.get("tools", None)
-            thinking = kwargs.get("thinking", None)
 
             create_params = {
                 "model": self.model,
@@ -232,10 +202,6 @@ class LLMClient:
             if tools:
                 create_params["tools"] = tools
                 create_params["tool_choice"] = "auto"
-
-            if thinking:
-                if self.provider == LLMProvider.DOUBAO.value:
-                    create_params["extra_body"] = {"thinking": {"type": thinking}}
 
             stream = self.client.chat.completions.create(**create_params)
             return stream
@@ -247,7 +213,6 @@ class LLMClient:
         """Async stream chat completion - async generator"""
         try:
             tools = kwargs.get("tools", None)
-            thinking = kwargs.get("thinking", None)
 
             # Create async client
             from openai import AsyncOpenAI
@@ -265,10 +230,6 @@ class LLMClient:
                 create_params["tools"] = tools
                 create_params["tool_choice"] = "auto"
 
-            if thinking:
-                if self.provider == LLMProvider.DOUBAO.value:
-                    create_params["extra_body"] = {"thinking": {"type": thinking}}
-
             stream = await async_client.chat.completions.create(**create_params)
 
             # Return stream object directly, it's already an async iterator
@@ -280,14 +241,8 @@ class LLMClient:
 
     def _request_embedding(self, text: str, **kwargs) -> List[float]:
         try:
-            if self.provider != LLMProvider.DOUBAO.value:
-                response = self.client.embeddings.create(model=self.model, input=[text])
-                embedding = response.data[0].embedding
-            else:
-                response = self.client.multimodal_embeddings.create(
-                    model=self.model, input=[{"type": "text", "text": text}]
-                )
-                embedding = response.data.embedding
+            response = self.client.embeddings.create(model=self.model, input=[text])
+            embedding = response.data[0].embedding
 
             # Record token usage
             if hasattr(response, "usage") and response.usage:
@@ -327,15 +282,8 @@ class LLMClient:
 
     async def _request_embedding_async(self, text: str, **kwargs) -> List[float]:
         try:
-            if self.provider == LLMProvider.DOUBAO.value:
-                # Only ark has multimodal_embeddings
-                response = self.client.multimodal_embeddings.create(
-                    model=self.model, input=[{"type": "text", "text": text}]
-                )
-                embedding = response.data.embedding
-            else:
-                response = await self.async_client.embeddings.create(model=self.model, input=[text])
-                embedding = response.data[0].embedding
+            response = await self.async_client.embeddings.create(model=self.model, input=[text])
+            embedding = response.data[0].embedding
 
             # Record token usage
             if hasattr(response, "usage") and response.usage:
@@ -404,23 +352,7 @@ class LLMClient:
             if not error_msg:
                 return "Unknown error"
 
-            # 1. Check for specific Volcengine/Doubao error codes
-            volcengine_errors = {
-                "AccessDenied": "Access denied. Please ensure the model is enabled in the Volcengine console.",
-                "QuotaExceeded": "Quota exceeded. Please check your Volcengine account balance.",
-                "ModelAccountIpmRateLimitExceeded": "Model rate limit (IPM) exceeded.",
-                "AccountRateLimitExceeded": "Account rate limit exceeded.",
-                "RateLimitExceeded": "Rate limit exceeded.",
-                "InternalServiceError": "Volcengine internal service error.",
-                "ServiceUnavailable": "Service unavailable.",
-                "MethodNotAllowed": "Method not allowed. Check your configuration.",
-            }
-
-            for code, msg in volcengine_errors.items():
-                if code in error_msg:
-                    return msg
-
-            # 2. Check for OpenAI specific errors
+            # 1. Check for OpenAI specific errors
             openai_errors = {
                 "insufficient_quota": "Insufficient quota. Check your plan and billing details.",
                 "invalid_api_key": "Invalid API key provided.",
@@ -491,20 +423,11 @@ class LLMClient:
 
             elif self.llm_type == LLMType.EMBEDDING:
                 # Test with a simple text
-                if self.provider == LLMProvider.DOUBAO.value:
-                    response = self.client.multimodal_embeddings.create(
-                        model=self.model, input=[{"type": "text", "text": "test"}]
-                    )
-                    if response.data and response.data.embedding:
-                        return True, "Embedding model validation successful"
-                    else:
-                        return False, "Embedding model returned empty response"
+                response = self.client.embeddings.create(model=self.model, input=["test"])
+                if response.data and len(response.data) > 0 and response.data[0].embedding:
+                    return True, "Embedding model validation successful"
                 else:
-                    response = self.client.embeddings.create(model=self.model, input=["test"])
-                    if response.data and len(response.data) > 0 and response.data[0].embedding:
-                        return True, "Embedding model validation successful"
-                    else:
-                        return False, "Embedding model returned empty response"
+                    return False, "Embedding model returned empty response"
             else:
                 return False, f"Unsupported LLM type: {self.llm_type}"
 

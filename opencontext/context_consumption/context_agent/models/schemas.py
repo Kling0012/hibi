@@ -25,18 +25,6 @@ class ChatMessage:
 
 
 @dataclass
-class WebSearchResult:
-    """Web search result"""
-
-    title: str
-    url: str
-    snippet: str
-    relevance_score: float = 1.0
-    source: str = "web"
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
 class Query:
     """User query encapsulation"""
 

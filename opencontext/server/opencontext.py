@@ -45,7 +45,6 @@ class OpenContext:
 
         self.consumption_manager: Optional[ConsumptionManager] = None
         self.workflow_engine = None  # New Agent-based workflow engine
-        self.completion_service = None  # Smart completion service
 
         # Helper classes
         self.component_initializer = ComponentInitializer()
@@ -77,7 +76,6 @@ class OpenContext:
             self.consumption_manager = (
                 self.component_initializer.initialize_consumption_components()
             )
-            self.completion_service = self.component_initializer.initialize_completion_service()
             self._initialize_monitoring()
             logger.info("All components initialization completed successfully")
 

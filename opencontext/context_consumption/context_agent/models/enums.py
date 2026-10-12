@@ -35,7 +35,6 @@ class DataSource(str, Enum):
     """Data source type enumeration"""
 
     DOCUMENT = "document"  # Document library
-    WEB_SEARCH = "web_search"  # Web search
     AGENT_MEMORY = "agent_memory"  # Agent memory
     CONTEXT_DB = "context_db"  # Context database
     CHAT_HISTORY = "chat_history"  # Chat history

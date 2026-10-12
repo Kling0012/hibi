@@ -16,12 +16,6 @@ from opencontext.config.config_manager import ConfigManager
 from opencontext.config.global_config import GlobalConfig
 from opencontext.config.prompt_manager import PromptManager
 
-# Import capture components
-from opencontext.context_capture.screenshot import ScreenshotCapture
-from opencontext.context_capture.vault_document_monitor import VaultDocumentMonitor
-from opencontext.context_capture.web_link_capture import WebLinkCapture
-from opencontext.context_consumption.completion import CompletionService
-
 # Import consumption components
 from opencontext.context_consumption.generation import *
 from opencontext.context_processing.processor.processor_factory import ProcessorFactory
@@ -35,11 +29,10 @@ from opencontext.utils.logging_utils import get_logger
 logger = get_logger(__name__)
 
 # Component mappings
-CAPTURE_COMPONENTS = {
-    "screenshot": ScreenshotCapture,
-    "vault_document_monitor": VaultDocumentMonitor,
-    "web_link_capture": WebLinkCapture,
-}
+# Screen capture is driven by the Electron frontend (POST /api/add_screenshot(s));
+# the backend no longer ships built-in capture components. Custom components can
+# still be registered dynamically via their config "module"/"class" entries.
+CAPTURE_COMPONENTS = {}
 
 CONSUMPTION_COMPONENTS = {
     "smart_tip_generator": SmartTipGenerator,
@@ -90,8 +83,10 @@ class ComponentInitializer:
                 logger.info(f"Capture component '{name}' initialized successfully")
 
             except Exception as e:
+                # Fail-soft: a missing/unknown capture component (e.g. a removed
+                # feature still listed in an old config file) only disables that
+                # component; it must not stop the whole backend.
                 logger.error(f"Failed to initialize capture component '{name}': {e}")
-                raise RuntimeError(f"Failed to initialize capture component '{name}'") from e
 
         logger.info("Context capture modules initialization complete")
 
@@ -172,29 +167,6 @@ class ComponentInitializer:
             logger.info("Periodic memory compression started")
 
         logger.info("Context processors initialization complete")
-
-    def initialize_completion_service(self) -> Optional[CompletionService]:
-        """Initialize completion service for smart content completion."""
-        logger.info("Initializing completion service...")
-
-        try:
-            # Get completion configuration
-            completion_config = self.config.get("completion", {})
-            if not completion_config.get("enabled", True):
-                logger.info("Completion service disabled in configuration")
-                return None
-
-            # Use global service instance to avoid duplicate initialization
-            from opencontext.context_consumption.completion import get_completion_service
-
-            completion_service = get_completion_service()
-            logger.info("Completion service initialized successfully")
-
-            return completion_service
-
-        except Exception as e:
-            logger.exception(f"Failed to initialize completion service: {e}")
-            return None
 
     def initialize_consumption_components(self) -> ConsumptionManager:
         consumption_manager = ConsumptionManager()

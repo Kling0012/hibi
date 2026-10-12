@@ -11,14 +11,11 @@ Focuses on document CRUD operations, AI chat functionality handled by advanced_c
 
 import asyncio
 import json
-import os
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from opencontext.models.enums import VaultType
@@ -28,9 +25,6 @@ from opencontext.utils.logging_utils import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter(tags=["vaults"])
-
-templates_path = Path(__file__).parent.parent.parent / "web" / "templates"
-templates = Jinja2Templates(directory=templates_path)
 
 
 # API model definitions
@@ -43,35 +37,6 @@ class VaultDocument(BaseModel):
     summary: Optional[str] = None
     tags: Optional[str] = None
     document_type: str = VaultType.NOTE.value
-
-
-@router.get("/vaults", response_class=HTMLResponse)
-async def vaults_workspace(request: Request):
-    """
-    Vaults workspace main page - redirects to unified document collaboration interface
-    """
-    try:
-        return templates.TemplateResponse(
-            "agent_chat.html", {"request": request, "title": "Intelligent Agent Chat"}
-        )
-    except Exception as e:
-        logger.exception(f"Failed to render document collaboration page: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/vaults/editor", response_class=HTMLResponse)
-async def note_editor_page(request: Request):
-    """
-    Intelligent note editor page
-    Provides Markdown editor with AI completion functionality
-    """
-    try:
-        return templates.TemplateResponse(
-            "note_editor.html", {"request": request, "title": "Intelligent Note Editor"}
-        )
-    except Exception as e:
-        logger.exception(f"Failed to render note editor page: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/api/vaults/list")

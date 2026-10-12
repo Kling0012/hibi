@@ -50,7 +50,7 @@ def get_valid_api_keys() -> List[str]:
 def get_excluded_paths() -> List[str]:
     """Get list of paths excluded from authentication."""
     auth_config = get_auth_config()
-    return auth_config.get("excluded_paths", ["/health", "/api/health", "/", "/static/*"])
+    return auth_config.get("excluded_paths", ["/health", "/api/health"])
 
 
 def is_path_excluded(path: str) -> bool:

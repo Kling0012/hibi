@@ -7,29 +7,19 @@
 Context management routes
 """
 
-import json
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from opencontext.models.context import ProcessedContextModel
 from opencontext.models.enums import ContentFormat, ContextSource
 from opencontext.server.middleware.auth import auth_dependency
 from opencontext.server.opencontext import OpenContext
 from opencontext.server.utils import convert_resp, get_context_lab
-from opencontext.utils.json_encoder import CustomJSONEncoder
 from opencontext.utils.logging_utils import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter(tags=["context"])
-
-project_root = Path(__file__).parent.parent.parent.parent.resolve()
-templates_path = Path(__file__).parent.parent.parent / "web" / "templates"
-templates = Jinja2Templates(directory=templates_path)
 
 
 class ContextIn(BaseModel):
@@ -54,51 +44,11 @@ class ConsumeIn(BaseModel):
     context_ids: List[str]
 
 
-class ContextDetailRequest(BaseModel):
-    id: str
-    context_type: str
-
-
 class VectorSearchRequest(BaseModel):
     query: str
     top_k: int = 10
     context_types: Optional[List[str]] = None
     filters: Optional[Dict[str, Any]] = None
-
-
-@router.post("/contexts/delete")
-def delete_context(
-    detail_request: ContextDetailRequest,
-    opencontext: OpenContext = Depends(get_context_lab),
-    _auth: str = auth_dependency,
-):
-    """Delete a processed context by its ID and context_type."""
-    success = opencontext.delete_context(detail_request.id, detail_request.context_type)
-    if not success:
-        raise HTTPException(status_code=404, detail="Context not found or failed to delete")
-    return {"message": "Context deleted successfully"}
-
-
-@router.post("/contexts/detail", response_class=HTMLResponse)
-async def read_context_detail(
-    detail_request: ContextDetailRequest,
-    request: Request,
-    opencontext: OpenContext = Depends(get_context_lab),
-    _auth: str = auth_dependency,
-):
-    context = opencontext.get_context(detail_request.id, detail_request.context_type)
-    if context is None:
-        return templates.TemplateResponse(
-            "error.html", {"request": request, "message": "Context not found"}, status_code=404
-        )
-
-    return templates.TemplateResponse(
-        "context_detail.html",
-        {
-            "request": request,
-            "context": ProcessedContextModel.from_processed_context(context, project_root),
-        },
-    )
 
 
 @router.get("/api/context_types")

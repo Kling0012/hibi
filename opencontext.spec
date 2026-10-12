@@ -79,9 +79,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('config/config.yaml', 'config'), 
-        ('opencontext/web/static', 'opencontext/web/static'), 
-        ('opencontext/web/templates', 'opencontext/web/templates')
+        ('config/config.yaml', 'config'),
     ],
     hiddenimports=[
         'uvicorn.protocols.http.auto',

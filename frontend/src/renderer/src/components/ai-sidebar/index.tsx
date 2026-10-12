@@ -3,8 +3,6 @@
 
 'use client'
 
-// import { streamText } from 'ai';
-// import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import {
   Conversation,
   ConversationContent,
@@ -37,70 +35,10 @@ import { DefaultChatTransport } from 'ai'
 
 const models = [
   {
-    name: '豆包 Pro',
-    value: 'ep-20250905001701-zgzfx'
+    name: 'Default',
+    value: 'default'
   }
 ]
-
-// async function APIChatHandler(model: string) {
-//   try {
-//     // const openai = createOpenAI({
-//     //   baseURL: "https://ark.cn-beijing.volces.com/api/v3",
-//     // });
-//     // const openai = createOpenAI({
-//     // });
-
-//     const openai = createOpenAICompatible({
-//       baseURL: "https://ark.cn-beijing.volces.com/api/v3",
-//       name: 'ark',
-//     });
-
-//     // const newMessages = convertToModelMessages(messages);
-
-//     // console.log(JSON.stringify(newMessages));
-//     const result = streamText({
-//       // model: openai.chat(model),
-//       model: openai.chatModel(model),
-//       messages: [{"role":"user","content":[{"type":"text","text":"hi"}]}],
-//       system:
-//         'You are a helpful assistant that can answer questions and help with tasks',
-//       providerOptions: {
-//         openai: {
-//           reasoning: true,
-//           reasoningEffort: 'high',
-//         },
-//       },
-//     });
-
-//     console.log(JSON.stringify(result), 'result');
-
-//     // send sources and reasoning back to the client
-//     const response = await result.toUIMessageStreamResponse({
-//       sendSources: true,
-//       sendReasoning: true,
-//     });
-
-//     // 如果response是ReadableStream，需要处理流
-//     if (response.body) {
-//       const reader = response.body.getReader()
-//       const decoder = new TextDecoder()
-
-//       try {
-//         while (true) {
-//           const { done, value } = await reader.read()
-//           if (done) break
-
-//           const chunk = decoder.decode(value, { stream: true })
-//           console.log(chunk, 'chunk');
-//         }
-//       } finally {
-//         reader.releaseLock()
-//       }
-//     }
-//   } catch (error) {
-//     console.error('Error in APIChatHandler:', error)
-//   }
-// }
 
 const ChatBotDemo = () => {
   const [input, setInput] = useState('')
@@ -115,8 +53,6 @@ const ChatBotDemo = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    // APIChatHandler(model);
-    // return;
     if (input.trim()) {
       sendMessage(
         { text: input },

@@ -28,27 +28,14 @@ dependencies = [
     "openai>=3.29.0",
     "jinja2>=3.1.6",
     "json-repair>=0.64.0",
-    "ddgs>=9.16.0",
     "pypdf>=6.20.0",
     "openpyxl>=3.1.5",
     "chromadb>=1.5.9",
-    "qdrant-client>=1.19.1",
-    "mss>=10.2.0",
     "pillow>=12.3.0",
     "imagehash>=4.3.2",
     "pypdfium2>=5.14.0",
     "python-docx>=1.2.0",
     "python-multipart>=0.0.32",
-    "playwright>=1.63.0",
-]
-
-[project.optional-dependencies]
-# Volcengine Ark (Doubao) support is optional: the backend starts without it and
-# only the doubao embedding feature becomes unavailable (fail-soft).
-# Install with: uv sync --extra ark
-ark = [
-    "volcengine>=1.0.228",
-    "volcengine-python-sdk[ark]>=1.0.0",
 ]
 dev = [
     "black>=24.8.0",
@@ -61,10 +48,10 @@ dev = [
 opencontext = "opencontext.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/volcengine/MineContext"
-Repository = "https://github.com/volcengine/MineContext"
-Issues = "https://github.com/volcengine/MineContext/issues"
-Documentation = "https://github.com/volcengine/MineContext"
+Homepage = "https://github.com/Kling0012/MineContext"
+Repository = "https://github.com/Kling0012/MineContext"
+Issues = "https://github.com/Kling0012/MineContext/issues"
+Documentation = "https://github.com/Kling0012/MineContext"
 
 [build-system]
 requires = ["hatchling"]

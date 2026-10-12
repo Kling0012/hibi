@@ -30,7 +30,7 @@ const AIDemo = () => {
                 <Alert
                   type="info"
                   title="Get Started"
-                  content="Please set your Doubao API key on the configuration page first, then click the AI button on the right to start a conversation!"
+                  content="Please set your API key on the configuration page first, then click the AI button on the right to start a conversation!"
                   showIcon
                   style={{ marginBottom: '24px' }}
                 />

@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Union
 
 from opencontext.config import GlobalConfig
 from opencontext.tools.base import BaseTool
-from opencontext.tools.operation_tools import *
 from opencontext.tools.profile_tools import ProfileEntityTool
 from opencontext.tools.retrieval_tools import *
 
@@ -28,8 +27,6 @@ class ToolsExecutor:
             GetTodosTool.get_name(): GetTodosTool(),
             # Profile tools
             ProfileEntityTool.get_name(): ProfileEntityTool(),
-            # Operation tools
-            WebSearchTool.get_name(): WebSearchTool(),
         }
 
     async def run_async(self, tool_name: str, tool_input: Dict[str, Any]) -> Any:

@@ -277,7 +277,7 @@ chat_workflow:
         - **Must call 3-5 tools per round**: Call multiple tools concurrently at once, collecting information from different dimensions
         - **Same tool can be called multiple times**: Use different parameters to query from different angles
         - **Avoid conservative strategy**: Don't just call 1 tool, fully utilize concurrent capability
-        - **Tool combination use**: Prioritize using different types of tools complementarily (e.g., text_search + filter_context + entity_profile + web_search)
+        - **Tool combination use**: Prioritize using different types of tools complementarily (e.g., text_search + filter_context + entity_profile)
 
         ### Query Parameter Design
         - **Based on information gap**: Analyze what information is needed, design query parameters in a targeted manner, rather than directly using the user's original query
@@ -1493,35 +1493,6 @@ entity_processing:
       {candidates}
 
       Please analyze and return JSON format matching result.
-
-completion_service:
-  semantic_continuation:
-    system: |
-      You are an intelligent continuation assistant who needs to provide reasonable text continuation suggestions based on context for users.
-
-      Core Principles:
-      1. Continuation should conform to context logic and style
-      2. Maintain original language style and professional level
-      3. Provide diverse continuation options
-      4. Each suggestion is concise and clear
-      5. Do not repeat existing content
-    user: |
-      Please provide reasonable continuation suggestions for the following text. Provide 2 different continuation options, each option on a separate line.
-
-      Context content:
-      {context_text}
-
-      Current line: {current_line}
-
-      Requirements:
-      1. Continuation should conform to context logic and style
-      2. If currently in list, continue list items
-      3. If in paragraph, continue paragraph content
-      4. Maintain original language style and professional level
-      5. Each suggestion no more than 50 words
-      6. Do not repeat existing content
-
-      Continuation suggestions:
 
 # Document Processing Module
 document_processing:

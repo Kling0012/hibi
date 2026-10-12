@@ -17,7 +17,6 @@ from opencontext.llm.global_vlm_client import generate_for_agent_async, generate
 from opencontext.tools.tool_definitions import (
     ALL_PROFILE_TOOL_DEFINITIONS,
     ALL_RETRIEVAL_TOOL_DEFINITIONS,
-    WEB_SEARCH_TOOL_DEFINITION,
 )
 from opencontext.tools.tools_executor import ToolsExecutor
 from opencontext.utils.json_parser import parse_json_from_response
@@ -37,8 +36,7 @@ class LLMContextStrategy:
         # Toolset configuration
         self.retrieval_tools = ALL_RETRIEVAL_TOOL_DEFINITIONS
         self.entity_tools = ALL_PROFILE_TOOL_DEFINITIONS
-        self.web_search_tool = WEB_SEARCH_TOOL_DEFINITION
-        self.all_tools = self.retrieval_tools + self.entity_tools + self.web_search_tool
+        self.all_tools = self.retrieval_tools + self.entity_tools
 
     async def analyze_and_plan_tools(
         self, intent: Intent, existing_context: ContextCollection, iteration: int = 1
@@ -327,8 +325,6 @@ class LLMContextStrategy:
 
         if "document" in tool_name_lower:
             return DataSource.DOCUMENT
-        elif "web" in tool_name_lower or "search" in tool_name_lower:
-            return DataSource.WEB_SEARCH
         elif "entity" in tool_name_lower:
             return DataSource.ENTITY
         elif "processed" in tool_name_lower or "context" in tool_name_lower:

@@ -149,31 +149,6 @@ const StandardFormItems: FC<StandardFormItemsProps> = (props) => {
         ]}>
         <Select allowCreate placeholder="please select" options={option} className="!w-[574px]" />
       </FormItem>
-      {modelPlatform === ModelTypeList.Doubao && (
-        <FormItem
-          requiredSymbol={false}
-          label="Base URL"
-          field={`${prefix}-baseUrl`}
-          extra={
-            <div className="text-[12px] text-[#6E718C]">
-              No default endpoint is preset. For a Volcengine Ark account use e.g.
-              https://ark.cn-beijing.volces.com/api/v3
-            </div>
-          }
-          rules={[
-            {
-              validator(value, callback) {
-                if (!value) {
-                  callback('Please enter your base URL')
-                } else {
-                  callback()
-                }
-              }
-            }
-          ]}>
-          <Input allowClear placeholder="Enter your base URL" className="!w-[574px]" />
-        </FormItem>
-      )}
       <FormItem
         requiredSymbol={false}
         label="API Key"
@@ -183,14 +158,10 @@ const StandardFormItems: FC<StandardFormItemsProps> = (props) => {
             You can get the API Key Here:
             <Button
               onClick={() => {
-                const url =
-                  modelPlatform === ModelTypeList.Doubao
-                    ? 'https://www.volcengine.com/docs/82379/1541594'
-                    : 'https://platform.openai.com/settings/organization/api-keys'
-                window.open(`${url}`)
+                window.open('https://platform.openai.com/settings/organization/api-keys')
               }}
               type="text">
-              {modelPlatform === ModelTypeList.Doubao ? 'Get Doubao API Key' : 'Get OpenAI API Key'}
+              Get OpenAI API Key
             </Button>
           </div>
         }
@@ -277,14 +248,8 @@ const Settings: FC<SettingsProps> = (props) => {
         ? formatData
         : {
             ...formatData,
-            // No provider-specific default URL is forced for Doubao: the base
-            // URL must be entered explicitly (empty until configured).
-            baseUrl:
-              values.modelPlatform === ModelTypeList.Doubao ? formatData.baseUrl || '' : BaseUrl.OpenAIUrl,
-            embeddingModelId:
-              values.modelPlatform === ModelTypeList.Doubao
-                ? embeddingModels.DoubaoEmbeddingModelId
-                : embeddingModels.OpenAIEmbeddingModelId
+            baseUrl: BaseUrl.OpenAIUrl,
+            embeddingModelId: embeddingModels.OpenAIEmbeddingModelId
           }
 
       updateModelSettings(params as unknown as ModelConfigProps)
@@ -339,8 +304,6 @@ const Settings: FC<SettingsProps> = (props) => {
                   const modelPlatform = values.modelPlatform
                   if (modelPlatform === ModelTypeList.Custom) {
                     return <CustomFormItems prefix={ModelTypeList.Custom} />
-                  } else if (modelPlatform === ModelTypeList.Doubao) {
-                    return <StandardFormItems modelPlatform={modelPlatform} prefix={ModelTypeList.Doubao} />
                   } else if (modelPlatform === ModelTypeList.OpenAI) {
                     return <StandardFormItems modelPlatform={modelPlatform} prefix={ModelTypeList.OpenAI} />
                   } else {

@@ -17,7 +17,6 @@ from typing import Optional
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from opencontext.config.config_manager import ConfigManager
 from opencontext.server.api import router as api_router
@@ -75,34 +74,6 @@ def _get_project_root() -> Path:
     """Get the project root directory."""
     return project_root
 
-
-def _setup_static_files() -> None:
-    """Setup static file mounts for the FastAPI app."""
-    # Mount static files
-    if hasattr(sys, "_MEIPASS"):
-        static_path = Path(sys._MEIPASS) / "opencontext/web/static"
-    else:
-        static_path = Path(__file__).parent / "web/static"
-
-    print(f"Static path: {static_path}")
-    print(f"Static path exists: {static_path.exists()}")
-    print(f"Static path absolute: {static_path.resolve()}")
-
-    if static_path.exists():
-        app.mount("/static", StaticFiles(directory=str(static_path)),
-                  name="static")
-        print(f"Mounted static files from: {static_path}")
-    else:
-        print(f"Static path does not exist: {static_path}")
-
-    # Mount screenshots directory
-    screenshots_path = Path("./screenshots").resolve()
-    if screenshots_path.exists():
-        app.mount("/screenshots",
-                  StaticFiles(directory=screenshots_path), name="screenshots")
-
-
-_setup_static_files()
 
 app.include_router(api_router)
 
