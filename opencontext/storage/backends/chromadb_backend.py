@@ -164,15 +164,15 @@ class ChromaDBBackend(IVectorStorageBackend):
             # Create a separate collection for each context_type
             for context_type in context_types:
                 collection_name = f"{context_type}"
-                collection = self._client.get_or_create_collection(
-                    name=collection_name,
+                collection = self._get_or_create_collection_compat(
+                    collection_name,
                     metadata={"hnsw:space": "cosine", "context_type": context_type},
                 )
                 self._collections[context_type] = collection
 
             # Create dedicated todo collection for deduplication
-            todo_collection = self._client.get_or_create_collection(
-                name="todo",
+            todo_collection = self._get_or_create_collection_compat(
+                "todo",
                 metadata={
                     "hnsw:space": "cosine",
                     "description": "Todo embeddings for deduplication",
@@ -265,11 +265,18 @@ class ChromaDBBackend(IVectorStorageBackend):
                 context_types = [ct.value for ct in ContextType]
                 for context_type in context_types:
                     collection_name = f"{context_type}"
-                    collection = self._client.get_or_create_collection(
-                        name=collection_name,
+                    collection = self._get_or_create_collection_compat(
+                        collection_name,
                         metadata={"hnsw:space": "cosine", "context_type": context_type},
                     )
                     self._collections[context_type] = collection
+                self._collections["todo"] = self._get_or_create_collection_compat(
+                    "todo",
+                    metadata={
+                        "hnsw:space": "cosine",
+                        "description": "Todo embeddings for deduplication",
+                    },
+                )
 
                 logger.info("ChromaDB server reconnected successfully")
                 return True
@@ -282,6 +289,86 @@ class ChromaDBBackend(IVectorStorageBackend):
 
     def get_name(self) -> str:
         return "chromadb"
+
+    def _expected_embedding_dim(self) -> Optional[int]:
+        """Vector dimension expected by the embedding route (config only, no
+        network). None when the route is unconfigured or has no output_dim."""
+        try:
+            from opencontext.llm.provider_router import get_provider_router
+
+            router = get_provider_router()
+            for pid in router.routes.get("embedding", []):
+                provider = router.providers.get(pid)
+                if provider is not None:
+                    dim = provider.options.get("output_dim")
+                    if dim:
+                        return int(dim)
+        except Exception as e:  # fail-soft: dimension check is best-effort
+            logger.debug(f"Cannot determine expected embedding dim: {e}")
+        return None
+
+    def _stored_embedding_dim(self, collection) -> Optional[int]:
+        """Dimension of the embeddings already stored in a collection (None
+        when the collection is empty or the probe fails)."""
+        try:
+            result = collection.get(limit=1, include=["embeddings"])
+            if result and result["ids"]:
+                embeddings = result["embeddings"]
+                if embeddings is not None and len(embeddings) > 0:
+                    return len(embeddings[0])
+        except Exception as e:
+            logger.debug(f"Cannot probe embeddings of '{collection.name}': {e}")
+        return None
+
+    def _get_or_create_collection_compat(
+        self, name: str, metadata: Dict[str, Any]
+    ) -> "chromadb.Collection":
+        """get_or_create_collection that evacuates a collection whose stored
+        vector dimension no longer matches the configured embedding model.
+
+        Switching embedding models (e.g. 2048-dim GLM embedding-3 -> 1024-dim
+        Cloudflare qwen3 via the sync server) would otherwise make every
+        upsert/query on the old collections fail. The old collection is
+        RENAMED to <name>_dim<N>_old (kept for inspection, never deleted) and
+        a fresh empty one is created under the original name. Fail-soft: when
+        the expected dim is unknown or evacuation fails, the existing
+        collection is returned as-is (only vector features degrade).
+        """
+        expected = self._expected_embedding_dim()
+        existing = None
+        if expected:
+            try:
+                existing = self._client.get_collection(name=name)
+            except Exception:
+                existing = None  # collection does not exist yet
+        if existing is not None:
+            old_dim = self._stored_embedding_dim(existing)
+            if old_dim and old_dim != expected:
+                backup = f"{name}_dim{old_dim}_old"
+                suffix = 2
+                # keep any earlier backup (renames must never overwrite)
+                while True:
+                    try:
+                        self._client.get_collection(name=backup)
+                        backup = f"{name}_dim{old_dim}_old{suffix}"
+                        suffix += 1
+                    except Exception:
+                        break
+                try:
+                    existing.modify(name=backup)
+                    logger.warning(
+                        f"Collection '{name}' has {old_dim}-dim embeddings but the"
+                        f" embedding model now returns {expected} dims; evacuated"
+                        f" to '{backup}' (kept, not deleted) and recreated empty"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Cannot evacuate dimension-mismatched collection "
+                        f"'{name}' ({old_dim} -> {expected} dims): {e}; vector "
+                        f"features on it will fail until resolved"
+                    )
+                    return existing
+        return self._client.get_or_create_collection(name=name, metadata=metadata)
 
     def get_collection_names(self) -> Optional[List[str]]:
         return list(self._collections.keys())

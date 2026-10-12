@@ -63,18 +63,22 @@ ai:
       api_key_file: "${ZHIPU_KEY_FILE:~/.config/minecontext/zhipu-key}"
       options:
         max_tokens: 8192
-    - id: glm_embedding
+    - id: mcsync_embedding
       kind: openai_compat
-      model: embedding-3
-      base_url: https://open.bigmodel.cn/api/coding/paas/v4
-      api_key_file: "${ZHIPU_KEY_FILE:~/.config/minecontext/zhipu-key}"
+      model: qwen3-embedding-0.6b
+      # Embeddings are relayed by the sync server (POST /v1/embeddings), which
+      # holds the real provider (Cloudflare @cf/qwen/qwen3-embedding-0.6b,
+      # 1024 dims; same as agent-memory). No real key involved: the relay has
+      # no auth and the OpenAI client just requires a non-empty value.
+      base_url: "${MINECONTEXT_SYNC_URL:http://<sync-server-ip>:18740}/v1"
+      api_key: "no-key"
       options:
-        output_dim: 2048
+        output_dim: 1024
   routes:
     vision: [gemini_live_38, glm_flash]
     chat: [glm_flash, glm_53]
     structured: [glm_flash]
-    embedding: [glm_embedding]
+    embedding: [mcsync_embedding]
     exact: [glm_flash]
 
 vlm_model:
@@ -88,7 +92,7 @@ embedding_model:
   api_key: "${EMBEDDING_API_KEY}"
   model: "${EMBEDDING_MODEL}"
   provider: ""
-  output_dim: 2048
+  output_dim: 1024
 
 # Context capture module
 # Screen capture is driven by the Electron frontend: screenshots are uploaded
