@@ -1,75 +1,74 @@
-# MineContext（Kling 版）
+<p align="center"><img src="frontend/build/icon.png" width="96" alt=""></p>
 
-自分専用の作業記録アプリです。PC の画面から「いま何をしているか」を AI が読み取って記録し、その日の作業を時系列にまとめます。Mac と Windows の記録を一か所に集め、AI エージェントの作業記録も同じタイムラインに並べて、日報や備忘録ブログを作ります。
+# Hibi
 
-> **このプロジェクトは [volcengine/MineContext](https://github.com/volcengine/MineContext) を元にしています。**
+自分が PC でしたことと、AI エージェントがしたことを、ひとつのタイムラインにまとめる個人用の作業記録アプリです。PC の画面から「いま何をしているか」を AI が読み取って記録し、その日の記録から日報とブログを書きます。
+
+**ドキュメント: https://kling0012.github.io/hibi/**
+
+> **このプロジェクトは [volcengine/MineContext](https://github.com/volcengine/MineContext) をもとにしています。**
 > 元のプロジェクトは Apache License 2.0 で公開されており、このリポジトリも同じライセンスに従います（[LICENSE](LICENSE)）。
-> 元の README は [docs/upstream/](docs/upstream/README.md) に残しています。元のプロジェクトをそのまま追う場合は、このリポジトリの `main` ブランチ（フォーク元と同じ状態）を使ってください。
-> 本リポジトリでの主な変更点は下の「元のプロジェクトからの変更」にまとめています。
+> 名前、画面、AI の接続方式、記録のしくみを大きく変えた別のアプリです。元の README は [docs/upstream/](docs/upstream/README.md) にあります。
+
+## Hibi を構成する 3 つのリポジトリ
+
+| リポジトリ | 役割 |
+|---|---|
+| **hibi**（ここ） | デスクトップアプリ（Mac / Windows）。画面の記録、作業の宣言、閲覧 |
+| [hibi-server](https://github.com/Kling0012/hibi-server) | 同期サーバ。記録の集約、検索、作業終了の判定、日報・ブログ、スマホ用の画面 |
+| [hibi-memory](https://github.com/Kling0012/hibi-memory) | AI の共有記憶。AI エージェントの作業記録の置き場 |
 
 ## できること
 
-| 機能 | 状態 |
-|---|---|
-| 画面の記録と AI による要約（Electron デスクトップアプリ） | 元のプロジェクトの機能を刷新中 |
-| AI の接続先を優先順位付きで切り替え（Gemini Live → GLM-5.3 Flash など、上限に達したら自動で次へ） | 開発中 |
-| 複数端末の記録を集める同期サーバ（PostgreSQL + pgvector、日本語の意味検索） | 実装済み・配置作業中 |
-| 「これから○○をする」と作業を宣言し、終わりは AI が画面の様子から判断して作業時間を記録 | 実装済み（サーバ側） |
-| AI エージェントの作業記録（共有記憶 agent-memory）を同じタイムラインに取り込み | 開発中 |
-| スマホ・iPad から使う管理画面 | 予定 |
-| その日の記録から備忘録ブログを自動で書く | 予定 |
+- **画面の記録** — 画面を 1 秒に 1 枚まで AI に送り、30 秒ごとの活動の要約と、画面が変わったときの正確な書き起こしを残します。パスワード管理アプリなどは除外できます。
+- **AI の自動切り替え** — Gemini Live（無料枠）を優先し、上限や障害のときは GLM などの OpenAI 互換 API へ自動で切り替えます。
+- **作業の宣言** — 「これから○○をする」と書いて始めると、終わりは AI が画面の様子から判断して作業時間を残します。
+- **タイムライン** — 作業・端末・AI ごとのレーンで 1 日を並べ、1 か月のヒートマップで振り返ります。
+- **日報とブログ** — 毎晩、その日の記録から AI が日報を書き、ブログの下書きを作ります。Claude Code などに MCP で書かせることもできます。
+- **どこからでも** — 記録は自分の同期サーバに集まり、別の PC やスマホ・iPad からも同じ記録を見られます。
 
-## 構成
+## はじめかた
 
-```
- Mac / Windows                         同期サーバ（tailnet 内）            agent-memory
-┌──────────────────────┐   作業記録   ┌───────────────────────────┐   読み取り   ┌──────────────┐
-│ デスクトップアプリ    │ ───────────▶ │ sync-server               │ ◀─────────── │ AI の共有記憶 │
-│  frontend/ (Electron) │              │  FastAPI + PostgreSQL      │              └──────────────┘
-│  opencontext/ (Python)│              │  + pgvector                │
-│   画面の撮影と AI 要約 │              │  タイムライン・検索・作業時間 │ ──▶ 日報・ブログ（予定）
-└──────────────────────┘              └───────────────────────────┘
-         │                                     │
-         ▼                                     ▼
-  Gemini Live / GLM-5.3 Flash          埋め込み: Cloudflare Workers AI
-  （画面の要約）                        （Qwen3-Embedding-0.6B）
-```
+1. 同期サーバを立てる（[hibi-server](https://github.com/Kling0012/hibi-server)）
+2. [Releases](https://github.com/Kling0012/hibi/releases) からアプリを入れる
+   - macOS は署名していないため、初回だけ `xattr -dr com.apple.quarantine /Applications/Hibi.app` を実行
+3. 初回の設定画面で AI の接続先と同期サーバの URL を入れる
 
-- `frontend/` … Electron のデスクトップアプリ（画面の撮影、設定、チャット）
-- `opencontext/` … アプリに同梱する Python のバックエンド（AI による要約、日報、Todo、Tips）
-- `sync-server/` … 全端末の記録を集めるサーバ。使い方は [sync-server/README.md](sync-server/README.md)
+詳しくは [セットアップ](https://kling0012.github.io/hibi/getting-started.html) を見てください。
 
-## ビルド
+## 開発
 
-配布用のアプリは OS ごとにその OS 上でビルドする必要があります（Python 部分を PyInstaller でまとめるため、クロスビルドできません）。手元に Mac がなくても、GitHub Actions（`.github/workflows/release.yml`）で macOS・Windows・Linux 版を作れます。
-
-手元で開発する場合:
+必要なもの: Python 3.12 と [uv](https://docs.astral.sh/uv/)、Node.js 22 以上と pnpm 10。
 
 ```sh
-# Python バックエンド（Python 3.12、uv）
 uv sync
-uv run python -m opencontext.cli start
-
-# デスクトップアプリ（Node 22、pnpm 10）
-cd frontend
-pnpm install
-pnpm run dev
+uv run python -m opencontext.cli start   # Python バックエンド（127.0.0.1:1733）
+cd frontend && pnpm install && pnpm run dev
 ```
 
-macOS 版は署名していないため、初回は次のコマンドで Gatekeeper の隔離属性を外してください。
+| ディレクトリ | 中身 |
+|---|---|
+| `frontend/` | Electron 44 + React 19 のアプリ本体 |
+| `opencontext/` | 同梱する Python バックエンド（AI 要約、ToDo・ヒント、同期サーバへの送信） |
+| `config/` | 既定の設定（`config.yaml`） |
+| `docs/` | ドキュメントサイト（GitHub Pages） |
+
+配布用のビルドは、Python 部分を PyInstaller で固めるため OS ごとにその OS 上で行います。GitHub Actions の `release.yml` を手動で動かすと、macOS / Windows / Linux 版を下書きのリリースに添付します。
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/MineContext.app
+gh workflow run release.yml -R Kling0012/hibi -f tag=v0.1.0
 ```
 
-## 元のプロジェクトからの変更
+## 元のプロジェクトからの主な変更
 
-- Python 3.12 に更新し、依存関係を `uv.lock` で固定
-- Electron 44、TypeScript 7 などフロントエンドの依存関係を更新
-- 配布先・自動更新を本リポジトリ向けに変更（自動更新は既定でオフ）
-- 使わない機能を削除: volcengine Ark / doubao、入力補完、フォルダ・文書・Web リンクの取り込みと Web 検索、Python 側の画面撮影、qdrant、旧 HTML 画面
-- 同期サーバ `sync-server/` と作業宣言・作業時間の自動記録を追加
+- 名前とアイコンを Hibi に変更（以前の MineContext のデータは初回起動時に引き継ぎ）
+- 画面を日本語化し、サイドバー・ホーム・設定を作り直し
+- AI を複数の接続先から用途ごとに選び、失敗時に自動で切り替える方式に変更（Gemini Live、OpenAI 互換）
+- 画面の記録を、Live API への連続送信と、変化時の正確な書き起こしの 2 段に変更
+- 同期サーバへの送信、作業の宣言、同期サーバの画面（タイムライン・日報・ブログ・検索）の表示を追加
+- フォルダ・文書・Web ページの取り込み、Doubao / Ark、補完機能、旧 Web 画面を削除
+- Electron 44、React 19、TypeScript 7、Python 3.12 / uv に更新
 
 ## ライセンス
 
-Apache License 2.0。元のプロジェクト [volcengine/MineContext](https://github.com/volcengine/MineContext) の著作権表示とライセンスを引き継いでいます。本リポジトリで追加・変更した部分も同じライセンスで公開します。
+Apache License 2.0。元のプロジェクトの著作権表示は各ファイルと [LICENSE](LICENSE) に残しています。
