@@ -70,4 +70,4 @@ afterSign: build/notarize.js
 publish:
   provider: github
   owner: Kling0012
-  repo: MineContext
+  repo: hibi

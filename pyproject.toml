@@ -49,10 +49,10 @@ dev = [
 opencontext = "opencontext.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/Kling0012/MineContext"
-Repository = "https://github.com/Kling0012/MineContext"
-Issues = "https://github.com/Kling0012/MineContext/issues"
-Documentation = "https://github.com/Kling0012/MineContext"
+Homepage = "https://github.com/Kling0012/hibi"
+Repository = "https://github.com/Kling0012/hibi"
+Issues = "https://github.com/Kling0012/hibi/issues"
+Documentation = "https://github.com/Kling0012/hibi"
 
 [build-system]
 requires = ["hatchling"]
