@@ -255,9 +255,6 @@ importers:
       markdown-it:
         specifier: ^14.3.2
         version: 14.3.2
-      node-gyp:
-        specifier: ^12.2.0
-        version: 12.4.0
       p-queue:
         specifier: ^8.1.1
         version: 8.1.1
