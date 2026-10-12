@@ -134,31 +134,17 @@ const ProactiveFeedCard: React.FC = ({}) => {
   const sortedEventsList = [...feedEvents].reverse()
   const isEmpty = sortedEventsList.length === 0
   return (
-    <div className="flex w-[256px] flex-col items-start gap-4 self-stretch rounded-[12px] bg-white h-[700px]">
-      <div className="flex items-center gap-2 w-full">
-        <div className="flex px-[2px] justify-center items-center gap-[4px] rounded-[2px] bg-gradient-to-l from-[rgba(239,251,248,0.5)] to-[#F5FBEF]">
-          💡
-          <div className="font-['Roboto'] text-[15px] font-extralight leading-[22px] tracking-[0.045px] bg-gradient-to-l from-[#00C469] to-[#0026B1] bg-clip-text text-transparent">
-            Proactive
-          </div>
-        </div>
-        <div
-          className="text-black font-['Roboto'] text-sm font-medium leading-[22px] tracking-[0.042px]"
-          style={{
-            fontWeight: 500
-          }}>
-          Feed
-        </div>
-      </div>
+    <div className="flex w-full flex-col items-start gap-3 self-stretch rounded-[14px] border border-[#e6e8ee] bg-white p-4 h-[460px]">
+      <div className="text-sm font-semibold text-[#667085]">ヒント</div>
       <div
-        className={`flex flex-col item-center ${!isEmpty && 'items-start'} gap-[6px] flex-1 self-stretch h-[500px] overflow-y-auto`}>
+        className={`flex flex-col item-center ${!isEmpty && 'items-start'} gap-[6px] flex-1 self-stretch min-h-0 overflow-y-auto`}>
         {!isEmpty ? (
           sortedEventsList.map((event) => <ProactiveFeedCardItem key={event.id} {...transferType(event)} />)
         ) : (
           <div className="flex flex-col items-center justify-center mt-14 gap-[8px]">
             <img src={feedEmptyIcon} alt="empty icon" />
-            <div className="w-[182px] text-center text-[#6E718C] font-roboto text-[12px] font-normal leading-[20px] tracking-[0.036px]">
-              Proactive insights will appear here to help you
+            <div className="max-w-[280px] text-center text-[#6E718C] font-roboto text-[12px] font-normal leading-[20px] tracking-[0.036px]">
+              記録から気づいたことがここに届きます
             </div>
           </div>
         )}

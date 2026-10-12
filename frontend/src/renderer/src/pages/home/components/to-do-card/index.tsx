@@ -10,7 +10,6 @@ import {
   Popconfirm,
   Radio,
   Select,
-  Space,
   Typography,
   Tree,
   Form,
@@ -53,15 +52,15 @@ function getTodoIcon(urgency: TaskUrgency) {
 function genTodoTitle(urgency: TaskUrgency) {
   switch (urgency) {
     case TaskUrgency.High:
-      return 'Urgent'
+      return '急ぎ'
     case TaskUrgency.Medium:
-      return 'Medium Priority'
+      return '普通'
     case TaskUrgency.Low:
-      return 'Low Priority'
+      return '後で'
     case TaskUrgency.Done:
-      return 'Done'
+      return '完了'
     default:
-      return 'Unknown Priority'
+      return 'その他'
   }
 }
 export interface ToDoCardProps {
@@ -97,9 +96,9 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
       await deleteTask(taskId)
       // TODO: Separate deletion from initial data
       deleteTodoList(taskId)
-      Message.success('task delete success')
+      Message.success('削除しました')
     } catch (error) {
-      Message.error('task delete failed')
+      Message.error('削除できませんでした')
     } finally {
       setIsDeleting(false)
       setIsTaskHover(null)
@@ -118,7 +117,7 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
         setCopiedTaskId(null)
       }, 2000)
     } catch (error) {
-      Message.error('Failed to copy content')
+      Message.error('コピーできませんでした')
     }
   })
 
@@ -168,7 +167,7 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
             }
           }}
           okText="Confirm"
-          cancelText="Cancel">
+          cancelText="キャンセル">
           <Button
             type="text"
             size="small"
@@ -296,7 +295,7 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
         content: values.content,
         urgency: values.urgency
       })
-      Message.success('Task add success')
+      Message.success('追加しました')
     } catch (error: any) {
       Message.error(error.message || '')
     }
@@ -318,7 +317,7 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
           urgency: values.urgency
         })
       }
-      Message.success('task update success')
+      Message.success('更新しました')
     } catch (error: any) {
       Message.error(error.message || '')
     }
@@ -349,22 +348,13 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
   return (
     <>
       <Card
-        className="flex max-h-[460px] p-3 flex-col items-start gap-4 self-stretch rounded-[10px] border border-[var(--line-color-border-3,#E1E3EF)] bg-white w-full"
+        className="flex max-h-[460px] p-1 flex-col items-start gap-4 self-stretch rounded-[14px] border border-[#e6e8ee] bg-white w-full"
         headerStyle={{
           width: '100%'
         }}
         title={
           <div className="flex flex-1 justify-between items-center w-full">
-            <Space style={{ marginTop: 5 }}>
-              <div className="flex px-[2px] justify-center items-center gap-[4px] rounded-[2px] bg-gradient-to-l from-[rgba(239,251,248,0.5)] to-[#F5FBEF]">
-                <div className="mr-[0.3em] font-['Roboto'] text-[15px] font-extralight leading-[22px] tracking-[0.045px] bg-gradient-to-l from-[#007740] to-[#D0B400] bg-clip-text text-transparent">
-                  Todo
-                </div>
-              </div>
-              <div className="text-black font-['Roboto'] text-sm font-medium leading-[22px] tracking-[0.042px]">
-                today
-              </div>
-            </Space>
+            <div className="text-sm font-semibold text-[#667085]">今日の ToDo</div>
             <img src={addIcon} alt="" onClick={handleCreateToDoList} className="cursor-pointer" />
           </div>
         }
@@ -382,19 +372,19 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
           ) : (
             <div className="flex flex-col items-center justify-center pt-[60px] pb-[60px] text-center">
               <img src={taskEmpty} alt="empty" className="w-20 h-20 mb-4" />
-              <Text type="secondary">Update at 8 am everyday</Text>
+              <Text type="secondary">記録をもとに毎朝 8 時に作られます</Text>
             </div>
           )}
         </div>
       </Card>
       {/* Edit task modal */}
       <Modal
-        title={status === TODO_LIST_STATUS.Create ? 'Add todo' : 'Edit todo'}
+        title={status === TODO_LIST_STATUS.Create ? 'ToDo を追加' : 'ToDo を編集'}
         visible={visible}
         onOk={handleSave}
         onCancel={() => setVisible(false)}
-        okText={status === TODO_LIST_STATUS.Create ? 'Add' : 'Update'}
-        cancelText="Cancel"
+        okText={status === TODO_LIST_STATUS.Create ? '追加' : '更新'}
+        cancelText="キャンセル"
         unmountOnExit>
         <Form
           layout="vertical"
@@ -405,16 +395,16 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
             <Input className="hidden" />
           </Form.Item>
           <Form.Item
-            label="Todo content"
+            label="内容"
             field="content"
-            rules={[{ required: true, message: 'Please input task content' }]}>
-            <TextArea autoSize placeholder="Input todo content" />
+            rules={[{ required: true, message: '内容を入力してください' }]}>
+            <TextArea autoSize placeholder="やること" />
           </Form.Item>
-          <Form.Item label="Priority" field="urgency">
+          <Form.Item label="優先度" field="urgency">
             <Select>
-              <Select.Option value={TaskUrgency.High}>Urgent</Select.Option>
-              <Select.Option value={TaskUrgency.Medium}>Medium Priority</Select.Option>
-              <Select.Option value={TaskUrgency.Low}>Low Priority</Select.Option>
+              <Select.Option value={TaskUrgency.High}>急ぎ</Select.Option>
+              <Select.Option value={TaskUrgency.Medium}>普通</Select.Option>
+              <Select.Option value={TaskUrgency.Low}>後で</Select.Option>
             </Select>
           </Form.Item>
         </Form>

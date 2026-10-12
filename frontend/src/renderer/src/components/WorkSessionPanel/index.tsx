@@ -5,41 +5,19 @@
 // shortcuts. All actions go through the workSessionAPI exposed by the preload
 // script; the main process owns the logic and pushes state changes.
 
-import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Input, Tag, Typography } from '@arco-design/web-react'
-import type { WorkSessionState } from '@shared/work-session'
+import { useCallback, useState } from 'react'
+import { Button, Input } from '@arco-design/web-react'
+import { formatElapsed, useNow, useWorkSession } from '@renderer/hooks/use-work-session'
 
-const { Text } = Typography
-
-/** "h:mm:ss" over an hour, otherwise "mm:ss". */
-function formatElapsed(startedAtIso: string, now: Date): string {
-  const started = new Date(startedAtIso).getTime()
-  if (!Number.isFinite(started)) return '00:00'
-  let sec = Math.max(0, Math.floor((now.getTime() - started) / 1000))
-  const h = Math.floor(sec / 3600)
-  sec -= h * 3600
-  const m = Math.floor(sec / 60)
-  const s = sec - m * 60
-  const pad = (n: number): string => String(n).padStart(2, '0')
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
-}
+const clock = (iso: string): string =>
+  new Date(iso).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
 
 export function WorkSessionPanel() {
-  const [state, setState] = useState<WorkSessionState | null>(null)
-  const [now, setNow] = useState<Date>(() => new Date())
+  const state = useWorkSession()
+  const now = useNow()
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
-
-  useEffect(() => {
-    void window.workSessionAPI.getState().then(setState)
-    const off = window.workSessionAPI.onStateChanged(setState)
-    const timer = window.setInterval(() => setNow(new Date()), 1000)
-    return () => {
-      off()
-      window.clearInterval(timer)
-    }
-  }, [])
 
   const submit = useCallback(async (): Promise<void> => {
     if (busy) return
@@ -54,7 +32,6 @@ export function WorkSessionPanel() {
       const result = await window.workSessionAPI.declare(value)
       if (result.ok) {
         setTitle('')
-        setMessage({ kind: 'ok', text: `宣言しました: ${value}` })
       } else {
         setMessage({ kind: 'err', text: result.error ?? '宣言できませんでした' })
       }
@@ -92,79 +69,52 @@ export function WorkSessionPanel() {
           : null
 
   return (
-    <Card
-      headerStyle={{ width: '100%' }}
-      bodyStyle={{ width: '100%' }}
-      title={
-        <div className="flex items-center gap-2 self-stretch">
-          <div className="flex-1 text-black font-['Roboto'] text-sm font-medium leading-[22px]">作業宣言</div>
-          <div
-            className="text-[var(--text-color-text-2,#3F3F51)] font-['PingFang SC'] text-xs leading-[20px] cursor-pointer font-medium"
-            onClick={() => void window.workSessionAPI.openManageUi()}>
-            管理画面を開く
+    <section className="hb-card hb-declare">
+      {active ? (
+        <div className="hb-active">
+          <span className="hb-pulse" />
+          <div style={{ minWidth: 0 }}>
+            <div className="hb-active-title">{active.title}</div>
+            <div className="hb-active-meta">{clock(active.startedAt)} から作業中 · 終わりは AI が画面から判断します</div>
           </div>
-        </div>
-      }
-      className="flex w-full p-3 flex-col items-start gap-2 self-stretch rounded-[10px] border border-[rgba(225,227,239,0.80)] bg-white">
-      {banner && (
-        <Text type="warning" style={{ fontSize: 12 }}>
-          {banner}
-        </Text>
-      )}
-
-      {active && (
-        <div className="flex w-full items-center justify-between gap-2 self-stretch">
-          <div className="flex min-w-0 items-baseline gap-2">
-            <Text className="truncate" style={{ fontSize: 14, fontWeight: 600 }}>
-              {active.title}
-            </Text>
-            <Text type="secondary" style={{ fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
-              経過 {formatElapsed(active.startedAt, now)}
-            </Text>
-          </div>
-          <Button size="mini" status="danger" loading={busy} onClick={() => void endActive()}>
+          <span className="hb-elapsed">{formatElapsed(active.startedAt, now)}</span>
+          <Button status="danger" loading={busy} onClick={() => void endActive()}>
             終了
           </Button>
         </div>
+      ) : (
+        <p className="hb-declare-q">これから何をする？</p>
       )}
 
-      <div className="flex w-full items-center gap-2 self-stretch">
+      <div className="hb-declare-row">
         <Input
           value={title}
-          placeholder="これから何をしますか？（Enter で宣言）"
+          placeholder={active ? '次の作業（Enter で切り替え）' : '例：同期サーバの管理画面を作る（Enter で開始）'}
           disabled={!canDeclare}
+          maxLength={200}
           onChange={(value) => setTitle(value)}
           onPressEnter={() => void submit()}
         />
         <Button type="primary" disabled={!canDeclare} onClick={() => void submit()}>
-          {active ? '次の作業を開始' : '開始'}
+          {active ? '次の作業へ' : '開始'}
         </Button>
       </div>
-      {active && (
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          次の作業を始めると、今の作業はここで終わります。
-        </Text>
-      )}
 
       {state?.recentTitles && state.recentTitles.length > 0 && (
-        <div className="flex w-full flex-wrap items-center gap-1 self-stretch">
-          {state.recentTitles.map((recent) => (
-            <Tag
-              key={recent}
-              className="cursor-pointer"
-              title={recent}
-              onClick={() => setTitle(recent)}>
+        <div className="hb-recent">
+          {state.recentTitles.slice(0, 8).map((recent) => (
+            <button key={recent} className="hb-chip" title={recent} onClick={() => setTitle(recent)}>
               {recent}
-            </Tag>
+            </button>
           ))}
         </div>
       )}
 
-      {message && (
-        <Text type={message.kind === 'ok' ? 'success' : 'error'} style={{ fontSize: 12 }}>
-          {message.text}
-        </Text>
+      {banner && <p className="hb-hint warn">{banner}</p>}
+      {message && <p className={`hb-hint ${message.kind}`}>{message.text}</p>}
+      {active && !message && !banner && (
+        <p className="hb-hint">次の作業を始めると、今の作業はその時刻で終わります。</p>
       )}
-    </Card>
+    </section>
   )
 }

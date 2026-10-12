@@ -61,20 +61,8 @@ const navigationSlice = createSlice({
         state.activeNavigationType = 'main'
         state.activeVaultId = null
 
-        // Set main navigation based on the path
-        switch (pathname) {
-          case '/':
-            state.activeMainTab = 'home'
-            break
-          case '/screen-monitor':
-            state.activeMainTab = 'screen-monitor'
-            break
-          case '/settings': // Add this line to handle the settings path
-            state.activeMainTab = 'settings'
-            break
-          default:
-            state.activeMainTab = 'home'
-        }
+        // Set main navigation based on the path ('/timeline' -> 'timeline')
+        state.activeMainTab = pathname.replace(/^\//, '').split('/')[0] || 'home'
       }
     }
   }

@@ -10,6 +10,7 @@ import { ConfigProvider } from '@arco-design/web-react'
 import enUS from '@arco-design/web-react/es/locale/en-US'
 import zhCN from '@arco-design/web-react/es/locale/zh-CN'
 import '@renderer/assets/main.css'
+import '@renderer/assets/hibi.css'
 import '@renderer/assets/theme/index.less'
 import 'allotment/dist/style.css'
 import LoadingComponent from './components/Loading'
@@ -21,6 +22,8 @@ import Settings from './pages/settings/settings'
 import { ServiceProvider, useObservableTask } from './atom/event-loop.atom'
 import { getLogger } from '@shared/logger/renderer'
 import { useMemoizedFn } from 'ahooks'
+import { get } from 'lodash'
+import axiosInstance from './services/axiosConfig'
 
 const logger = getLogger('App.tsx')
 const isEnglish = true // Hardcode for now, will change later
@@ -100,8 +103,21 @@ function AppContent(): React.ReactElement {
     })
   }, [])
 
-  // Decide whether to display the application based on the status
+  // The init-check push can arrive before the listener above is registered;
+  // ask the backend directly once it is running so the setup screen does not stick.
   const pythonServerStarted = backendStatus === 'running'
+  useEffect(() => {
+    if (!pythonServerStarted) return
+    axiosInstance
+      .get('/api/health')
+      .then((res) => {
+        const llm = get(res, 'data.data.components.llm')
+        if (typeof llm === 'boolean') setShowSettings(!llm)
+      })
+      .catch((error) => logger.warn('health check for setup screen failed', { error }))
+  }, [pythonServerStarted])
+
+  // Decide whether to display the application based on the status
   const closeSetting = useMemoizedFn(() => {
     setShowSettings(false)
   })

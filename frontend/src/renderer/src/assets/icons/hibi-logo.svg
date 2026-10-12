@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f6cf7"/>
+      <stop offset="1" stop-color="#7c4dde"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd76a"/>
+      <stop offset="1" stop-color="#ffb23e"/>
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#bg)"/>
+  <!-- the day's lanes -->
+  <rect x="212" y="372" width="420" height="96" rx="48" fill="#ffffff"/>
+  <rect x="332" y="528" width="480" height="96" rx="48" fill="#ffffff" fill-opacity=".82"/>
+  <rect x="212" y="684" width="300" height="96" rx="48" fill="#ffffff" fill-opacity=".62"/>
+  <!-- the sun (日) -->
+  <circle cx="744" cy="300" r="92" fill="url(#sun)"/>
+</svg>

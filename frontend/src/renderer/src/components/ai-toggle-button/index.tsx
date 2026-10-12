@@ -60,7 +60,7 @@ const AIToggleButton: React.FC<AIToggleButtonProps> = ({ onClick, isActive = fal
           background: isActive ? '#000' : '#F6F8FA',
           color: isActive ? '#fff' : '#000'
         }}>
-        <span style={{ fontWeight: 500 }}>Chat with AI</span>
+        <span style={{ fontWeight: 500 }}>AI と話す</span>
       </Button>
     </Tooltip>
   )

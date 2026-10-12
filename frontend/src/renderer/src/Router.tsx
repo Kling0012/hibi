@@ -11,8 +11,7 @@ import VaultPage from './pages/vault/Vault'
 import ScreenMonitor from './pages/screen-monitor/screen-monitor'
 import Settings from './pages/settings/settings'
 
-import Files from './pages/files/Files'
-import AIDemo from './pages/ai-demo/ai-demo'
+import SyncView from './pages/sync-view/sync-view'
 import Sidebar from './components/Sidebar'
 import 'allotment/dist/style.css'
 import { useEvents } from './hooks/use-events'
@@ -70,23 +69,18 @@ const AppContent: FC = () => {
         <Route path="/vault" element={<VaultPage />} />
         <Route path="/screen-monitor" element={<ScreenMonitor />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/files" element={<Files />} />
-        <Route path="/ai-demo" element={<AIDemo />} />
+        <Route path="/timeline" element={<SyncView title="タイムライン" path="/ui/#today" />} />
+        <Route path="/report" element={<SyncView title="日報" sub="AI がその日の記録からまとめます" path="/ui/#report" />} />
+        <Route path="/blog" element={<SyncView title="ブログ" path="/blog/" />} />
+        <Route path="/search" element={<SyncView title="検索" sub="自分の記録と AI の作業をまとめて探せます" path="/ui/#search" />} />
       </Routes>
     )
   }, [])
 
   return (
-    <div
-      className="flex h-screen"
-      style={{
-        height: '100vh',
-        background:
-          'linear-gradient(165.9deg, #CEC1D2 -3.95%, #D9DAE8 3.32%, #F2F2F2 23.35%, #F2F0E6 71.67%, #F9FAED 76.64%, #FFEDDF 83.97%)'
-      }}>
-      {/* <div style={{ appRegion: 'drag', width: '12px', height: '100%' } as React.CSSProperties} /> */}
+    <div className="hb-app">
       <Sidebar />
-      <div className="flex-1 flex flex-col pr-2">{routes}</div>
+      <main className="hb-main">{routes}</main>
     </div>
   )
 }
