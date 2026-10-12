@@ -250,6 +250,137 @@ async def validate_llm_config(request: UpdateModelSettingsRequest, _auth: str = 
         return convert_resp(code=500, status=500, message=f"Validation failed: {str(e)}")
 
 
+# ==================== AI Provider Settings (P1) ====================
+
+
+class AIProvidersPayload(BaseModel):
+    """Providers list (kept as raw dicts for flexibility)"""
+
+    providers: list[dict] = Field(default_factory=list)
+    routes: dict[str, list[str]] = Field(default_factory=dict)
+    output_language: str = "ja"
+
+
+class AISettingsRequest(BaseModel):
+    ai: AIProvidersPayload
+
+
+class AITestRequest(BaseModel):
+    provider: dict
+
+
+def _sanitize_ai_config(ai_cfg: dict | None) -> dict:
+    """ai section without key values (for GET responses)"""
+    if not ai_cfg:
+        return {"providers": [], "routes": {}, "output_language": "ja"}
+    providers = []
+    for p in ai_cfg.get("providers") or []:
+        sanitized = {k: v for k, v in p.items() if k != "api_key"}
+        sanitized["has_api_key"] = bool(p.get("api_key"))
+        providers.append(sanitized)
+    return {
+        "providers": providers,
+        "routes": ai_cfg.get("routes") or {},
+        "output_language": ai_cfg.get("output_language", "ja"),
+    }
+
+
+@router.get("/api/ai_settings")
+async def get_ai_settings(_auth: str = auth_dependency):
+    """Get AI provider configuration and live router status"""
+    try:
+        from opencontext.llm.provider_router import get_provider_router
+
+        config = GlobalConfig.get_instance().get_config() or {}
+        status = get_provider_router().status()
+        return convert_resp(
+            data={
+                "ai": _sanitize_ai_config(config.get("ai")),
+                "status": status,
+            }
+        )
+    except Exception as e:
+        logger.exception(f"Failed to get AI settings: {e}")
+        return convert_resp(code=500, status=500, message=f"Failed to get AI settings: {str(e)}")
+
+
+@router.post("/api/ai_settings")
+async def update_ai_settings(request: AISettingsRequest, _auth: str = auth_dependency):
+    """Save AI providers/routes, reload config and rebuild the router"""
+    with _config_lock:
+        try:
+            config_mgr = GlobalConfig.get_instance().get_config_manager()
+            if not config_mgr:
+                return convert_resp(code=500, status=500, message="Config manager not initialized")
+
+            current_ai = (GlobalConfig.get_instance().get_config() or {}).get("ai") or {}
+            current_by_id = {p.get("id"): p for p in current_ai.get("providers") or []}
+
+            providers = []
+            for p in request.ai.providers:
+                if not p.get("id") or not p.get("model"):
+                    return convert_resp(
+                        code=400, status=400,
+                        message=f"Provider needs at least id and model: {p}",
+                    )
+                # Key merge semantics: keep the stored inline key when the
+                # frontend sends the provider back without one (GET omits it).
+                if not p.get("api_key") and not p.get("api_key_file"):
+                    existing = current_by_id.get(p.get("id")) or {}
+                    if existing.get("api_key"):
+                        p = {**p, "api_key": existing["api_key"]}
+                p.pop("has_api_key", None)
+                providers.append(p)
+
+            known_ids = {p["id"] for p in providers}
+            routes = {}
+            for route, ids in (request.ai.routes or {}).items():
+                routes[route] = [i for i in ids if i in known_ids]
+
+            new_ai = {
+                "providers": providers,
+                "routes": routes,
+                "output_language": request.ai.output_language or "ja",
+            }
+
+            if not config_mgr.save_user_settings({"ai": new_ai}):
+                return convert_resp(code=500, status=500, message="Failed to save settings")
+
+            config_mgr.load_config(config_mgr.get_config_path())
+
+            from opencontext.llm.provider_router import reinitialize_provider_router
+
+            reinitialize_provider_router()
+            logger.info("AI provider settings updated successfully")
+            return convert_resp(message="AI settings updated successfully")
+        except Exception as e:
+            logger.exception(f"Failed to update AI settings: {e}")
+            return convert_resp(code=500, status=500, message=f"Failed to update AI settings: {str(e)}")
+
+
+@router.post("/api/ai_settings/test")
+async def test_ai_provider(request: AITestRequest, _auth: str = auth_dependency):
+    """Connection test for one provider configuration (not saved)"""
+    try:
+        from opencontext.llm.provider_router import get_provider_router
+
+        provider_cfg = dict(request.provider or {})
+        provider_cfg.pop("has_api_key", None)
+        if not provider_cfg.get("api_key") and not provider_cfg.get("api_key_file"):
+            current_ai = (GlobalConfig.get_instance().get_config() or {}).get("ai") or {}
+            existing = {
+                p.get("id"): p for p in current_ai.get("providers") or []
+            }.get(provider_cfg.get("id"))
+            if existing and existing.get("api_key"):
+                provider_cfg["api_key"] = existing["api_key"]
+
+        ok, message = await get_provider_router().test_provider_config(provider_cfg)
+        return convert_resp(data={"ok": ok, "message": message})
+    except Exception as e:
+        logger.exception(f"Provider test failed: {e}")
+        return convert_resp(code=500, status=500, message=f"Provider test failed: {str(e)}")
+
+
 # ==================== System Info ====================
 
 

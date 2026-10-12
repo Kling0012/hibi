@@ -52,3 +52,62 @@ export const updateModelSettingsAPI = async (
   })
   return get(res, 'data.data')
 }
+
+// ==================== AI provider settings (P1) ====================
+
+export type ProviderKind = 'openai_compat' | 'gemini_live'
+
+export interface AIProviderConfig {
+  id: string
+  kind: ProviderKind | string
+  model: string
+  base_url?: string
+  api_key_file?: string
+  api_key?: string
+  has_api_key?: boolean
+  options?: Record<string, unknown>
+}
+
+export interface AIRoutes {
+  vision?: string[]
+  chat?: string[]
+  structured?: string[]
+  embedding?: string[]
+}
+
+export interface AISettingsPayload {
+  providers: AIProviderConfig[]
+  routes: AIRoutes
+  output_language: string
+}
+
+export interface AIProviderStatus extends AIProviderConfig {
+  usable: boolean
+  in_cooldown: boolean
+  cooldown_remaining_s: number
+  consecutive_failures: number
+  last_error: string
+}
+
+export interface AISettingsResponseData {
+  ai: AISettingsPayload
+  status: { providers: AIProviderStatus[]; routes: AIRoutes; output_language: string }
+}
+
+export const getAISettings = async (): Promise<AISettingsResponseData | undefined> => {
+  const res = await axiosInstance.get<AISettingsResponseData>('/api/ai_settings')
+  return get(res, 'data.data')
+}
+
+export const updateAISettings = async (params: AISettingsPayload): Promise<void> => {
+  await axiosInstance.post('/api/ai_settings', { ai: params })
+}
+
+export const testAIProvider = async (
+  provider: AIProviderConfig
+): Promise<{ ok: boolean; message: string } | undefined> => {
+  const res = await axiosInstance.post<{ ok: boolean; message: string }>('/api/ai_settings/test', {
+    provider
+  })
+  return get(res, 'data.data')
+}

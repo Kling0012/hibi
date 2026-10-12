@@ -1,337 +1,323 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { FC, useMemo, useEffect } from 'react'
-import { Form, Button, Select, Input, Typography, Spin, Message, Switch } from '@arco-design/web-react'
-import { find, get, isEmpty, pick } from 'lodash'
+import { FC, useCallback, useEffect, useState } from 'react'
+import { Button, Input, Message, Select, Spin, Switch, Typography } from '@arco-design/web-react'
+import { get } from 'lodash'
 
-import ModelRadio from './components/modelRadio/model-radio'
-import { ModelTypeList, BaseUrl, embeddingModels, ModelInfoList } from './constants'
-import { getModelInfo, ModelConfigProps, updateModelSettingsAPI } from '../../services/Settings'
-import { useMemoizedFn, useMount, useRequest } from 'ahooks'
+import {
+  AIProviderConfig,
+  AIRoutes,
+  AISettingsPayload,
+  getAISettings,
+  testAIProvider,
+  updateAISettings
+} from '../../services/Settings'
 import { useSetting } from '@renderer/hooks/use-setting'
 
-const FormItem = Form.Item
 const { Text } = Typography
+
+const ROUTE_KEYS = ['vision', 'chat', 'structured', 'embedding'] as const
+const ROUTE_LABELS: Record<string, string> = {
+  vision: 'Vision (image understanding)',
+  chat: 'Chat / agent',
+  structured: 'Structured (JSON output)',
+  embedding: 'Embedding'
+}
+const KIND_OPTIONS = [
+  { value: 'openai_compat', label: 'openai_compat' },
+  { value: 'gemini_live', label: 'gemini_live' }
+]
+const LANGUAGE_OPTIONS = [
+  { value: 'ja', label: '日本語' },
+  { value: 'en', label: 'English' },
+  { value: 'zh', label: '中文' }
+]
 
 interface SettingsProps {
   closeSetting?: () => void
   init?: boolean
 }
-export interface InputPrefixProps {
-  label: string
-}
-const InputPrefix: FC<InputPrefixProps> = (props) => {
-  const { label } = props
-  return <div className="flex w-[73px] items-center">{label}</div>
-}
-export interface CustomFormItemsProps {
-  prefix: string
-}
-const CustomFormItems: FC<CustomFormItemsProps> = (props) => {
-  const { prefix } = props
-  return (
-    <>
-      <div className="flex flex-col gap-6 mb-6">
-        <div className="flex flex-col gap-[8px]">
-          <span className="text-[#0B0B0F] font-roboto text-base font-normal leading-[22px] ">
-            Vision language model
-          </span>
-          <FormItem
-            field={`${prefix}-modelId`}
-            className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
-            requiredSymbol={false}>
-            <Input
-              addBefore={<InputPrefix label="Model name" />}
-              placeholder="A VLM model with visual understanding capabilities is required."
-              allowClear
-              className="[&_.arco-input-inner-wrapper]: !w-[574px]"
-            />
-          </FormItem>
-          <FormItem
-            field={`${prefix}-baseUrl`}
-            className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
-            requiredSymbol={false}>
-            <Input
-              addBefore={<InputPrefix label="Base URL" />}
-              placeholder="Enter your base URL"
-              allowClear
-              className="[&_.arco-input-inner-wrapper]: !w-[574px]"
-            />
-          </FormItem>
-          <FormItem
-            field={`${prefix}-apiKey`}
-            className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
-            requiredSymbol={false}>
-            <Input.Password
-              addBefore={<InputPrefix label="API Key" />}
-              placeholder="Enter your API Key"
-              allowClear
-              className="!w-[574px]"
-              defaultVisibility={false}
-            />
-          </FormItem>
-        </div>
-        <div className="flex flex-col gap-[8px]">
-          <span className="text-[#0B0B0F] font-roboto text-base font-normal leading-[22px]">Embedding model</span>
-          <FormItem
-            field={`${prefix}-embeddingModelId`}
-            className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
-            requiredSymbol={false}>
-            <Input
-              addBefore={<InputPrefix label="Model name" />}
-              placeholder="Enter your embedding model name"
-              allowClear
-              className="!w-[574px]"
-            />
-          </FormItem>
-          <FormItem
-            field={`${prefix}-embeddingBaseUrl`}
-            className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
-            requiredSymbol={false}>
-            <Input
-              addBefore={<InputPrefix label="Base URL" />}
-              placeholder="Enter your base URL"
-              allowClear
-              className="!w-[574px]"
-            />
-          </FormItem>
-          <FormItem
-            field={`${prefix}-embeddingApiKey`}
-            className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
-            requiredSymbol={false}>
-            <Input.Password
-              addBefore={<InputPrefix label="API Key" />}
-              placeholder="Enter your API Key"
-              allowClear
-              className="!w-[574px]"
-              defaultVisibility={false}
-            />
-          </FormItem>
-        </div>
-      </div>
-    </>
-  )
-}
-export interface StandardFormItemsProps {
-  modelPlatform: ModelTypeList
-  prefix: string
-}
-const StandardFormItems: FC<StandardFormItemsProps> = (props) => {
-  const { modelPlatform, prefix } = props
-  const option = useMemo(() => {
-    const foundItem = find(ModelInfoList, (item) => item.value === modelPlatform)
-    return foundItem ? foundItem.option : []
-  }, [modelPlatform])
 
-  return (
-    <>
-      <FormItem
-        label="Select AI model"
-        field={`${prefix}-modelId`}
-        requiredSymbol={false}
-        rules={[
-          {
-            validator(value, callback) {
-              if (!value) {
-                callback('Please select AI model')
-              } else {
-                callback()
-              }
-            }
-          }
-        ]}>
-        <Select allowCreate placeholder="please select" options={option} className="!w-[574px]" />
-      </FormItem>
-      <FormItem
-        requiredSymbol={false}
-        label="API Key"
-        field={`${prefix}-apiKey`}
-        extra={
-          <div className="flex items-center text-[#6E718C] text-[14px] ">
-            You can get the API Key Here:
-            <Button
-              onClick={() => {
-                window.open('https://platform.openai.com/settings/organization/api-keys')
-              }}
-              type="text">
-              Get OpenAI API Key
-            </Button>
-          </div>
-        }
-        rules={[
-          {
-            validator(value, callback) {
-              if (!value) {
-                callback('Please enter your API key')
-              } else {
-                callback()
-              }
-            }
-          }
-        ]}>
-        <Input.Password
-          autoFocus
-          placeholder="Enter your API key"
-          allowClear
-          className="!w-[574px]"
-          defaultVisibility={false}
-        />
-      </FormItem>
-    </>
-  )
-}
+const emptyProvider = (n: number): AIProviderConfig => ({
+  id: `provider_${n}`,
+  kind: 'openai_compat',
+  model: '',
+  base_url: '',
+  api_key_file: '',
+  api_key: ''
+})
 
-// 1. Add showCheckIcon state
-export interface SettingsFormBase {
-  modelPlatform: string
-}
-
-export type SettingsFormProps = SettingsFormBase & {
-  [K in ModelTypeList as `${K}-modelId` | `${K}-apiKey`]?: string
-} & {
-  [K in
-    | `${ModelTypeList.Custom}-embeddingModelId`
-    | `${ModelTypeList.Custom}-embeddingBaseUrl`
-    | `${ModelTypeList.Custom}-embeddingApiKey`]?: string
-}
 const Settings: FC<SettingsProps> = (props) => {
   const { closeSetting, init } = props
-
-  const [form] = Form.useForm<SettingsFormProps>()
   const { autoCheckUpdate, setGeneralSettings } = useSetting()
-  const { run: getInfo, loading: getInfoLoading, data: modelInfo } = useRequest(getModelInfo, { manual: true })
 
-  const { run: updateModelSettings, loading: updateLoading } = useRequest(updateModelSettingsAPI, {
-    manual: true,
-    onSuccess() {
-      Message.success('Your API key saved successfully')
-      getInfo()
-      if (init) {
-        closeSetting?.()
-      }
-    },
-    onError(e: Error) {
-      const errMsg = get(e, 'response.data.message') || get(e, 'message') || 'Failed to save settings'
-      Message.error(errMsg)
-    }
-  })
-  const submit = useMemoizedFn(async () => {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [providers, setProviders] = useState<AIProviderConfig[]>([])
+  const [routes, setRoutes] = useState<AIRoutes>({})
+  const [outputLanguage, setOutputLanguage] = useState('ja')
+  const [testing, setTesting] = useState<Record<string, boolean>>({})
+  const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message: string }>>({})
+
+  const load = useCallback(async () => {
+    setLoading(true)
     try {
-      await form.validate()
-      const values = form.getFieldsValue()
-      const isCustom = values.modelPlatform === ModelTypeList.Custom
-      if (!values.modelPlatform) {
-        Message.error('Please select Model Platform')
-        return
+      const data = await getAISettings()
+      const ai = get(data, 'ai')
+      if (ai) {
+        setProviders(ai.providers || [])
+        setRoutes(ai.routes || {})
+        setOutputLanguage(ai.output_language || 'ja')
       }
-      const commonKey = [
-        'modelPlatform',
-        `${values.modelPlatform}-modelId`,
-        `${values.modelPlatform}-apiKey`,
-        `${values.modelPlatform}-baseUrl`,
-        `${values.modelPlatform}-embeddingModelId`,
-        `${values.modelPlatform}-embeddingBaseUrl`,
-        `${values.modelPlatform}-embeddingApiKey`
-      ]
-      const data = pick(values, commonKey)
-      const formatData = Object.fromEntries(
-        Object.entries(data).map(([key, value]) => [key.replace(`${values.modelPlatform}-`, ''), value])
-      )
-      const params = isCustom
-        ? formatData
-        : {
-            ...formatData,
-            baseUrl: BaseUrl.OpenAIUrl,
-            embeddingModelId: embeddingModels.OpenAIEmbeddingModelId
-          }
-
-      updateModelSettings(params as unknown as ModelConfigProps)
-    } catch (error: any) {}
-  })
-
-  useMount(() => {
-    getInfo()
-  })
-  useEffect(() => {
-    const config = get(modelInfo, 'config')
-    if (!getInfoLoading && !isEmpty(config) && !init) {
-      const settingsValue = new Map<keyof SettingsFormProps, string>()
-      const prefix = config.modelPlatform as ModelTypeList
-      settingsValue.set(`modelPlatform`, prefix)
-      Object.keys(config).reduce((acc, key) => {
-        if (!acc.has(`${prefix}-${key}` as keyof SettingsFormProps) && !!config[key]) {
-          acc.set(`${prefix}-${key}` as keyof SettingsFormProps, config[key])
-        }
-        return acc
-      }, settingsValue)
-      form.setFieldsValue(Object.fromEntries(settingsValue))
+    } catch (e) {
+      Message.error(get(e, 'message', 'Failed to load AI settings'))
+    } finally {
+      setLoading(false)
     }
-  }, [modelInfo, getInfoLoading])
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const updateProvider = (index: number, patch: Partial<AIProviderConfig>) => {
+    setProviders((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)))
+  }
+
+  const removeProvider = (id: string) => {
+    setProviders((prev) => prev.filter((p) => p.id !== id))
+    setRoutes((prev) => {
+      const next: AIRoutes = {}
+      for (const key of ROUTE_KEYS) {
+        next[key] = (prev[key] || []).filter((pid) => pid !== id)
+      }
+      return next
+    })
+  }
+
+  const moveInRoute = (route: string, index: number, dir: -1 | 1) => {
+    setRoutes((prev) => {
+      const list = [...(prev[route] || [])]
+      const target = index + dir
+      if (target < 0 || target >= list.length) return prev
+      ;[list[index], list[target]] = [list[target], list[index]]
+      return { ...prev, [route]: list }
+    })
+  }
+
+  const toggleInRoute = (route: string, id: string) => {
+    setRoutes((prev) => {
+      const list = prev[route] || []
+      const exists = list.includes(id)
+      return { ...prev, [route]: exists ? list.filter((x) => x !== id) : [...list, id] }
+    })
+  }
+
+  const test = async (provider: AIProviderConfig) => {
+    setTesting((prev) => ({ ...prev, [provider.id]: true }))
+    try {
+      const result = await testAIProvider(provider)
+      setTestResults((prev) => ({
+        ...prev,
+        [provider.id]: result || { ok: false, message: 'no response' }
+      }))
+    } catch (e) {
+      setTestResults((prev) => ({ ...prev, [provider.id]: { ok: false, message: get(e, 'message', 'failed') } }))
+    } finally {
+      setTesting((prev) => ({ ...prev, [provider.id]: false }))
+    }
+  }
+
+  const save = async () => {
+    const ids = providers.map((p) => p.id.trim()).filter(Boolean)
+    if (providers.length === 0 || new Set(ids).size !== ids.length) {
+      Message.error('Provider ids must be unique and non-empty')
+      return
+    }
+    setSaving(true)
+    try {
+      const payload: AISettingsPayload = {
+        providers: providers.map((p) => ({
+          ...p,
+          id: p.id.trim(),
+          api_key: p.api_key || undefined
+        })),
+        routes,
+        output_language: outputLanguage
+      }
+      await updateAISettings(payload)
+      Message.success('AI settings saved')
+      await load()
+      if (init) closeSetting?.()
+    } catch (e) {
+      Message.error(get(e, 'response.data.message') || get(e, 'message') || 'Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
-    <Spin loading={getInfoLoading} block className="[&_.arco-spin-children]:!h-full !h-full">
+    <Spin loading={loading} block className="[&_.arco-spin-children]:!h-full !h-full">
       <div className="top-0 left-0 flex flex-col h-full overflow-y-hidden py-2 pr-2 relative">
         <div className="bg-white rounded-[16px] pl-6 flex flex-col h-full overflow-y-auto overflow-x-hidden scrollbar-hide pb-2">
           <div className="mb-[12px]">
-            <div className="mt-[26px] mb-[10px] text-[24px] font-bold text-[#000]">Select a AI model to start</div>
+            <div className="mt-[26px] mb-[10px] text-[24px] font-bold text-[#000]">AI providers</div>
             <Text type="secondary" className="text-[13px]">
-              Configure AI model and API Key, then you can start MineContext’s intelligent context capability
+              Providers are tried in route order; on failure the next one is used automatically.
+              Keys are read from a file path or an inline value.
             </Text>
           </div>
 
-          <div>
-            <Form
-              autoComplete="off"
-              layout={'vertical'}
-              form={form}
-              initialValues={{
-                modelPlatform: ModelTypeList.Custom
-              }}>
-              <FormItem label="Model platform" field={'modelPlatform'} requiredSymbol={false}>
-                <ModelRadio />
-              </FormItem>
-              <FormItem
-                shouldUpdate={(prevValues, currentValues) => prevValues.modelPlatform !== currentValues.modelPlatform}
-                noStyle>
-                {(values) => {
-                  const modelPlatform = values.modelPlatform
-                  if (modelPlatform === ModelTypeList.Custom) {
-                    return <CustomFormItems prefix={ModelTypeList.Custom} />
-                  } else if (modelPlatform === ModelTypeList.OpenAI) {
-                    return <StandardFormItems modelPlatform={modelPlatform} prefix={ModelTypeList.OpenAI} />
-                  } else {
-                    return null
-                  }
-                }}
-              </FormItem>
-            </Form>
-            <Spin loading={updateLoading}>
-              <Button type="primary" onClick={submit} disabled={updateLoading} className="!bg-[#000]">
-                {init ? 'Get started' : 'Save'}
-              </Button>
-            </Spin>
-            <div className="mt-[32px] pt-[16px] border-t border-[#E5E6EB]">
-              <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">Application</div>
-              <div className="mb-[4px] flex items-center justify-between">
-                <span className="text-[14px] text-[#0B0B0F]">Automatically check for updates</span>
-                <Switch
-                  size="small"
-                  checked={autoCheckUpdate}
-                  onChange={(v) => setGeneralSettings({ autoCheckUpdate: v })}
+          {/* Providers */}
+          <div className="flex flex-col gap-4 mb-6">
+            {providers.map((provider, index) => (
+              <div key={index} className="border border-[#E5E6EB] rounded-[8px] p-3 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={provider.id}
+                    onChange={(v) => updateProvider(index, { id: v })}
+                    placeholder="id (unique)"
+                    className="!w-[160px]"
+                  />
+                  <Select
+                    value={provider.kind}
+                    options={KIND_OPTIONS}
+                    onChange={(v) => updateProvider(index, { kind: v })}
+                    className="!w-[170px]"
+                  />
+                  <Input
+                    value={provider.model}
+                    onChange={(v) => updateProvider(index, { model: v })}
+                    placeholder="model name"
+                    className="flex-1"
+                  />
+                  <Button size="small" onClick={() => test(provider)} loading={testing[provider.id]}>
+                    Test
+                  </Button>
+                  <Button size="small" status="danger" onClick={() => removeProvider(provider.id)}>
+                    Remove
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  {provider.kind !== 'gemini_live' && (
+                    <Input
+                      value={provider.base_url || ''}
+                      onChange={(v) => updateProvider(index, { base_url: v })}
+                      placeholder="base URL (https://...)"
+                      className="flex-1"
+                    />
+                  )}
+                  <Input
+                    value={provider.api_key_file || ''}
+                    onChange={(v) => updateProvider(index, { api_key_file: v })}
+                    placeholder="API key file path (~ allowed)"
+                    className="flex-1"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input.Password
+                    value={provider.api_key || ''}
+                    onChange={(v) => updateProvider(index, { api_key: v })}
+                    placeholder={provider.has_api_key ? 'API key (saved — leave blank to keep)' : 'API key value (optional if file path set)'}
+                    className="flex-1"
+                    defaultVisibility={false}
+                  />
+                </div>
+                {testResults[provider.id] && (
+                  <Text type={testResults[provider.id].ok ? 'success' : 'error'} className="text-[12px]">
+                    {testResults[provider.id].ok ? 'OK' : 'Failed'}: {testResults[provider.id].message}
+                  </Text>
+                )}
+              </div>
+            ))}
+            <Button
+              className="!w-[160px]"
+              onClick={() => setProviders((prev) => [...prev, emptyProvider(prev.length + 1)])}
+            >
+              + Add provider
+            </Button>
+          </div>
+
+          {/* Routes */}
+          <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">Route priorities</div>
+          <div className="flex flex-col gap-4 mb-6">
+            {ROUTE_KEYS.map((route) => (
+              <div key={route} className="flex flex-col gap-1">
+                <Text className="text-[14px] font-medium">{ROUTE_LABELS[route]}</Text>
+                <div className="flex flex-col gap-1">
+                  {(routes[route] || []).map((pid, i) => (
+                    <div key={pid} className="flex items-center gap-2">
+                      <span className="text-[13px] w-[24px] text-[#6E718C]">{i + 1}.</span>
+                      <span className="text-[13px]">{pid}</span>
+                      <Button size="mini" disabled={i === 0} onClick={() => moveInRoute(route, i, -1)}>
+                        ↑
+                      </Button>
+                      <Button
+                        size="mini"
+                        disabled={i === (routes[route] || []).length - 1}
+                        onClick={() => moveInRoute(route, i, 1)}
+                      >
+                        ↓
+                      </Button>
+                      <Button size="mini" status="danger" onClick={() => toggleInRoute(route, pid)}>
+                        x
+                      </Button>
+                    </div>
+                  ))}
+                  {(routes[route] || []).length === 0 && (
+                    <Text type="secondary" className="text-[12px]">
+                      empty (features using this route are disabled)
+                    </Text>
+                  )}
+                </div>
+                <Select
+                  placeholder="+ add provider to this route"
+                  value={undefined as unknown as string}
+                  options={providers
+                    .filter((p) => !(routes[route] || []).includes(p.id))
+                    .map((p) => ({ value: p.id, label: p.id }))}
+                  onChange={(v) => v && toggleInRoute(route, v)}
+                  className="!w-[280px]"
                 />
               </div>
-              <Text type="secondary" className="text-[12px]">
-                Off by default. When enabled, MineContext checks for updates from GitHub releases on
-                startup and downloads them in the background.
-              </Text>
+            ))}
+          </div>
+
+          {/* Output language */}
+          <div className="mb-6 flex items-center gap-3">
+            <Text className="text-[14px] font-medium">Output language</Text>
+            <Select
+              value={outputLanguage}
+              options={LANGUAGE_OPTIONS}
+              onChange={setOutputLanguage}
+              className="!w-[160px]"
+            />
+            <Text type="secondary" className="text-[12px]">
+              Appended to prompts so generated text (summaries, reports) uses this language.
+            </Text>
+          </div>
+
+          <Spin loading={saving}>
+            <Button type="primary" onClick={save} disabled={saving} className="!bg-[#000]">
+              {init ? 'Get started' : 'Save'}
+            </Button>
+          </Spin>
+
+          <div className="mt-[32px] pt-[16px] border-t border-[#E5E6EB]">
+            <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">Application</div>
+            <div className="mb-[4px] flex items-center justify-between">
+              <span className="text-[14px] text-[#0B0B0F]">Automatically check for updates</span>
+              <Switch
+                size="small"
+                checked={autoCheckUpdate}
+                onChange={(v) => setGeneralSettings({ autoCheckUpdate: v })}
+              />
             </div>
+            <Text type="secondary" className="text-[12px]">
+              Off by default. When enabled, MineContext checks for updates from GitHub releases on
+              startup and downloads them in the background.
+            </Text>
           </div>
         </div>
       </div>

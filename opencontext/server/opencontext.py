@@ -260,8 +260,8 @@ class OpenContext:
         return {
             "config": GlobalConfig.get_instance().is_initialized(),
             "storage": GlobalStorage.get_instance().get_storage() is not None,
-            "llm": GlobalEmbeddingClient.get_instance().is_initialized()
-            and GlobalVLMClient.get_instance().is_initialized(),
+            "llm": GlobalVLMClient.get_instance().is_initialized(),
+            "embedding": GlobalEmbeddingClient.get_instance().is_initialized(),
             "capture": bool(self.capture_manager),
             "consumption": bool(self.consumption_manager),
         }

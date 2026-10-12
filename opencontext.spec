@@ -96,6 +96,13 @@ a = Analysis(
         'sqlite3',
         '_ssl',
         '_hashlib',
+        # google-genai (Gemini Live provider): live module + conditional
+        # websocket imports that static analysis can miss.
+        'google.genai',
+        'google.genai.live',
+        'google.genai.types',
+        'google.auth',
+        'websockets.asyncio.client',
     ],
     hookspath=['.'],
     hooksconfig={},

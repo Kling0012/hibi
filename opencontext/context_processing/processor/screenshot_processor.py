@@ -450,11 +450,22 @@ class ScreenshotProcessor(BaseContextProcessor):
         return {"processed_contexts": result_contexts, "need_to_del_ids": need_to_del_ids, "new_ctxs": new_ctxs, "context_type": context_type.value}
 
     async def _parse_single_context(self, item: ProcessedContext, entities: List[Dict[str, Any]]) -> ProcessedContext:
-        """Parse a single context item."""
+        """Parse a single context item. Embedding/entity failures are
+        non-fatal (fail-soft): the context is kept without a vector/entities."""
         entities_info = validate_and_clean_entities(entities)
         vectorize_task = do_vectorize_async(item.vectorize)
         entities_task = refresh_entities(entities_info, item.vectorize.text)
-        _, entities_results = await asyncio.gather(vectorize_task, entities_task)
+        results = await asyncio.gather(vectorize_task, entities_task, return_exceptions=True)
+        if isinstance(results[0], Exception):
+            logger.warning(
+                f"Vectorization failed for context {item.id}: {results[0]}; "
+                "continuing without vector (embedding provider unavailable?)"
+            )
+        if isinstance(results[1], Exception):
+            logger.warning(f"Entity refresh failed for context {item.id}: {results[1]}")
+            item.extracted_data.entities = []
+            return item
+        _, entities_results = results
         item.extracted_data.entities = entities_results
         return item
 

@@ -23,6 +23,57 @@ document_processing:
   # Page-by-page detection configuration (to optimize VLM usage)
   text_threshold_per_page: 50 # Scanned document threshold: pages with fewer characters than this value are considered scanned documents (requires VLM)
 
+# AI providers and priority routes (P1).
+# providers: id is referenced from routes. kind is openai_compat or gemini_live.
+#   Keys: api_key (inline value) or api_key_file (path, ~ expanded). Never put
+#   real key values in this file.
+# routes: ordered provider ids per usage. On failure (429/quota/5xx/timeout/
+#   connection loss/invalid model) the next provider is tried; failed
+#   providers cool down (Retry-After if present, else 60s doubling to 15min).
+#   vision: image understanding. Gemini Live first (free tier), then GLM.
+#   structured: outputs that must be JSON (openai_compat only; Gemini Live
+#     answers via audio transcription, so it is not used for JSON).
+#   chat: free-text chat / agent flows.
+#   embedding: providers for vectorization. Leave empty to disable only the
+#     embedding-dependent features (context storage/search); the rest works.
+# Legacy vlm_model / embedding_model sections are still honored when this
+# section has no providers (backward compatibility).
+ai:
+  output_language: ja
+  providers:
+    - id: gemini_live_38
+      kind: gemini_live
+      model: gemini-3.8-live
+      api_key_file: "${GEMINI_KEY_FILE:~/.config/minecontext/gemini-key}"
+      options:
+        max_image_size: 1920
+    - id: glm_flash
+      kind: openai_compat
+      model: glm-5.3-flash
+      base_url: https://open.bigmodel.cn/api/coding/paas/v4
+      api_key_file: "${ZHIPU_KEY_FILE:~/.config/minecontext/zhipu-key}"
+      options:
+        max_tokens: 8192
+    - id: glm_53
+      kind: openai_compat
+      model: glm-5.3
+      base_url: https://open.bigmodel.cn/api/coding/paas/v4
+      api_key_file: "${ZHIPU_KEY_FILE:~/.config/minecontext/zhipu-key}"
+      options:
+        max_tokens: 8192
+    - id: glm_embedding
+      kind: openai_compat
+      model: embedding-3
+      base_url: https://open.bigmodel.cn/api/coding/paas/v4
+      api_key_file: "${ZHIPU_KEY_FILE:~/.config/minecontext/zhipu-key}"
+      options:
+        output_dim: 2048
+  routes:
+    vision: [gemini_live_38, glm_flash]
+    chat: [glm_flash, glm_53]
+    structured: [glm_flash]
+    embedding: [glm_embedding]
+
 vlm_model:
   base_url: "${LLM_BASE_URL}"
   api_key: "${LLM_API_KEY}"

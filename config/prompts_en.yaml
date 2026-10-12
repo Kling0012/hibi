@@ -407,6 +407,44 @@ chat_workflow:
 
 processing:
   extraction:
+    screenshot_analyze:
+      system: |
+          You are an expert in analyzing current_user's screenshots. current_user is the photographer of the screenshot and the interface operator. Deeply understand the screenshot content and extract context information.
+
+          ## Core Principles
+          1. **Deep Understanding**: Not only identify visible content, but also understand behavioral intent (who is doing what)
+          2. **Natural Description**: Describe "current_user is doing X" in natural language; do not simply transcribe on-screen text
+          3. **Subject Identification**: The person operating the interface is uniformly expressed as "current_user"; other people keep their real names
+          4. **Activity First**: Understand the overall activity first; default to activity_context, only use other context types when they clearly fit
+          5. **Concrete Details**: Record specific visible information (file names, commands, values, options, statuses); avoid vague wording like "viewed something"
+          6. **Privacy**: Replace key/credential-like values with *** in the output
+
+          ## context_type Definitions
+          {context_type_descriptions}
+
+          ## Output Format
+          Strictly output a JSON object, no explanatory text, no markdown fences:
+          {{
+            "items": [
+              {{
+                "context_type": "activity_context | intent_context | semantic_context | procedural_context | state_context",
+                "title": "short title of this item",
+                "summary": "1-3 sentence natural language description of what current_user is doing / what the content is",
+                "keywords": ["keyword", "..."],
+                "importance": 0-10,
+                "confidence": 0-10,
+                "event_time": "ISO 8601 datetime string or null"
+              }}
+            ]
+          }}
+
+          One screenshot usually yields 1 item; produce several items only when clearly unrelated topics are visible (e.g. an activity plus distinct knowledge content).
+      user: |
+        Current time: {current_date}
+        Current timezone: {current_timezone}
+        Current timestamp: {current_timestamp}
+
+        Analyze the attached screenshot and return the JSON described in the system instructions.
     screenshot_contextual_batch:
       system: |
           You are an expert in analyzing current_user's screenshots, responsible for deeply understanding the desktop screenshot content of current_user, generating comprehensive and detailed natural language descriptions, and merging them with historical context. Current_user is the photographer of the screenshots and the interface operator.

@@ -5,19 +5,26 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Global LLM manager singleton wrapper
-Provides global access to LLMManager instances
+Global LLM manager singleton wrapper.
+All generation now goes through the priority-based ProviderRouter
+(opencontext/llm/provider_router.py); this module keeps the historical
+module-level API (generate_with_messages / agent helpers) and the tool
+executor loop used by agent flows.
 """
 
 import asyncio
 import concurrent.futures
 import json
 import threading
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from opencontext.config.global_config import get_config
-from opencontext.llm.llm_client import LLMClient, LLMType
-from opencontext.storage.unified_storage import UnifiedStorage
+from opencontext.llm.provider_router import (
+    ROUTE_CHAT,
+    ROUTE_STRUCTURED,
+    ROUTE_VISION,
+    get_provider_router,
+    messages_contain_image,
+)
 from opencontext.utils.json_parser import parse_json_from_response
 from opencontext.utils.logging_utils import get_logger
 
@@ -45,8 +52,8 @@ class GlobalVLMClient:
         """Initialize VLM client"""
         if not self._initialized:
             with self._lock:
-                if not self._initialized:
-                    self._vlm_client: Optional[LLMClient] = None
+                if not GlobalVLMClient._initialized:
+                    self._tools_executor = None
                     self._auto_initialized = False
                     GlobalVLMClient._initialized = True
 
@@ -56,7 +63,7 @@ class GlobalVLMClient:
         Get global LLM manager instance
         """
         instance = cls()
-        if not instance._auto_initialized and instance._vlm_client is None:
+        if not instance._auto_initialized:
             instance._auto_initialize()
         return instance
 
@@ -68,53 +75,64 @@ class GlobalVLMClient:
             cls._initialized = False
 
     def _auto_initialize(self):
-        """Auto-initialize VLM client"""
+        """Auto-initialize tools executor (LLM access lives in ProviderRouter)"""
         if self._auto_initialized:
             return
         from opencontext.tools.tools_executor import ToolsExecutor
 
         self._tools_executor = ToolsExecutor()
-        try:
-            vlm_config = get_config("vlm_model")
-            if not vlm_config:
-                logger.warning("No vlm config found in vlm_model")
-                self._auto_initialized = True
-                return
+        self._auto_initialized = True
+        router = get_provider_router()
+        if router.has_route(ROUTE_VISION) or router.has_route(ROUTE_STRUCTURED):
+            logger.info("GlobalVLMClient initialized (via ProviderRouter)")
+        else:
+            logger.warning(
+                "GlobalVLMClient: no vision/structured provider configured; "
+                "LLM-dependent features are disabled until settings are provided"
+            )
 
-            self._vlm_client = LLMClient(llm_type=LLMType.CHAT, config=vlm_config)
-            logger.info("GlobalVLMClient auto-initialized successfully")
-            self._auto_initialized = True
-        except Exception as e:
-            logger.error(f"GlobalVLMClient auto-initialization failed: {e}")
-            self._auto_initialized = True
+    def _get_tools_executor(self):
+        if self._tools_executor is None:
+            from opencontext.tools.tools_executor import ToolsExecutor
+
+            self._tools_executor = ToolsExecutor()
+        return self._tools_executor
 
     def is_initialized(self) -> bool:
-        return self._vlm_client is not None
+        router = get_provider_router()
+        return router.has_route(ROUTE_VISION) or router.has_route(ROUTE_STRUCTURED)
 
     def reinitialize(self):
-        """
-        Thread-safe reinitialization of VLM client
-        """
-        with self._lock:
-            try:
-                vlm_config = get_config("vlm_model")
-                if not vlm_config:
-                    logger.error("No vlm config found during reinitialize")
-                    raise ValueError("No vlm config found")
-                new_client = LLMClient(llm_type=LLMType.CHAT, config=vlm_config)
-                old_client = self._vlm_client
-                self._vlm_client = new_client
-                logger.info("GlobalVLMClient reinitialized successfully")
+        """Thread-safe reinitialization (rebuild router from config)"""
+        try:
+            from opencontext.llm.provider_router import reinitialize_provider_router
 
-            except Exception as e:
-                logger.error(f"Failed to reinitialize VLM client: {e}")
-                return False
+            reinitialize_provider_router()
+            logger.info("GlobalVLMClient reinitialized (router rebuilt)")
             return True
+        except Exception as e:
+            logger.error(f"Failed to reinitialize VLM client: {e}")
+            return False
+
+    @staticmethod
+    def _default_route(messages: list, tools) -> str:
+        """Pick route: tools -> chat; images -> vision; otherwise structured."""
+        if tools:
+            return ROUTE_CHAT
+        if messages_contain_image(messages):
+            return ROUTE_VISION
+        return ROUTE_STRUCTURED
 
     def generate_with_messages(
         self, messages: list, enable_executor: bool = True, max_calls: int = 5, **kwargs
     ):
-        response = self._vlm_client.generate_with_messages(messages, **kwargs)
+        router = get_provider_router()
+        tools = kwargs.pop("tools", None)
+        route = kwargs.pop("route", None) or self._default_route(messages, tools)
+        if not tools:
+            return router.generate_sync(route, messages, **kwargs)
+
+        response = router.generate_completion_sync(route, messages, tools=tools, **kwargs)
         call_count = 0
         while enable_executor:
             call_count += 1
@@ -128,7 +146,9 @@ class GlobalVLMClient:
                         "content": f"System notice: Maximum tool call limit ({max_calls}) reached. Cannot execute more tool calls. Please answer the user's question directly without attempting more tool calls.",
                     }
                 )
-                response = self._vlm_client.generate_with_messages(messages, **kwargs)
+                response = router.generate_completion_sync(
+                    route, messages, tools=tools, **kwargs
+                )
                 break
             message = response.choices[0].message
             if not message.tool_calls:
@@ -143,22 +163,19 @@ class GlobalVLMClient:
             results = []
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future_to_tool = {
-                    executor.submit(self._tools_executor.run, function_name, function_args): (
-                        tool_id,
-                        function_name,
-                    )
+                    executor.submit(
+                        self._get_tools_executor().run, function_name, function_args
+                    ): (tool_id, function_name)
                     for tool_id, function_name, function_args in tool_call_info
                 }
                 for future in concurrent.futures.as_completed(future_to_tool):
                     tool_id, function_name = future_to_tool[future]
                     try:
                         content = future.result()
-                        # logger.info(f"Tool call {function_name} successful, result: {content}")
                         results.append((tool_id, function_name, content))
                     except Exception as e:
-                        # logger.exception(f"Tool call {function_name} failed: {e}")
+                        logger.error(f"Tool call {function_name} failed: {e}")
                         results.append((tool_id, function_name, "failed"))
-            # logger.info(f"Tool call results: {results}")
             for tool_id, function_name, content in results:
                 messages.append(
                     {
@@ -168,7 +185,7 @@ class GlobalVLMClient:
                         "tool_call_id": tool_id,
                     }
                 )
-            response = self._vlm_client.generate_with_messages(messages, **kwargs)
+            response = router.generate_completion_sync(route, messages, tools=tools, **kwargs)
 
         message = response.choices[0].message
         return message.content
@@ -176,19 +193,26 @@ class GlobalVLMClient:
     async def generate_with_messages_async(
         self, messages: list, enable_executor: bool = True, max_calls: int = 5, **kwargs
     ):
-        response = await self._vlm_client.generate_with_messages_async(messages, **kwargs)
+        router = get_provider_router()
+        tools = kwargs.pop("tools", None)
+        route = kwargs.pop("route", None) or self._default_route(messages, tools)
+        if not tools:
+            return await router.generate(route, messages, **kwargs)
+
+        response = await router.generate_completion(route, messages, tools=tools, **kwargs)
         call_count = 0
         while enable_executor:
             call_count += 1
             if call_count > max_calls:
-                # logger.warning(f"Reached maximum tool call limit ({max_calls}), stopping further calls")
                 messages.append(
                     {
                         "role": "system",
                         "content": f"System notice: Maximum tool call limit ({max_calls}) reached. Cannot execute more tool calls. Please answer the user's question directly without attempting more tool calls.",
                     }
                 )
-                response = await self._vlm_client.generate_with_messages_async(messages, **kwargs)
+                response = await router.generate_completion(
+                    route, messages, tools=tools, **kwargs
+                )
                 break
             message = response.choices[0].message
             if not message.tool_calls:
@@ -203,7 +227,9 @@ class GlobalVLMClient:
                 function_name = tc.function.name
                 function_args = parse_json_from_response(tc.function.arguments)
                 if function_args is not None:
-                    tasks.append(self._tools_executor.run_async(function_name, function_args))
+                    tasks.append(
+                        self._get_tools_executor().run_async(function_name, function_args)
+                    )
                     tool_call_info.append((tc.id, function_name))
                 else:
                     logger.error(
@@ -215,7 +241,6 @@ class GlobalVLMClient:
 
             # Collect results and add to message list
             for result, (tool_id, function_name) in zip(results, tool_call_info):
-                # logger.info(f"Tool call {function_name} successful, result: {result}")
                 messages.append(
                     {
                         "role": "tool",
@@ -226,7 +251,9 @@ class GlobalVLMClient:
                 )
 
             # Call LLM again
-            response = await self._vlm_client.generate_with_messages_async(messages, **kwargs)
+            response = await router.generate_completion(
+                route, messages, tools=tools, **kwargs
+            )
 
         message = response.choices[0].message
         return message.content
@@ -243,18 +270,17 @@ class GlobalVLMClient:
         Returns:
             Raw LLM response object, including possible tool_calls
         """
-        response = await self._vlm_client.generate_with_messages_async(
-            messages, tools=tools, **kwargs
-        )
-        return response
+        router = get_provider_router()
+        route = kwargs.pop("route", None) or ROUTE_CHAT
+        return await router.generate_completion(route, messages, tools=tools, **kwargs)
 
     async def generate_stream_for_agent(self, messages: list, tools: list = None, **kwargs):
         """
         Agent-specific streaming generation method
         """
-        async for chunk in self._vlm_client._openai_chat_completion_stream_async(
-            messages, tools=tools, **kwargs
-        ):
+        router = get_provider_router()
+        route = kwargs.pop("route", None) or ROUTE_CHAT
+        async for chunk in router.stream_completion(route, messages, tools=tools, **kwargs):
             yield chunk
 
     async def execute_tool_async(self, tool_call):
@@ -277,7 +303,7 @@ class GlobalVLMClient:
             return {"error": f"Failed to parse arguments for {function_name}"}
 
         try:
-            result = await self._tools_executor.run_async(function_name, function_args)
+            result = await self._get_tools_executor().run_async(function_name, function_args)
             logger.info(f"Tool {function_name} executed successfully")
             return result
         except Exception as e:
@@ -286,7 +312,7 @@ class GlobalVLMClient:
 
 
 def is_initialized() -> bool:
-    return GlobalVLMClient.get_instance()._auto_initialized
+    return GlobalVLMClient.get_instance().is_initialized()
 
 
 def generate_with_messages(
