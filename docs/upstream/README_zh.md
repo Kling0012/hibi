@@ -1,7 +1,7 @@
 <div align="center">
 
 <picture>
-  <img alt="MineContext" src="src/MineContext-Banner.svg" width="100%" height="auto">
+  <img alt="MineContext" src="../../src/MineContext-Banner.svg" width="100%" height="auto">
 </picture>
 
 ### MineContext：洞察本质，激发创造
