@@ -4,6 +4,7 @@ import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
 import { BrowserWindow, ipcMain } from 'electron'
 import { get, pick, uniqBy } from 'lodash'
 import screenshotService from '../../services/ScreenshotService'
+import liveCaptureService from '../../services/LiveCaptureService'
 import { AutoRefreshCache } from './cache-value'
 import { getLogger } from '@shared/logger/main'
 import PQueue from 'p-queue'
@@ -105,6 +106,7 @@ class ScreenMonitorTask extends ScheduleNextTask {
     logger.info('ScreenMonitorTask startTask', this.configCache)
     this.configCache?.start()
     this.scheduleNextTask(true, this.startScreenMonitor.bind(this))
+    liveCaptureService.start().catch((e) => logger.warn('live capture failed to start:', e))
     this.status = 'running'
     this.broadcastStatus()
   }
@@ -115,6 +117,7 @@ class ScreenMonitorTask extends ScheduleNextTask {
     logger.info('ScreenMonitorTask stopTask')
     this.configCache?.stop()
     this.stopScheduleNextTask()
+    liveCaptureService.stop()
     this.status = 'stopped'
     this.broadcastStatus()
     // clear queue

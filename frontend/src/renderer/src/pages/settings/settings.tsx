@@ -2,27 +2,35 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { FC, useCallback, useEffect, useState } from 'react'
-import { Button, Input, Message, Select, Spin, Switch, Typography } from '@arco-design/web-react'
+import { Button, Input, InputNumber, Message, Select, Spin, Switch, Typography } from '@arco-design/web-react'
 import { get } from 'lodash'
 
 import {
   AIProviderConfig,
   AIRoutes,
   AISettingsPayload,
+  CaptureSettings,
+  SyncSettings,
+  SyncStatus,
   getAISettings,
+  getGeneralSettings,
+  getSyncSettings,
   testAIProvider,
-  updateAISettings
+  updateAISettings,
+  updateCaptureSettings,
+  updateSyncSettings
 } from '../../services/Settings'
 import { useSetting } from '@renderer/hooks/use-setting'
 
 const { Text } = Typography
 
-const ROUTE_KEYS = ['vision', 'chat', 'structured', 'embedding'] as const
+const ROUTE_KEYS = ['vision', 'chat', 'structured', 'embedding', 'exact'] as const
 const ROUTE_LABELS: Record<string, string> = {
   vision: 'Vision (image understanding)',
   chat: 'Chat / agent',
   structured: 'Structured (JSON output)',
-  embedding: 'Embedding'
+  embedding: 'Embedding',
+  exact: 'Exact (verbatim screen text)'
 }
 const KIND_OPTIONS = [
   { value: 'openai_compat', label: 'openai_compat' },
@@ -59,6 +67,12 @@ const Settings: FC<SettingsProps> = (props) => {
   const [outputLanguage, setOutputLanguage] = useState('ja')
   const [testing, setTesting] = useState<Record<string, boolean>>({})
   const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message: string }>>({})
+  const [capture, setCapture] = useState<CaptureSettings>({})
+  const [excludeAppsText, setExcludeAppsText] = useState('')
+  const [captureSaving, setCaptureSaving] = useState(false)
+  const [sync, setSync] = useState<SyncSettings>({})
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
+  const [syncSaving, setSyncSaving] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -74,6 +88,23 @@ const Settings: FC<SettingsProps> = (props) => {
       Message.error(get(e, 'message', 'Failed to load AI settings'))
     } finally {
       setLoading(false)
+    }
+    try {
+      const general = await getGeneralSettings()
+      const captureData = get(general, 'capture') || {}
+      setCapture(captureData)
+      setExcludeAppsText(((captureData.exclude_apps as string[]) || []).join('\n'))
+    } catch {
+      // capture settings are optional (fail-soft)
+    }
+    try {
+      const syncData = await getSyncSettings()
+      if (syncData) {
+        setSync(syncData.sync || {})
+        setSyncStatus(syncData.status || null)
+      }
+    } catch {
+      // sync settings are optional (fail-soft)
     }
   }, [])
 
@@ -154,6 +185,41 @@ const Settings: FC<SettingsProps> = (props) => {
       Message.error(get(e, 'response.data.message') || get(e, 'message') || 'Failed to save')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const saveCapture = async () => {
+    setCaptureSaving(true)
+    try {
+      await updateCaptureSettings({
+        ...capture,
+        exclude_apps: excludeAppsText
+          .split('\n')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      })
+      Message.success('Capture settings saved')
+    } catch (e) {
+      Message.error(get(e, 'response.data.message') || get(e, 'message') || 'Failed to save')
+    } finally {
+      setCaptureSaving(false)
+    }
+  }
+
+  const saveSync = async () => {
+    setSyncSaving(true)
+    try {
+      await updateSyncSettings(sync)
+      const syncData = await getSyncSettings()
+      if (syncData) {
+        setSync(syncData.sync || {})
+        setSyncStatus(syncData.status || null)
+      }
+      Message.success('Sync settings saved')
+    } catch (e) {
+      Message.error(get(e, 'response.data.message') || get(e, 'message') || 'Failed to save')
+    } finally {
+      setSyncSaving(false)
     }
   }
 
@@ -296,6 +362,152 @@ const Settings: FC<SettingsProps> = (props) => {
             <Text type="secondary" className="text-[12px]">
               Appended to prompts so generated text (summaries, reports) uses this language.
             </Text>
+          </div>
+
+          {/* Screen recording (P1-B) */}
+          <div className="mb-[24px] pt-[16px] border-t border-[#E5E6EB]">
+            <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">Screen recording</div>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <Text className="text-[14px] w-[240px]">Recording paused</Text>
+                <Switch
+                  size="small"
+                  checked={!!capture.paused}
+                  onChange={(v) => setCapture((prev) => ({ ...prev, paused: v }))}
+                />
+                <Text type="secondary" className="text-[12px]">
+                  Temporarily stop live screen recording (frames are not captured at all).
+                </Text>
+              </div>
+              <div className="flex items-center gap-3">
+                <Text className="text-[14px] w-[240px]">Live frame rate (fps)</Text>
+                <InputNumber
+                  size="small"
+                  min={0.2}
+                  max={1}
+                  step={0.1}
+                  value={capture.live_fps ?? 1}
+                  onChange={(v) => setCapture((prev) => ({ ...prev, live_fps: v }))}
+                  className="!w-[120px]"
+                />
+                <Text type="secondary" className="text-[12px]">
+                  0.2 - 1. Restart recording to apply.
+                </Text>
+              </div>
+              <div className="flex items-center gap-3">
+                <Text className="text-[14px] w-[240px]">Live summary interval (s)</Text>
+                <InputNumber
+                  size="small"
+                  min={5}
+                  max={600}
+                  step={5}
+                  value={capture.live_summary_interval ?? 30}
+                  onChange={(v) => setCapture((prev) => ({ ...prev, live_summary_interval: v }))}
+                  className="!w-[120px]"
+                />
+                <Text type="secondary" className="text-[12px]">
+                  How often the ongoing screen stream is summarized into an activity.
+                </Text>
+              </div>
+              <div className="flex items-center gap-3">
+                <Text className="text-[14px] w-[240px]">Min capture interval (s)</Text>
+                <InputNumber
+                  size="small"
+                  min={5}
+                  max={600}
+                  step={5}
+                  value={capture.capture_min_interval ?? 20}
+                  onChange={(v) => setCapture((prev) => ({ ...prev, capture_min_interval: v }))}
+                  className="!w-[120px]"
+                />
+                <Text type="secondary" className="text-[12px]">
+                  Minimum seconds between verbatim screen-text captures.
+                </Text>
+              </div>
+              <div className="flex items-center gap-3">
+                <Text className="text-[14px] w-[240px]">Change threshold (dhash distance)</Text>
+                <InputNumber
+                  size="small"
+                  min={1}
+                  max={64}
+                  step={1}
+                  value={capture.change_hash_threshold ?? 10}
+                  onChange={(v) => setCapture((prev) => ({ ...prev, change_hash_threshold: v }))}
+                  className="!w-[120px]"
+                />
+                <Text type="secondary" className="text-[12px]">
+                  Larger = only bigger screen changes trigger a capture.
+                </Text>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Text className="text-[14px]">Excluded apps (one per line)</Text>
+                <Input.TextArea
+                  value={excludeAppsText}
+                  onChange={(v) => setExcludeAppsText(v)}
+                  placeholder={'1Password\nBitwarden\nKeePassXC'}
+                  autoSize={{ minRows: 3, maxRows: 6 }}
+                  className="!w-[400px]"
+                />
+                <Text type="secondary" className="text-[12px]">
+                  Frontmost apps never recorded (matched by app name substring).
+                </Text>
+              </div>
+              <Button className="!w-[120px]" loading={captureSaving} onClick={saveCapture}>
+                Save capture
+              </Button>
+            </div>
+          </div>
+
+          {/* Sync server (P1-B) */}
+          <div className="mb-[24px] pt-[16px] border-t border-[#E5E6EB]">
+            <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">Sync server</div>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <Text className="text-[14px] w-[240px]">Upload to sync server</Text>
+                <Switch
+                  size="small"
+                  checked={!!sync.enabled}
+                  onChange={(v) => setSync((prev) => ({ ...prev, enabled: v }))}
+                />
+                <Text type="secondary" className="text-[12px]">
+                  Recorded events are queued locally and uploaded in batches. Local recording
+                  continues even when the server is unreachable.
+                </Text>
+              </div>
+              <div className="flex items-center gap-3">
+                <Text className="text-[14px] w-[240px]">Server URL</Text>
+                <Input
+                  value={sync.server_url || ''}
+                  onChange={(v) => setSync((prev) => ({ ...prev, server_url: v }))}
+                  placeholder="http://host:18740"
+                  className="!w-[340px]"
+                  size="small"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <Text className="text-[14px] w-[240px]">Device name</Text>
+                <Input
+                  value={sync.device_name || ''}
+                  onChange={(v) => setSync((prev) => ({ ...prev, device_name: v }))}
+                  placeholder="(hostname)"
+                  className="!w-[340px]"
+                  size="small"
+                />
+              </div>
+              {syncStatus && (
+                <div className="flex flex-col gap-1 text-[12px] text-[#6E718C]">
+                  <span>Device ID: {syncStatus.device_id || '(not generated yet)'}</span>
+                  <span>Last upload: {syncStatus.last_sync_at || 'never'}</span>
+                  <span>Pending events: {syncStatus.pending_count ?? '—'}</span>
+                  {syncStatus.last_error && (
+                    <Text type="error">Last error: {syncStatus.last_error}</Text>
+                  )}
+                </div>
+              )}
+              <Button className="!w-[120px]" loading={syncSaving} onClick={saveSync}>
+                Save sync
+              </Button>
+            </div>
           </div>
 
           <Spin loading={saving}>

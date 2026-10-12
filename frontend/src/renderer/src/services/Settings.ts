@@ -73,6 +73,7 @@ export interface AIRoutes {
   chat?: string[]
   structured?: string[]
   embedding?: string[]
+  exact?: string[]
 }
 
 export interface AISettingsPayload {
@@ -110,4 +111,60 @@ export const testAIProvider = async (
     provider
   })
   return get(res, 'data.data')
+}
+
+// ==================== Capture & Sync settings (P1-B) ====================
+
+export interface CaptureSettings {
+  live_fps?: number
+  live_summary_interval?: number
+  capture_min_interval?: number
+  change_hash_threshold?: number
+  exclude_apps?: string[]
+  paused?: boolean
+  [key: string]: unknown
+}
+
+export interface SyncSettings {
+  enabled?: boolean
+  server_url?: string
+  device_id?: string
+  device_name?: string
+  [key: string]: unknown
+}
+
+export interface SyncStatus {
+  enabled: boolean
+  server_url: string
+  device_id: string
+  device_name: string
+  pending_count: number | null
+  last_sync_at: string | null
+  last_error: string
+  sent_count: number
+}
+
+export interface GeneralSettingsResponseData {
+  capture: CaptureSettings
+  processing: Record<string, unknown>
+  logging: Record<string, unknown>
+  content_generation: Record<string, unknown>
+}
+
+export const getGeneralSettings = async (): Promise<GeneralSettingsResponseData | undefined> => {
+  const res = await axiosInstance.get<GeneralSettingsResponseData>('/api/settings/general')
+  return get(res, 'data.data')
+}
+
+export const updateCaptureSettings = async (capture: CaptureSettings): Promise<void> => {
+  await axiosInstance.post('/api/settings/general', { capture })
+}
+
+export const getSyncSettings = async (): Promise<{ sync: SyncSettings; status: SyncStatus } | undefined> => {
+  const res = await axiosInstance.get<{ sync: SyncSettings; status: SyncStatus }>('/api/sync_settings')
+  return get(res, 'data.data')
+}
+
+export const updateSyncSettings = async (sync: SyncSettings): Promise<void> => {
+  await axiosInstance.post('/api/sync_settings', { sync })
 }
