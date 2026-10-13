@@ -7,26 +7,20 @@ from typing import Any, Dict, List, Union
 
 from opencontext.config import GlobalConfig
 from opencontext.tools.base import BaseTool
-from opencontext.tools.profile_tools import ProfileEntityTool
 from opencontext.tools.retrieval_tools import *
 
 
 class ToolsExecutor:
     def __init__(self):
         self._tools_map: Dict[str, Union[BaseTool]] = {
-            # Context retrieval tools
-            ActivityContextTool.get_name(): ActivityContextTool(),
-            IntentContextTool.get_name(): IntentContextTool(),
-            SemanticContextTool.get_name(): SemanticContextTool(),
-            ProceduralContextTool.get_name(): ProceduralContextTool(),
-            StateContextTool.get_name(): StateContextTool(),
+            # Sync-server retrieval tools
+            SearchRecordsTool.get_name(): SearchRecordsTool(),
+            GetDayTimelineTool.get_name(): GetDayTimelineTool(),
             # Document retrieval tools
             GetDailyReportsTool.get_name(): GetDailyReportsTool(),
             GetActivitiesTool.get_name(): GetActivitiesTool(),
             GetTipsTool.get_name(): GetTipsTool(),
             GetTodosTool.get_name(): GetTodosTool(),
-            # Profile tools
-            ProfileEntityTool.get_name(): ProfileEntityTool(),
         }
 
     async def run_async(self, tool_name: str, tool_input: Dict[str, Any]) -> Any:

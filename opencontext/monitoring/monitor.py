@@ -201,37 +201,12 @@ class Monitor:
             self._retrieval_history.append(metrics)
 
     def get_context_type_stats(self, force_refresh: bool = False) -> Dict[str, int]:
-        """Get record count for each context_type"""
-        now = datetime.now()
+        """Get record count for each context_type
 
-        # Check if cache is expired
-        if not force_refresh and now - self._last_stats_update < timedelta(
-            seconds=self._stats_cache_ttl
-        ):
-            return {k: v.count for k, v in self._context_type_stats.items()}
-
-        # Fetch latest statistics from storage
-        try:
-            with self._lock:
-                stats = get_storage().get_all_processed_context_counts()
-                stats = {}
-                for context_type in ContextType:
-                    count = get_storage().get_processed_context_count(context_type.value)
-                    stats[context_type.value] = count
-            # Update cache
-            for context_type_value, count in stats.items():
-                self._context_type_stats[context_type_value] = ContextTypeStats(
-                    context_type=context_type_value, count=count
-                )
-
-            self._last_stats_update = now
-            logger.debug(f"Refreshed context_type statistics: {stats}")
-            return stats
-        except Exception as e:
-            logger.error(f"Failed to get context_type statistics: {e}")
-
-        # Return cached data or empty dict
-        return {k: v.count for k, v in self._context_type_stats.items()}
+        The chromadb ProcessedContext store was removed (search moved to the
+        sync server), so every context type now reports zero.
+        """
+        return {context_type.value: 0 for context_type in ContextType}
 
     def get_token_usage_summary(self, hours: int = 24) -> Dict[str, Any]:
         """Get token usage summary from database"""
