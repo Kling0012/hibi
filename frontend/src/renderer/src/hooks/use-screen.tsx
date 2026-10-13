@@ -16,7 +16,6 @@ import {
   ScreenshotRecord
 } from '@renderer/store/screen'
 import { CaptureSource } from '@interface/common/source'
-import axiosInstance from '@renderer/services/axiosConfig'
 import { timeToISOTimeString } from '@renderer/utils/time'
 import { getLogger } from '@shared/logger/renderer'
 import { captureScreenshotThunk } from '@renderer/store/thunk/screen-thunk'
@@ -73,10 +72,7 @@ export const useScreen = () => {
       const capturePromises = visibleSources.map(async (source) => {
         try {
           const screenshot = await dispatch(captureScreenshotThunk(source.id))
-          if (screenshot) {
-            await postScreenshotToServer(screenshot)
-          }
-          return { source: source, success: true }
+          return { source: source, success: Boolean(screenshot) }
         } catch (error) {
           logger.error(`Failed to capture ${source.name}`, { error })
           return { source: source, success: false }
@@ -173,25 +169,6 @@ export const useScreen = () => {
       }
     } catch (error) {
       console.error('Failed to download screenshot:', error)
-    }
-  })
-
-  const postScreenshotToServer = useMemoizedFn(async (screenshot: ScreenshotRecord) => {
-    try {
-      const data = {
-        path: screenshot.image_url,
-        window: 'Test Window',
-        create_time: dayjs(screenshot.timestamp).toISOString(),
-        app: 'Test App'
-      }
-      const res = await axiosInstance.post('/api/add_screenshot', data)
-      if (res.status === 200) {
-        console.log('Screenshot uploaded successfully')
-      } else {
-        console.error('Screenshot upload failed')
-      }
-    } catch (error) {
-      console.error('Failed to upload screenshot:', error)
     }
   })
 

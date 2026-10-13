@@ -113,7 +113,7 @@ const ScreenMonitor: React.FC = () => {
       const todayActivities = await getActivitiesByDate(date)
       const todayActivitiesParsed: Activity[] = todayActivities.map((item: any) => ({
         ...item,
-        resources: JSON.parse(item.resources)
+        resources: item.resources ? JSON.parse(item.resources) : []
       }))
       const uniqueActivities = Array.from(new Map(todayActivitiesParsed.map((item) => [item.id, item])).values())
       setActivities(uniqueActivities)
@@ -224,7 +224,7 @@ const ScreenMonitor: React.FC = () => {
         const newActivities = await getNewActivities(lastCheckedTimeRef.current)
         const newActivitiesParsed: Activity[] = newActivities.map((item: any) => ({
           ...item,
-          resources: JSON.parse(item.resources)
+          resources: item.resources ? JSON.parse(item.resources) : []
         }))
         if (newActivitiesParsed && newActivitiesParsed.length > 0) {
           // Filter activities for the current date
