@@ -41,6 +41,17 @@ const migrations = {
 
     logger.info('Migration v3: Ensured "setting.generalSettings" defaults (auto update check off).')
     return newState
+  },
+  4: (state: any): any => {
+    // Auto update became on by default; earlier installs stored the old default (off).
+    if (!state?.setting?.generalSettings) return state
+    return {
+      ...state,
+      setting: {
+        ...state.setting,
+        generalSettings: { ...state.setting.generalSettings, autoCheckUpdate: true }
+      }
+    }
   }
 }
 export { migrations }
