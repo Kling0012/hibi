@@ -1,5 +1,7 @@
 ---
 title: 疑难解答
+parent: 中文
+nav_order: 9
 ---
 
 [日本語](../troubleshooting.html) · [English](../en/troubleshooting.html) · **中文**

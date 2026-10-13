@@ -1,5 +1,7 @@
 ---
 title: 同步服务器
+parent: 中文
+nav_order: 5
 ---
 
 [日本語](../server.html) · [English](../en/server.html) · **中文**

@@ -1,5 +1,7 @@
 ---
-title: 简介
+title: 中文
+nav_order: 101
+has_children: true
 ---
 
 [日本語](../index.html) · [English](../en/index.html) · **中文**

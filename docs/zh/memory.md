@@ -1,5 +1,7 @@
 ---
 title: AI 共享记忆
+parent: 中文
+nav_order: 6
 ---
 
 [日本語](../memory.html) · [English](../en/memory.html) · **中文**

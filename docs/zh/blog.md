@@ -1,5 +1,7 @@
 ---
 title: 日报与博客
+parent: 中文
+nav_order: 7
 ---
 
 [日本語](../blog.html) · [English](../en/blog.html) · **中文**

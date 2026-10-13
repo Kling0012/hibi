@@ -1,5 +1,7 @@
 ---
 title: AI shared memory
+parent: English
+nav_order: 6
 ---
 
 [日本語](../memory.html) · **English** · [中文](../zh/memory.html)

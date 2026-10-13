@@ -1,5 +1,7 @@
 ---
 title: Setup
+parent: English
+nav_order: 2
 ---
 
 [日本語](../getting-started.html) · **English** · [中文](../zh/getting-started.html)

@@ -1,5 +1,7 @@
 ---
 title: 安装设置
+parent: 中文
+nav_order: 2
 ---
 
 [日本語](../getting-started.html) · [English](../en/getting-started.html) · **中文**

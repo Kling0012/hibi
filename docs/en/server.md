@@ -1,5 +1,7 @@
 ---
 title: Sync server
+parent: English
+nav_order: 5
 ---
 
 [日本語](../server.html) · **English** · [中文](../zh/server.html)

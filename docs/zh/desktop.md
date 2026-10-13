@@ -1,5 +1,7 @@
 ---
 title: 桌面应用
+parent: 中文
+nav_order: 4
 ---
 
 [日本語](../desktop.html) · [English](../en/desktop.html) · **中文**

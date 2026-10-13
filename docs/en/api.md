@@ -1,5 +1,7 @@
 ---
 title: Sync server API
+parent: English
+nav_order: 8
 ---
 
 [日本語](../api.html) · **English** · [中文](../zh/api.html)

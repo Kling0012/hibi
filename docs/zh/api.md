@@ -1,5 +1,7 @@
 ---
 title: 同步服务器 API
+parent: 中文
+nav_order: 8
 ---
 
 [日本語](../api.html) · [English](../en/api.html) · **中文**

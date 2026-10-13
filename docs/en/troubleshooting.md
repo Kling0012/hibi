@@ -1,5 +1,7 @@
 ---
 title: Troubleshooting
+parent: English
+nav_order: 9
 ---
 
 [日本語](../troubleshooting.html) · **English** · [中文](../zh/troubleshooting.html)

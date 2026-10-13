@@ -1,5 +1,7 @@
 ---
-title: Introduction
+title: English
+nav_order: 100
+has_children: true
 ---
 
 [日本語](../index.html) · **English** · [中文](../zh/index.html)

@@ -1,5 +1,7 @@
 ---
 title: Daily reports and blog
+parent: English
+nav_order: 7
 ---
 
 [日本語](../blog.html) · **English** · [中文](../zh/blog.html)

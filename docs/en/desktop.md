@@ -1,5 +1,7 @@
 ---
 title: Desktop app
+parent: English
+nav_order: 4
 ---
 
 [日本語](../desktop.html) · **English** · [中文](../zh/desktop.html)

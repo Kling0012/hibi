@@ -1,5 +1,7 @@
 ---
 title: 使用方法
+parent: 中文
+nav_order: 3
 ---
 
 [日本語](../usage.html) · [English](../en/usage.html) · **中文**

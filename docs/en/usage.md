@@ -1,5 +1,7 @@
 ---
 title: Usage
+parent: English
+nav_order: 3
 ---
 
 [日本語](../usage.html) · **English** · [中文](../zh/usage.html)
