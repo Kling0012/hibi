@@ -78,20 +78,39 @@ nav_order: 8
 | PATCH | `/v1/sessions/{id}` | 直す・確定する（`title` / `note` / `started_at` / `ended_at` / `confirmed`） |
 | POST | `/v1/sessions/{id}/cancel` | 取り消す |
 
-終わり方（`end_reason`）: `manual`（手動）、`ai_detected`（AI の判断）、`idle`（放置）、`superseded`（次の作業の宣言）。AI と放置で終わったものは `confirmed=false` です。
+終わり方（`end_reason`）: `manual`（手動）、`ai_detected`（AI の判断）、`idle`（放置）、`away`（長い離席）、`superseded`（次の作業の宣言）。手動以外で終わったものは `confirmed=false` です。
+
+`duration_minutes` は離席を引いた時間で、引いた分は `away_minutes` に入ります。
+
+## ToDo
+
+| メソッド | パス | 内容 |
+|---|---|---|
+| GET | `/v1/todos` | 一覧（`status=open|done|all`, `limit?`）→ `{todos: [...]}`。open は急ぎの順・新しい順 |
+| POST | `/v1/todos` | 追加（`title`, `note?`, `urgency?`(`high`/`medium`/`low`), `due_date?`, `source?`(`me`/`auto`), `evidence?`, `device_id?`）。`auto` は似た ToDo があれば作らず、既存のものに `deduped: true` を付けて返す |
+| PATCH | `/v1/todos/{id}` | 直す・完了にする（`title` / `note` / `urgency` / `due_date` / `status`(`open`/`done`)） |
+| DELETE | `/v1/todos/{id}` | 削除（`archived` にする） |
+| GET | `/v1/todos/{id}/entries` | 計上した時間の一覧 |
+| DELETE | `/v1/todos/{id}/entries/{entry_id}` | 計上した時間を取り消す |
+
+ToDo には `tracked_minutes`（足された時間の合計）、`last_tracked_at`、`tracking`（いま取り組んでいるか）が付きます。
+
+## 離席
+
+端末は離席から戻ったとき、`kind=away` の記録を 1 件送ります（`started_at`, `ended_at`, `meta.reason` = `idle` / `lock` / `suspend`）。ほかの端末でその間に記録があれば、その分は離席として扱いません。離席は作業時間・ToDo の時間・`active_minutes` から除かれます。
 
 ## タイムラインと集計
 
 | メソッド | パス | 内容 |
 |---|---|---|
-| GET | `/v1/timeline` | 1 日分（`date`, `tz`, `include_superseded?`）。作業・記録・AI の作業を時刻順に 1 本にし、作業ごとの合計時間を付ける |
+| GET | `/v1/timeline` | 1 日分（`date`, `tz`, `include_superseded?`）。作業・記録・AI の作業を時刻順に 1 本にし、作業ごとの合計時間を付ける。ToDo の計上は `todo_entries` に入る |
 | GET | `/v1/stats/daily` | 日ごとの集計（`from`, `to`, `tz`。最大 400 日。記録のない日も 0 で返す） |
 
 `/v1/stats/daily` の 1 日分:
 
 ```json
 {"date": "2026-10-13", "events": 54, "mine": 53, "ai_work": 1,
- "active_minutes": 20, "ai_active_minutes": 5, "session_minutes": 0,
+ "active_minutes": 20, "ai_active_minutes": 5, "session_minutes": 0, "away_minutes": 0,
  "first_at": "...", "last_at": "..."}
 ```
 
@@ -140,5 +159,6 @@ nav_order: 8
 | `hibi_list_posts` / `hibi_get_post` | 記事を読む |
 | `hibi_create_draft` / `hibi_update_post` | 下書きを作る・直す |
 | `hibi_publish_post` / `hibi_unpublish_post` | 公開する・下書きに戻す |
+| `hibi_list_todos` / `hibi_add_todo` / `hibi_complete_todo` | ToDo を読む・足す・完了にする |
 
 使い方は [日報とブログ](blog.md#ai-にブログを書かせる) を見てください。
