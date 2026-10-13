@@ -5,22 +5,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Smart Todo Manager - Hibi 向けの ToDo 生成。
+Smart Todo Manager - Hibi 向けの旧 ToDo 生成（無効）。
 
-直近の画面の書き起こし（screen_summary）と 30 秒ごとの活動要約（activity）、
-同期サーバの当日の宣言作業（work sessions）を材料に、画面に出ている
-「やらなければいけないこと」を根拠付きで最大 3 件まで拾う。同期サーバに
-届かなくてもローカルの材料だけで動く（fail-soft。止まるのはこの生成だけ）。
-既存の未完了 ToDo との重複除去は文字 3-gram Jaccard のまま（同期サーバの
-open な ToDo が取れればその題名も材料に加える）。
+ToDo は利用者が同期サーバで自分で追加する。生成・保存・直接送信は
+無効化し、旧実装とヒントも使う重複判定のヘルパーは残す。
 
-検証を通った ToDo は、sync が有効で server_url が設定されていれば
-POST /v1/todos（source='auto'）で同期サーバに直接登録する（サーバ側でも
-同じ 3-gram Jaccard で重複判定し、似た open の ToDo があれば既存を返す）。
-送信できたらローカルの todo テーブルへの保存と、同期アウトボックスへの
-kind='todo' イベントの enqueue は行わない（二重登録の防止）。sync が無効・
-URL 未設定・送信失敗のときは今までどおりローカル保存＋アウトボックスへ
-enqueue する（サーバは kind='todo' イベントからも ToDo を作る）。
+旧実装は画面の書き起こし、活動要約、宣言作業から ToDo を生成し、
+POST /v1/todos またはローカル保存＋kind='todo' の outbox で登録していた。
+これらの入口は副作用なしで戻る。ヒントの生成と他の同期は継続する。
 """
 
 import datetime
@@ -182,10 +174,10 @@ def fetch_open_todo_titles(server_url: str) -> Optional[List[str]]:
 
 
 def post_todo_to_server(server_url: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """POST /v1/todos; the created (or deduped) server todo, None on failure.
+    """Legacy POST /v1/todos entry point; disabled, returns None."""
+    # Retained for compatibility; desktop-generated todos are never sent.
+    return None
 
-    Fail-soft: None tells the caller to fall back to local storage.
-    """
     try:
         import httpx
 
@@ -211,8 +203,10 @@ class SmartTodoManager:
     def generate_todo_tasks(self, start_time: int, end_time: int) -> Optional[Dict[str, Any]]:
         """
         Generate up to 3 todo tasks from the recent time window's materials.
-        Returns None when there are no materials or no valid task.
+        Automatic generation is disabled; returns None without side effects.
         """
+        return None
+
         try:
             # 1. Materials: window activities / screen summaries + today's sessions
             materials = self._collect_materials(start_time, end_time)
@@ -254,13 +248,10 @@ class SmartTodoManager:
     def _store_tasks(
         self, tasks: List[Dict[str, Any]], sync_target: Optional[Tuple[str, str]]
     ) -> List[Any]:
-        """Persist validated tasks: sync server first, local storage as fallback.
+        """Legacy generated-task persistence; disabled, returns no IDs."""
+        # Keep legacy callers harmless, including debug generation routes.
+        return []
 
-        A task whose POST /v1/todos succeeds (including the server-side
-        "deduped" answer) is not written locally; sync disabled / URL unset /
-        send failure keep the old local row + outbox event (fail-soft per
-        task).
-        """
         todo_ids: List[Any] = []
         for task in tasks:
             server_todo = None
@@ -280,7 +271,9 @@ class SmartTodoManager:
         return todo_ids
 
     def _save_todo_locally(self, task: Dict[str, Any]) -> Optional[int]:
-        """Local todo-table row + outbox kind='todo' event (the fallback path)."""
+        """Legacy fallback path; disabled along with automatic generation."""
+        return None
+
         deadline = self._task_deadline(task)
         todo_id = get_storage().insert_todo(
             content=task["content"],

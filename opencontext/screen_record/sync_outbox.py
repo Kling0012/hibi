@@ -8,7 +8,7 @@
 Sync outbox (P1-B): local queue that uploads recorded events to the central
 sync server.
 
-Events (activity / screen_summary / todo / report) are appended to the
+Events (activity / screen_summary / report) are appended to the
 ``sync_outbox`` sqlite table by producers (fail-soft: an enqueue failure never
 breaks the recorder). A single background worker uploads them in batches:
 
@@ -41,8 +41,8 @@ _BACKOFF_MAX = 60.0
 _IDLE_POLL = 15.0
 _REQUEST_TIMEOUT = 15.0
 
-# kinds accepted by the sync server
-_ALLOWED_KINDS = {"activity", "screen_summary", "note", "todo", "ai_work", "report", "away"}
+# Desktop todos are no longer generated or uploaded.
+_ALLOWED_KINDS = {"activity", "screen_summary", "note", "ai_work", "report", "away"}
 
 
 def _db_path() -> Optional[str]:
@@ -216,10 +216,11 @@ class SyncOutbox:
         connection = sqlite3.connect(db_path, timeout=30)
         connection.row_factory = sqlite3.Row
         try:
+            # Leave legacy queued todos in place, but never upload them.
             rows = connection.execute(
                 """
                 SELECT id, kind, started_at, ended_at, app, title, text, meta, source
-                FROM sync_outbox ORDER BY created_at LIMIT ?
+                FROM sync_outbox WHERE kind != 'todo' ORDER BY created_at LIMIT ?
                 """,
                 (_BATCH_SIZE,),
             ).fetchall()
@@ -298,7 +299,7 @@ class SyncOutbox:
                 connection = sqlite3.connect(db_path, timeout=5)
                 try:
                     pending = connection.execute(
-                        "SELECT COUNT(*) FROM sync_outbox").fetchone()[0]
+                        "SELECT COUNT(*) FROM sync_outbox WHERE kind != 'todo'").fetchone()[0]
                 finally:
                     connection.close()
             except Exception:

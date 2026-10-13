@@ -145,8 +145,8 @@ prompts:
 
 # Content generation service configuration
 # The 15-minute activity generator and the daily report generator were
-# removed (activity records now come from live_monitor); only tips / todos
-# scheduled tasks remain.
+# removed (activity records now come from live_monitor); only tips run locally.
+# ToDos are added by the user on the sync server.
 content_generation:
   # Debug configuration
   debug:
@@ -159,5 +159,5 @@ content_generation:
     interval: 3600 # Seconds, minimum 1800 (30 minutes), recommended 3600-7200 (1-2 hours)
 
   todos:
-    enabled: true
+    enabled: false # Automatic ToDo generation is disabled; users add ToDos on the sync server.
     interval: 1800 # Seconds, minimum 1800 (30 minutes), recommended 1800-3600 (30-60 minutes)

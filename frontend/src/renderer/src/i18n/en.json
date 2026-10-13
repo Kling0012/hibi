@@ -52,6 +52,7 @@
     "todayRecord": "Today's records",
     "todayTimeline": "Today's timeline",
     "todo": "To-do",
+    "todoConnectHint": "Connect to the sync server to use to-dos.",
     "workTime": "Work time"
   },
   "declare": {

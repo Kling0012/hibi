@@ -16,7 +16,6 @@ import AIToggleButton from '@renderer/components/ai-toggle-button'
 import AIAssistant from '@renderer/components/ai-assistant'
 import { WorkSessionPanel } from '@renderer/components/WorkSessionPanel'
 import { ProactiveFeedCard } from './components/proactive-feed-card'
-import { ToDoCard } from './components/to-do-card'
 import { setActiveConversationId, toggleHomeAiAssistant } from '@renderer/store/chat-history'
 import { RootState, useAppDispatch } from '@renderer/store'
 import axiosInstance from '@renderer/services/axiosConfig'
@@ -218,7 +217,10 @@ const HomePage: React.FC = () => {
                       <ServerPart base={base} only="todos" title={t('home.todo')} minHeight={200} />
                     </section>
                   ) : (
-                    <ToDoCard selectedDays={null} />
+                    <section className="hb-card">
+                      <h2>{t('home.todo')}</h2>
+                      <p className="hb-sub">{t('home.todoConnectHint')}</p>
+                    </section>
                   )}
                   <ProactiveFeedCard />
                 </div>

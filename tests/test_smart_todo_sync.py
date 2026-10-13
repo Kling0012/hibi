@@ -3,19 +3,13 @@
 # Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Tests for the direct sync-server registration of generated todos.
+"""Tests for the retained todo helpers and disabled generated-todo storage.
 
-Covers the urgency conversion (2/1/0 -> high/medium/low), the
-POST /v1/todos payload shape, and the storage routing of
-SmartTodoManager._store_tasks: a successful POST stores nothing locally,
-while sync disabled / send failure falls back to the local todo table +
-outbox kind='todo' event. All HTTP is mocked; no real server is touched.
+Urgency and payload helpers remain available, but _store_tasks must not
+POST, insert local todos, or enqueue events. All HTTP is mocked.
 """
 
-import datetime
-
 import httpx
-import pytest
 
 import opencontext.context_consumption.generation.smart_todo_manager as todo_manager
 import opencontext.screen_record.sync_outbox as sync_outbox
@@ -125,32 +119,27 @@ class TestStoreTasksServerSuccess:
         )
         return posts, storage, enqueued
 
-    def test_success_skips_local_save_and_outbox(self, monkeypatch):
+    def test_generation_disabled_skips_server_local_save_and_outbox(self, monkeypatch):
         posts, storage, enqueued = self._patch(
             monkeypatch, _FakeResponse({"id": "uuid-1", "deduped": False})
         )
         todo_ids = SmartTodoManager()._store_tasks(
             [TASK], ("http://sync.example", "dev-1")
         )
-        assert todo_ids == ["uuid-1"]
-        assert posts == [
-            {
-                "url": "http://sync.example/v1/todos",
-                "json": build_todo_api_payload(TASK, "dev-1"),
-                "timeout": 10.0,
-            }
-        ]
+        assert todo_ids == []
+        assert posts == []
         assert storage.inserted == []
         assert enqueued == []
 
-    def test_deduped_server_answer_also_skips_local_save(self, monkeypatch):
+    def test_generation_disabled_skips_deduplication_post(self, monkeypatch):
         posts, storage, enqueued = self._patch(
             monkeypatch, _FakeResponse({"id": "uuid-2", "deduped": True})
         )
         todo_ids = SmartTodoManager()._store_tasks(
             [TASK], ("http://sync.example", "")
         )
-        assert todo_ids == ["uuid-2"]
+        assert todo_ids == []
+        assert posts == []
         assert storage.inserted == []
         assert enqueued == []
 
@@ -172,21 +161,16 @@ class TestStoreTasksFallback:
         monkeypatch.setattr(sync_outbox, "enqueue_outbox_event", record_enqueue)
         return storage, enqueued
 
-    def test_send_failure_saves_locally_and_enqueues(self, monkeypatch):
+    def test_generation_disabled_does_not_save_or_enqueue_fallback(self, monkeypatch):
         storage, enqueued = self._patch(monkeypatch)
         todo_ids = SmartTodoManager()._store_tasks(
             [TASK], ("http://sync.example", "dev-1")
         )
-        assert todo_ids == [101]
-        assert len(storage.inserted) == 1
-        assert storage.inserted[0]["content"] == TASK["content"]
-        assert storage.inserted[0]["urgency"] == 2
-        assert storage.inserted[0]["end_time"] == datetime.datetime(2026, 10, 15, 17, 0)
-        assert len(enqueued) == 1
-        assert enqueued[0]["kind"] == "todo"
-        assert enqueued[0]["text"] == TASK["content"]
+        assert todo_ids == []
+        assert storage.inserted == []
+        assert enqueued == []
 
-    def test_sync_disabled_saves_locally_without_posting(self, monkeypatch):
+    def test_sync_disabled_does_not_save_post_or_enqueue(self, monkeypatch):
         posts = []
 
         def fail_post(*args, **kwargs):
@@ -198,9 +182,7 @@ class TestStoreTasksFallback:
         # POST is recorded (and asserted) instead of silently failing over
         monkeypatch.setattr(httpx, "post", fail_post)
         todo_ids = SmartTodoManager()._store_tasks([TASK_WITHOUT_DUE], None)
-        assert todo_ids == [101]
+        assert todo_ids == []
         assert posts == []
-        assert len(storage.inserted) == 1
-        assert storage.inserted[0]["end_time"] is None
-        assert len(enqueued) == 1
-        assert enqueued[0]["kind"] == "todo"
+        assert storage.inserted == []
+        assert enqueued == []

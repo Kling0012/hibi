@@ -51,6 +51,7 @@
     "todayRecord": "今日の記録",
     "todayTimeline": "今日のタイムライン",
     "todo": "ToDo",
+    "todoConnectHint": "同期サーバに接続すると ToDo を使えます",
     "workTime": "作業時間"
   },
   "declare": {

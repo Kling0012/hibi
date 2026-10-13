@@ -30,7 +30,8 @@ class ConsumptionManager:
 
     The 15-minute activity generator and the daily report generator were
     removed: activity records now come from live_monitor and reports are no
-    longer generated locally. Only tips / todos scheduled tasks remain.
+    longer generated locally. Only tips scheduled tasks remain; todos are
+    added by the user on the sync server.
     """
 
     def __init__(self):
@@ -60,7 +61,8 @@ class ConsumptionManager:
         }
         self._task_enabled = {
             "tips": content_gen_config.get("tips", {}).get("enabled", True),
-            "todos": content_gen_config.get("todos", {}).get("enabled", True),
+            # Ignore legacy user settings that enabled automatic todos.
+            "todos": False,
         }
 
         # Maintain local last successful generation time
@@ -133,7 +135,6 @@ class ConsumptionManager:
 
         # Start various scheduled tasks
         self._start_tips_timer()
-        self._start_todos_timer()
 
     def stop_scheduled_tasks(self):
         """Stop scheduled tasks"""
@@ -189,7 +190,7 @@ class ConsumptionManager:
 
     def _start_todos_timer(self):
         """Start smart todo timer"""
-        if not self._task_enabled.get("todos", True):
+        if not self._task_enabled.get("todos", False):
             logger.info("Todos task is disabled, skipping timer start")
             return
 
@@ -256,7 +257,7 @@ class ConsumptionManager:
                     "interval": self._task_intervals.get("tips", 60 * 60),
                 },
                 "todos": {
-                    "enabled": self._task_enabled.get("todos", True),
+                    "enabled": self._task_enabled.get("todos", False),
                     "interval": self._task_intervals.get("todos", 30 * 60),
                 },
             }
@@ -278,6 +279,11 @@ class ConsumptionManager:
 
     def _update_interval_task(self, task_name: str, task_cfg: Dict[str, Any]) -> None:
         """Update configuration for interval-based tasks (tips/todos)"""
+        if task_name == "todos":
+            self._task_enabled["todos"] = False
+            self._stop_task_timer("todos")
+            return
+
         need_restart = False
 
         if "enabled" in task_cfg:

@@ -51,6 +51,7 @@
     "todayRecord": "今日记录",
     "todayTimeline": "今日时间线",
     "todo": "待办",
+    "todoConnectHint": "连接同步服务器后即可使用待办事项",
     "workTime": "工作时间"
   },
   "declare": {
