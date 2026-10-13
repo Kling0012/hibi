@@ -63,7 +63,14 @@ class SmartTipGenerator:
                 logger.info("No tip with valid evidence was generated; skipped.")
                 return None
 
-            # 3. Store one line per tip in the SQLite tips table
+            # 3. Drop tips already given in the last 24h (hourly runs on the
+            #    same unresolved issue would otherwise repeat it)
+            items = self._drop_recent_duplicates(items)
+            if not items:
+                logger.info("All generated tips repeat recent ones; skipped.")
+                return None
+
+            # 4. Store one line per tip in the SQLite tips table
             content = "\n".join(format_tip_text(item) for item in items)
             tip_id = get_storage().insert_tip(content=content)
             logger.info(f"Smart tip saved to the tips table, ID: {tip_id}")
@@ -89,6 +96,28 @@ class SmartTipGenerator:
         except Exception as e:
             logger.exception(f"Failed to generate smart tip: {e}")
             return None
+
+    @staticmethod
+    def _drop_recent_duplicates(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        try:
+            # lazy: smart_todo_manager imports this module
+            from opencontext.context_consumption.generation.smart_todo_manager import trigram_jaccard
+
+            since = datetime.datetime.now() - datetime.timedelta(hours=24)
+            recent = [
+                line
+                for tip in get_storage().get_tips(start_time=since, limit=50)
+                for line in str(tip.get("content") or "").splitlines()
+                if line.strip()
+            ]
+            return [
+                item
+                for item in items
+                if all(trigram_jaccard(format_tip_text(item), line) < 0.6 for line in recent)
+            ]
+        except Exception as e:  # fail-soft: keep the new tips
+            logger.warning(f"recent-tip dedupe skipped: {e}")
+            return items
 
     def _collect_materials(self, start_time: int, end_time: int) -> List[str]:
         """Build prompt materials; storage / sync failures degrade to []."""
