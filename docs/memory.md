@@ -3,6 +3,8 @@ title: AI の共有記憶
 nav_order: 6
 ---
 
+**日本語** · [English](en/memory.html) · [中文](zh/memory.html)
+
 # AI の共有記憶（hibi-memory）
 {: .no_toc }
 

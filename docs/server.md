@@ -3,6 +3,8 @@ title: 同期サーバ
 nav_order: 5
 ---
 
+**日本語** · [English](en/server.html) · [中文](zh/server.html)
+
 # 同期サーバ（hibi-server）
 {: .no_toc }
 

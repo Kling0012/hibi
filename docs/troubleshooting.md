@@ -3,6 +3,8 @@ title: 困ったとき
 nav_order: 9
 ---
 
+**日本語** · [English](en/troubleshooting.html) · [中文](zh/troubleshooting.html)
+
 # 困ったとき
 {: .no_toc }
 

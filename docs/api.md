@@ -3,6 +3,8 @@ title: 同期サーバ API
 nav_order: 8
 ---
 
+**日本語** · [English](en/api.html) · [中文](zh/api.html)
+
 # 同期サーバ API
 {: .no_toc }
 

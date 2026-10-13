@@ -3,6 +3,8 @@ title: デスクトップアプリ
 nav_order: 4
 ---
 
+**日本語** · [English](en/desktop.html) · [中文](zh/desktop.html)
+
 # デスクトップアプリ（hibi）
 {: .no_toc }
 
