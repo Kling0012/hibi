@@ -138,7 +138,7 @@ class SyncOutbox:
             try:
                 connection.execute(
                     """
-                    INSERT INTO sync_outbox (id, kind, started_at, ended_at, app, title, text, meta, source, created_at)
+                    INSERT OR REPLACE INTO sync_outbox (id, kind, started_at, ended_at, app, title, text, meta, source, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
