@@ -41,10 +41,14 @@ import { type Dayjs } from 'dayjs'
 import AppUpdater from './services/AppUpdater'
 import { HeatmapService } from './services/HeatmapService'
 import { workSessionService } from './services/WorkSessionService'
+import awayService from './services/AwayService'
 
 const logger = getLogger('IPC')
 
 export function registerIpc(mainWindow: BrowserWindow, app: Electron.App) {
+  ipcMain.handle(IpcChannel.Away_GetSettings, () => awayService.getSettings())
+  ipcMain.handle(IpcChannel.Away_SetSettings, (_, settings: { awayMinutes: number }) => awayService.setSettings(settings))
+
   const notificationService = new NotificationService(mainWindow)
   const appUpdater = new AppUpdater(mainWindow)
 

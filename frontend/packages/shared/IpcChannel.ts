@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 export enum IpcChannel {
+  Away_GetSettings = 'away:get-settings',
+  Away_SetSettings = 'away:set-settings',
+
   App_GetCacheSize = 'app:get-cache-size',
   App_ClearCache = 'app:clear-cache',
   App_SetLaunchOnBoot = 'app:set-launch-on-boot',

@@ -27,6 +27,7 @@ import { getLogger } from '@shared/logger/renderer'
 import { IpcChannel } from '@shared/IpcChannel'
 import type { RecordingStats } from './components/recording-stats-card'
 import { CaptureSource } from '@interface/common/source'
+import axiosInstance from '@renderer/services/axiosConfig'
 
 const logger = getLogger('ScreenMonitor')
 
@@ -67,6 +68,24 @@ const ScreenMonitor: React.FC = () => {
     getActivitiesByDate
   } = useScreen()
   const [isMonitoring, setIsMonitoring] = useState(false)
+  const [awaySince, setAwaySince] = useState<string | null>(null)
+  useEffect(() => {
+    let alive = true
+    const poll = async (): Promise<void> => {
+      try {
+        const response = await axiosInstance.get('/api/live/status')
+        if (alive) setAwaySince(get(response, 'data.data.monitor.away_since', null))
+      } catch (error) {
+        logger.warn('Failed to load away status:', error)
+      }
+    }
+    void poll()
+    const timer = setInterval(() => void poll(), 15_000)
+    return () => {
+      alive = false
+      clearInterval(timer)
+    }
+  }, [])
   useMount(() => {
     window.serverPushAPI.pushScreenMonitorStatus((status) => {
       setIsMonitoring(status === 'running')
@@ -520,13 +539,14 @@ const ScreenMonitor: React.FC = () => {
               onSetCurrentDate={setCurrentDate}
               disabledDate={disabledDate}
             />
-            {(isMonitoring && isToday) || activities.length > 0 || Object.keys(screenshots).length > 0 ? (
+            {((isMonitoring || awaySince) && isToday) || activities.length > 0 || Object.keys(screenshots).length > 0 ? (
               <RecordingTimeline
                 isMonitoring={isMonitoring}
                 isToday={isToday}
                 canRecord={canRecord}
                 activities={activities}
                 recordingStats={recordingStats}
+                awaySince={awaySince}
               />
             ) : (
               <EmptyStatePlaceholder

@@ -235,6 +235,7 @@ class ScreenLiveMonitor:
         self._last_hash: Optional[str] = None
         self._last_meta: tuple = ()
         self._last_summary_ts: float = 0.0
+        self._away_cutoff: float = 0.0
         self._last_drop_log: float = 0.0
         self._last_push_error_log: float = 0.0
         # de-duplication state (summarizer thread only)
@@ -250,6 +251,8 @@ class ScreenLiveMonitor:
             "screen_summaries": 0,
             "live_available": None,
             "last_frame_at": None,
+            "away_since": None,
+            "away_reason": None,
         }
 
     # -- lifecycle ---------------------------------------------------------------
@@ -272,6 +275,8 @@ class ScreenLiveMonitor:
         capture = self._capture_config()
         if capture.get("paused"):
             return {"accepted": False, "reason": "paused"}
+        if self.status.get("away_since") is not None:
+            return {"accepted": False, "reason": "away"}
         if self._is_excluded(capture, app):
             with self._state_lock:
                 # a fresh interval starts when recording resumes
@@ -312,6 +317,87 @@ class ScreenLiveMonitor:
                 return True
         return False
 
+    # -- away state (POST /api/live/away/start|end) ---------------------------------
+
+    @staticmethod
+    def _parse_iso(value) -> Optional[datetime.datetime]:
+        try:
+            return datetime.datetime.fromisoformat(str(value))
+        except (TypeError, ValueError):
+            return None
+
+    def away_start(self, started_at: str, reason: str = "idle") -> None:
+        """The user left the desk: mark away; frames are refused until away_end.
+
+        Fail-soft: an unparsable started_at falls back to now.
+        """
+        from opencontext.screen_record.sync_outbox import _iso
+
+        started = self._parse_iso(started_at) or datetime.datetime.now().astimezone()
+        with self._state_lock:
+            if self.status["away_since"] is not None:
+                return
+            self._away_cutoff = time.time()
+            self.status["away_since"] = _iso(started)
+            self.status["away_reason"] = reason or "idle"
+            # Do not extend an activity across an away period.
+            self._interval_start = None
+            self._interval_meta = []
+            self._last_activity = None
+            self._last_hash = None
+            self._last_meta = ()
+            for pending_queue in (self._frame_queue, self._trigger_queue):
+                while True:
+                    try:
+                        pending_queue.get_nowait()
+                    except queue.Empty:
+                        break
+        logger.info(f"[ScreenLive] away since {self.status['away_since']} (reason={reason})")
+
+    def away_end(self, started_at: str, ended_at: str, reason: str = "idle") -> Dict[str, Any]:
+        """The user came back: clear the away state and, when the away period
+        was at least 60 s, queue one kind='away' event for the sync server
+        (id `away-<device_id>-<started_at>`, so retries upsert the same event).
+        """
+        from opencontext.screen_record.sync_outbox import _iso, enqueue_outbox_event
+
+        started = self._parse_iso(_iso(started_at))
+        ended = self._parse_iso(_iso(ended_at))
+        with self._state_lock:
+            self.status["away_since"] = None
+            self.status["away_reason"] = None
+            self._interval_start = None
+            self._interval_meta = []
+            self._last_activity = None
+        logger.info(f"[ScreenLive] away ended (reason={reason})")
+
+        enqueued = False
+        try:
+            if started is not None and ended is not None and (ended - started).total_seconds() >= 60:
+                event_id = f"away-{self._away_device_id()}-{_iso(started)}"
+                queued_id = enqueue_outbox_event(
+                    kind="away",
+                    started_at=started,
+                    ended_at=ended,
+                    app="",
+                    title="away",
+                    text="",
+                    meta={"reason": reason or "idle"},
+                    source="minecontext-desktop",
+                    event_id=event_id,
+                )
+                enqueued = queued_id is not None
+        except Exception as e:
+            logger.warning(f"[ScreenLive] away event enqueue failed (non-fatal): {e}")
+        return {"away": False, "enqueued": enqueued}
+
+    @staticmethod
+    def _away_device_id() -> str:
+        """Use the same persisted device identity as the outbox uploader."""
+        from opencontext.screen_record.sync_outbox import _sync_config, get_sync_outbox
+
+        return get_sync_outbox()._ensure_device_id(_sync_config())
+
     # -- push worker --------------------------------------------------------------
     def _push_loop(self):
         while not self._stop.is_set():
@@ -325,6 +411,8 @@ class ScreenLiveMonitor:
                 logger.error(f"[ScreenLive] frame handling failed: {e}")
 
     def _handle_frame(self, frame: _Frame):
+        if self.status.get("away_since") is not None or frame.ts <= self._away_cutoff:
+            return
         capture = self._capture_config()
         new_hash = calculate_bytes2phash(frame.jpeg)
 
@@ -345,6 +433,9 @@ class ScreenLiveMonitor:
                 self._last_push_error_log = now
                 logger.warning(f"[ScreenLive] live push failed: {e}")
             self.status["live_available"] = False
+
+        if self.status.get("away_since") is not None or frame.ts <= self._away_cutoff:
+            return
 
         # 2. change detection (hash distance + window switch)
         distance = None
@@ -367,6 +458,8 @@ class ScreenLiveMonitor:
 
         # 3. interval bookkeeping
         with self._state_lock:
+            if self.status.get("away_since") is not None or frame.ts <= self._away_cutoff:
+                return
             if self._interval_start is None:
                 self._interval_start = frame.ts
                 self._interval_meta = []
@@ -413,6 +506,8 @@ class ScreenLiveMonitor:
             except queue.Empty:
                 continue
             try:
+                if self.status.get("away_since") is not None:
+                    continue
                 if trigger.kind == "exact":
                     self._process_exact(trigger.frame)
                 elif trigger.kind == "interval":
@@ -446,6 +541,8 @@ class ScreenLiveMonitor:
             },
         ]
         text = asyncio.run(router.generate(route="exact", messages=messages))
+        if self.status.get("away_since") is not None or frame.ts <= self._away_cutoff:
+            return
         if not text or not text.strip():
             logger.info("[ScreenLive] empty exact response; screen_summary skipped")
             return
@@ -525,6 +622,8 @@ class ScreenLiveMonitor:
             logger.info("[ScreenLive] no live provider; interval summary skipped")
             return
         answer = asyncio.run(router.live_ask(prompt))
+        if self.status.get("away_since") is not None or trigger.interval_end <= self._away_cutoff:
+            return
         if not answer or not answer.strip():
             logger.info("[ScreenLive] empty live answer; activity skipped")
             return

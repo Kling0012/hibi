@@ -42,7 +42,7 @@ _IDLE_POLL = 15.0
 _REQUEST_TIMEOUT = 15.0
 
 # kinds accepted by the sync server
-_ALLOWED_KINDS = {"activity", "screen_summary", "note", "todo", "ai_work", "report"}
+_ALLOWED_KINDS = {"activity", "screen_summary", "note", "todo", "ai_work", "report", "away"}
 
 
 def _db_path() -> Optional[str]:
@@ -102,6 +102,7 @@ class SyncOutbox:
         self._started = False
         # last identity successfully registered this run
         self._registered: Optional[tuple] = None
+        self._device_id: Optional[str] = None
         self.last_sync_at: Optional[str] = None
         self.last_error: str = ""
         self.sent_count: int = 0
@@ -266,10 +267,14 @@ class SyncOutbox:
     def _ensure_device_id(self, config: Dict[str, Any]) -> str:
         device_id = str(config.get("device_id") or "").strip()
         if device_id:
+            self._device_id = device_id
             return device_id
+        if self._device_id:
+            return self._device_id
         # generate once and persist into user settings (fail-soft: if saving
         # fails we keep using the generated id for this run)
         device_id = str(uuid.uuid4())
+        self._device_id = device_id
         try:
             from opencontext.config.global_config import get_global_config
 

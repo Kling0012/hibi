@@ -58,6 +58,8 @@ interface LiveStatus {
   screen_summaries: number
   live_activities: number
   live_available: boolean | null
+  away_since: string | null
+  away_reason: string | null
 }
 
 /** Polls a loader every `ms` (and once immediately). */
@@ -102,7 +104,10 @@ const TodayCard = ({ base, reachable }: { base: string; reachable: boolean | nul
     []
   )
   const lastFrame = live?.last_frame_at ? new Date(live.last_frame_at).getTime() : 0
-  const recording = lastFrame > 0 && Date.now() - lastFrame < 2 * 60_000
+  const recording = !live?.away_since && lastFrame > 0 && Date.now() - lastFrame < 2 * 60_000
+  const awayTime = live?.away_since
+    ? new Date(live.away_since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    : null
 
   return (
     <section className="hb-card">
@@ -135,7 +140,7 @@ const TodayCard = ({ base, reachable }: { base: string; reachable: boolean | nul
           <span className="k">{t('home.screenRecording')}</span>
           <span className="v small" style={{ cursor: 'pointer' }} onClick={() => navigate('/screen-monitor')}>
             <span className={`hb-dot${recording ? ' on' : ''}`} />
-            {recording ? t('home.recording') : t('home.stopped')}
+            {awayTime ? t('sm.awaySince', { time: awayTime }) : recording ? t('home.recording') : t('home.stopped')}
             {live && live.screen_summaries > 0 && (
               <span className="hb-sub" style={{ fontWeight: 400, marginLeft: 6 }}>
                 {t('home.summaries', { count: live.screen_summaries })}

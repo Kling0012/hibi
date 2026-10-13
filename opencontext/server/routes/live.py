@@ -9,6 +9,8 @@ Live screen recording and sync routes (P1-B).
 
 - POST /api/live/frame: one JPEG frame (binary body) + OS metadata (query
   params app/title/url) from the Electron frontend. Localhost only.
+- POST /api/live/away/start|end: the user left the desk / came back; while
+  away, frames are refused and one kind='away' event is queued on return.
 - GET /api/live/status: monitor runtime status (for the settings UI).
 - GET/POST /api/sync_settings: sync server configuration + outbox status.
 """
@@ -66,6 +68,51 @@ async def get_live_status(_auth: str = auth_dependency):
     except Exception as e:
         logger.exception(f"Failed to get live status: {e}")
         return convert_resp(code=500, status=500, message=f"Failed to get live status: {str(e)}")
+
+
+# ==================== Away detection ====================
+
+
+class AwayStartRequest(BaseModel):
+    started_at: str
+    reason: str = "idle"
+
+
+class AwayEndRequest(BaseModel):
+    started_at: str
+    ended_at: str
+    reason: str = "idle"
+
+
+@router.post("/api/live/away/start")
+async def post_live_away_start(request: AwayStartRequest, _auth: str = auth_dependency):
+    """The user left the desk: mark away (frames are refused until away/end)."""
+    try:
+        from opencontext.screen_record.live_monitor import get_live_monitor
+
+        monitor = get_live_monitor()
+        monitor.away_start(request.started_at, request.reason)
+        return convert_resp(data={
+            "away_since": monitor.status.get("away_since"),
+            "away_reason": monitor.status.get("away_reason"),
+        })
+    except Exception as e:
+        logger.exception(f"Failed to start away: {e}")
+        return convert_resp(code=500, status=500, message=f"Failed to start away: {str(e)}")
+
+
+@router.post("/api/live/away/end")
+async def post_live_away_end(request: AwayEndRequest, _auth: str = auth_dependency):
+    """The user came back: clear the away state; an away period of 60 s or
+    longer queues one kind='away' event for the sync server."""
+    try:
+        from opencontext.screen_record.live_monitor import get_live_monitor
+
+        result = get_live_monitor().away_end(request.started_at, request.ended_at, request.reason)
+        return convert_resp(data=result)
+    except Exception as e:
+        logger.exception(f"Failed to end away: {e}")
+        return convert_resp(code=500, status=500, message=f"Failed to end away: {str(e)}")
 
 
 # ==================== Sync settings ====================

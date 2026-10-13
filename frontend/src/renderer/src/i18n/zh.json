@@ -173,6 +173,9 @@
     "tags": "标签"
   },
   "settings": {
+    "awayAfter": "多久无操作视为离开",
+    "awayMinutes": "{{minutes}} 分钟",
+    "awayDisabled": "不启用",
     "addProvider": "＋ 添加连接",
     "aiDesc": "连接按各用途的顺序使用，失败时自动切换到下一个候选。密钥可用文件路径或直接输入指定。",
     "aiSaved": "AI 设置已保存",
@@ -247,6 +250,7 @@
     "syncErrorPrefix": "同步错误："
   },
   "sm": {
+    "awaySince": "离开中（从 {{time}} 起）",
     "canResume": "随时可以恢复记录",
     "desc": "AI 读取屏幕内容并转化为工作记录。记录会发送到同步服务器，用于时间线和日报。密码管理器等应用可在设置中排除。",
     "everyday": "每天",

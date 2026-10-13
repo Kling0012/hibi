@@ -27,6 +27,7 @@ import { monitor } from '@shared/logger/performance'
 import { TrayService } from './services/TrayService'
 import { initMainLanguage } from './i18n'
 import { workSessionService } from './services/WorkSessionService'
+import awayService from './services/AwayService'
 import { ScreenMonitorTask } from './background/task/screen-monitor-task'
 import { autoUpdater } from 'electron-updater'
 import { IpcChannel } from '@shared/IpcChannel'
@@ -298,6 +299,7 @@ app.whenReady().then(() => {
   // Start screenshot cleanup scheduled task
   startScreenshotCleanup()
   task.init()
+  awayService.start()
   latestActivityTask.init()
 
   app.on('activate', function () {
@@ -370,6 +372,7 @@ app.on('before-quit', () => {
   }
 
   // Work session declaration cleanup
+  awayService.stop()
   workSessionService.stop()
 
   if (server) {

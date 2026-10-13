@@ -16,6 +16,7 @@ interface RecordingTimelineProps {
   canRecord: boolean
   activities: Activity[]
   recordingStats: RecordingStats | null
+  awaySince: string | null
 }
 
 const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
@@ -23,7 +24,8 @@ const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
   isToday,
   canRecord,
   activities,
-  recordingStats
+  recordingStats,
+  awaySince
 }) => {
   const { t } = useTranslation()
   console.log('[RecordingTimeline] Props:', {
@@ -39,7 +41,11 @@ const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
       <Timeline labelPosition="relative">
         {isToday && (
           <TimelineItem label={t('sm.now')} className="!pb-[24px]">
-            {isMonitoring ? (
+            {awaySince ? (
+              <Text style={{ fontWeight: 'bold', fontSize: 12 }}>
+                {t('sm.awaySince', { time: dayjs(awaySince).format('HH:mm') })}
+              </Text>
+            ) : isMonitoring ? (
               canRecord ? (
                 <>
                   <div className="w-full text-sm">

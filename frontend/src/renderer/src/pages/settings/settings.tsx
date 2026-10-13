@@ -23,6 +23,7 @@ import {
   updateSyncSettings
 } from '../../services/Settings'
 import { useSetting } from '@renderer/hooks/use-setting'
+import { IpcChannel } from '@shared/IpcChannel'
 
 const { Text } = Typography
 
@@ -79,6 +80,7 @@ const Settings: FC<SettingsProps> = (props) => {
   const [capture, setCapture] = useState<CaptureSettings>({})
   const [excludeAppsText, setExcludeAppsText] = useState('')
   const [captureSaving, setCaptureSaving] = useState(false)
+  const [awayMinutes, setAwayMinutes] = useState(5)
   const [sync, setSync] = useState<SyncSettings>({})
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [syncSaving, setSyncSaving] = useState(false)
@@ -105,6 +107,12 @@ const Settings: FC<SettingsProps> = (props) => {
       setExcludeAppsText(((captureData.exclude_apps as string[]) || []).join('\n'))
     } catch {
       // capture settings are optional (fail-soft)
+    }
+    try {
+      const settings = await window.electron.ipcRenderer.invoke(IpcChannel.Away_GetSettings)
+      setAwayMinutes(settings.awayMinutes)
+    } catch (error) {
+      console.warn('Failed to load away settings:', error)
     }
     try {
       const syncData = await getSyncSettings()
@@ -207,6 +215,7 @@ const Settings: FC<SettingsProps> = (props) => {
           .map((s) => s.trim())
           .filter(Boolean)
       })
+      await window.electron.ipcRenderer.invoke(IpcChannel.Away_SetSettings, { awayMinutes })
       Message.success(t('settings.captureSaved'))
     } catch (e) {
       Message.error(get(e, 'response.data.message') || get(e, 'message') || t('settings.saveFailed'))
@@ -406,6 +415,22 @@ const Settings: FC<SettingsProps> = (props) => {
                 <Text type="secondary" className="text-[12px]">
                   {t('settings.excludeHint')}
                 </Text>
+              </div>
+              <div className="flex items-center gap-3">
+                <Text className="text-[14px] w-[240px]">{t('settings.awayAfter')}</Text>
+                <Select
+                  size="small"
+                  value={awayMinutes}
+                  options={[
+                    ...[3, 5, 10, 15].map((minutes) => ({
+                      value: minutes,
+                      label: t('settings.awayMinutes', { minutes })
+                    })),
+                    { value: 0, label: t('settings.awayDisabled') }
+                  ]}
+                  onChange={setAwayMinutes}
+                  className="!w-[160px]"
+                />
               </div>
               <div className="flex items-center gap-3">
                 <Text className="text-[14px] w-[240px]">{t('settings.liveFps')}</Text>

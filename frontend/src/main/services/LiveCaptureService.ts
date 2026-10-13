@@ -33,7 +33,9 @@ type ActiveWindowFn = (options?: { accessibilityPermission?: boolean; screenReco
 class LiveCaptureService {
   private timer: NodeJS.Timeout | null = null
   private running = false
+  private generation = 0
   private busy = false
+  private awayPaused = false
   private fps = 1.0
   private activeWindow: ActiveWindowFn | null = null
   private activeWindowLoadFailed = false
@@ -44,7 +46,10 @@ class LiveCaptureService {
       return
     }
     this.running = true
-    this.fps = await this.fetchLiveFps()
+    const generation = ++this.generation
+    const fps = await this.fetchLiveFps()
+    if (!this.running || generation !== this.generation) return
+    this.fps = fps
     const intervalMs = Math.max(200, Math.round(1000 / this.fps))
     logger.info(`LiveCaptureService started (fps=${this.fps}, interval=${intervalMs}ms)`)
     this.timer = setInterval(() => {
@@ -57,6 +62,7 @@ class LiveCaptureService {
       return
     }
     this.running = false
+    this.generation++
     if (this.timer) {
       clearInterval(this.timer)
       this.timer = null
@@ -66,6 +72,10 @@ class LiveCaptureService {
 
   public isRunning(): boolean {
     return this.running
+  }
+
+  public setAwayPaused(paused: boolean): void {
+    this.awayPaused = paused
   }
 
   private async fetchLiveFps(): Promise<number> {
@@ -84,7 +94,7 @@ class LiveCaptureService {
   }
 
   private async tick(): Promise<void> {
-    if (!this.running || this.busy) {
+    if (!this.running || this.awayPaused || this.busy) {
       return
     }
     this.busy = true
@@ -93,6 +103,7 @@ class LiveCaptureService {
         types: ['screen'],
         thumbnailSize: { width: 1280, height: 1280 }
       })
+      if (!this.running || this.awayPaused) return
       // prefer the primary display
       const primary = sources.find((s) => s.display_id !== '') || sources[0]
       if (!primary) {
@@ -103,6 +114,7 @@ class LiveCaptureService {
         return
       }
       const meta = await this.getWindowMeta()
+      if (!this.running || this.awayPaused) return
       const params = new URLSearchParams({
         app: meta.app,
         title: meta.title,
