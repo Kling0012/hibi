@@ -216,18 +216,12 @@ app.whenReady().then(() => {
       // (`connect-src *`) makes any future renderer XSS a full local-file
       // exfiltration primitive. We also realpath() the resolved path so a
       // symlink planted inside userData cannot be used to escape the sandbox.
-      const allowedRoot =
-        !app.isPackaged && is.dev
-          ? path.resolve('.')
-          : path.resolve(app.getPath('userData'))
+      const allowedRoot = !app.isPackaged && is.dev ? path.resolve('.') : path.resolve(app.getPath('userData'))
       const realPath = fs.realpathSync(resolved)
-      const isUnderRoot =
-        realPath === allowedRoot || realPath.startsWith(allowedRoot + path.sep)
+      const isUnderRoot = realPath === allowedRoot || realPath.startsWith(allowedRoot + path.sep)
 
       if (!isUnderRoot) {
-        console.error(
-          `vikingdb:// blocked path outside allowed root: ${realPath} (root: ${allowedRoot})`
-        )
+        console.error(`vikingdb:// blocked path outside allowed root: ${realPath} (root: ${allowedRoot})`)
         callback({ error: -10 /* net::ERR_ACCESS_DENIED */ })
         return
       }

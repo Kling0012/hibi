@@ -3,9 +3,8 @@
 
 import type { Middleware, Store, UnknownAction } from '@reduxjs/toolkit'
 import { IpcChannel } from '@shared/IpcChannel'
-import type { StoreSyncAction } from '@types'
-
 import { getLogger } from '@shared/logger/renderer'
+import type { StoreSyncAction } from '@types'
 
 const logger = getLogger('StoreSyncService')
 
@@ -32,7 +31,9 @@ export class StoreSyncService {
   private broadcastSyncRemover: (() => void) | null = null
   private initialized = false
 
-  private constructor() {}
+  private constructor() {
+    // singleton: prevent external instantiation
+  }
 
   /**
    * Unified initialization entry point: injects store + options, and automatically completes subscription

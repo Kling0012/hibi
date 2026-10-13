@@ -1,10 +1,11 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { FC } from 'react'
-import { Activity } from '../screen-monitor'
-import { Popover, Image } from '@arco-design/web-react'
+import { Image, Popover } from '@arco-design/web-react'
 import { pathToFileURL } from '@renderer/utils/file'
+import { FC } from 'react'
+
+import { Activity } from '../screen-monitor'
 
 export interface ActivityTimelineItemProps {
   activity: Activity

@@ -1,13 +1,14 @@
-import { useMemoizedFn, useMount, useRequest } from 'ahooks'
-import { CardLayout } from '../layout'
-import { ConversationResponse, conversationService } from '@renderer/services/conversation-service'
-import { isEmpty } from 'lodash'
-import chatHistoryIcon from '@renderer/assets/icons/ai-assistant/chat-history.svg'
 import { Typography } from '@arco-design/web-react'
+import chatHistoryIcon from '@renderer/assets/icons/ai-assistant/chat-history.svg'
+import { useNavigation } from '@renderer/hooks/use-navigation'
+import { ConversationResponse, conversationService } from '@renderer/services/conversation-service'
 import { useAppDispatch } from '@renderer/store'
 import { setActiveConversationId, toggleCreationAiAssistant, toggleHomeAiAssistant } from '@renderer/store/chat-history'
-import { useNavigation } from '@renderer/hooks/use-navigation'
 import { formatRelativeTime } from '@renderer/utils/time'
+import { useMemoizedFn, useMount, useRequest } from 'ahooks'
+import { isEmpty } from 'lodash'
+
+import { CardLayout } from '../layout'
 const ChatCard = () => {
   const { data: conversationList, run } = useRequest(
     async () => {
@@ -39,17 +40,18 @@ const ChatCard = () => {
         const parsedMetadata = JSON.parse(metadata)
         const document_id = parsedMetadata.document_id
         navigateToVault(document_id)
-      } catch (error) {}
+      } catch (error) {
+        // metadata is optional; ignore parse failures
+      }
     }
   })
   return (
     <CardLayout title="Recent chat" emptyText="No chats in the latest 7 days. " isEmpty={isEmpty(conversationList)}>
       {(conversationList || [])?.map((conversation) => (
-        <div className="flex items-center cursor-pointer justify-between group w-full hover:bg-[#F7F8FD] rounded-[6px] py-[5px] px-[4px]">
-          <div
-            className=" flex items-center gap-[6px]  "
-            key={conversation.id}
-            onClick={() => handleNavigation(conversation)}>
+        <div
+          key={conversation.id}
+          className="flex items-center cursor-pointer justify-between group w-full hover:bg-[#F7F8FD] rounded-[6px] py-[5px] px-[4px]">
+          <div className=" flex items-center gap-[6px]  " onClick={() => handleNavigation(conversation)}>
             <img src={chatHistoryIcon} className="block" />
             <Typography.Text className="!my-0 !flex-1 !text-[13px] !leading-[22px] !font-normal" ellipsis={{ rows: 1 }}>
               {conversation.title || 'Untitled Conversation'}

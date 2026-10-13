@@ -4,7 +4,7 @@
 'use client'
 
 import { Badge } from '@renderer/components/ui/badge'
-import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@renderer/components/ui/carousel'
+import { Carousel, type CarouselApi, CarouselContent, CarouselItem } from '@renderer/components/ui/carousel'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@renderer/components/ui/hover-card'
 import { cn } from '@renderer/lib/utils'
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'

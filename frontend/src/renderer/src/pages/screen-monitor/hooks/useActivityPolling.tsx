@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
-import { useMemoizedFn } from 'ahooks'
-import { Activity } from '../screen-monitor'
 import { getLogger } from '@shared/logger/renderer'
+import { useMemoizedFn } from 'ahooks'
 import dayjs from 'dayjs'
+import { useEffect, useRef, useState } from 'react'
+
+import { Activity } from '../screen-monitor'
 
 const logger = getLogger('useActivityPolling')
 export const useActivityPolling = (

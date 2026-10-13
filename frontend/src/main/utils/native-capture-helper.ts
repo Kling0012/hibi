@@ -1,16 +1,14 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import * as nodeScreenshots from 'node-screenshots'
 import { getLogger } from '@shared/logger/main'
+import * as nodeScreenshots from 'node-screenshots'
 
 const logger = getLogger('NativeCaptureHelper')
 
 class NativeCaptureHelper {
   public isRunning: boolean = false
   public screenshots: typeof nodeScreenshots | null = null
-
-  constructor() {}
 
   async initialize(): Promise<void> {
     logger.info('Initializing Native Capture Helper (Pure JavaScript)...')

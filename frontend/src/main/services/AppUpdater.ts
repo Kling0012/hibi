@@ -1,9 +1,14 @@
-
-import { getLogger } from '@shared/logger/main'
-import { app, BrowserWindow } from 'electron'
-import { AppUpdater as _AppUpdater, autoUpdater, UpdateCheckResult, CancellationToken, UpdateInfo } from 'electron-updater'
 import { IpcChannel } from '@shared/IpcChannel'
+import { getLogger } from '@shared/logger/main'
 import { isPrereleaseVersion } from '@shared/version'
+import { app, BrowserWindow } from 'electron'
+import {
+  AppUpdater as _AppUpdater,
+  autoUpdater,
+  CancellationToken,
+  UpdateCheckResult,
+  UpdateInfo
+} from 'electron-updater'
 // import { isDev } from '@main/constant'
 // import path from 'path'
 const logger = getLogger('AppUpdater')
@@ -35,24 +40,24 @@ export default class AppUpdater {
     autoUpdater.autoInstallOnAppQuit = false
 
     autoUpdater.on('checking-for-update', () => {
-        logger.info('Checking for update...')
-      })
-      autoUpdater.on('update-available', (info: UpdateInfo) => {
-        logger.info('Update available', info)
-        mainWindow.webContents.send(IpcChannel.UpdateAvailable, info)
-      })
-      autoUpdater.on('update-not-available', () => {
-        logger.info('Update not available.')
-        mainWindow.webContents.send(IpcChannel.UpdateNotAvailable)
-      })
-      autoUpdater.on('error', (err) => {
-        logger.info('Update error.', err)
-        mainWindow.webContents.send(IpcChannel.UpdateError, err)
-      })
-      autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
-        logger.info('update downloaded', info)
-        mainWindow.webContents.send(IpcChannel.UpdateDownloaded, info)
-      })
+      logger.info('Checking for update...')
+    })
+    autoUpdater.on('update-available', (info: UpdateInfo) => {
+      logger.info('Update available', info)
+      mainWindow.webContents.send(IpcChannel.UpdateAvailable, info)
+    })
+    autoUpdater.on('update-not-available', () => {
+      logger.info('Update not available.')
+      mainWindow.webContents.send(IpcChannel.UpdateNotAvailable)
+    })
+    autoUpdater.on('error', (err) => {
+      logger.info('Update error.', err)
+      mainWindow.webContents.send(IpcChannel.UpdateError, err)
+    })
+    autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
+      logger.info('update downloaded', info)
+      mainWindow.webContents.send(IpcChannel.UpdateDownloaded, info)
+    })
   }
   public async checkForUpdates() {
     try {

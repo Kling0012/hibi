@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { desktopCapturer } from 'electron'
-import { exec } from 'child_process'
-import { promisify } from 'util'
 import { getLogger } from '@shared/logger/main'
+import { exec } from 'child_process'
+import { desktopCapturer } from 'electron'
+import { promisify } from 'util'
 
 const logger = getLogger('getVisibleSource')
 interface SourceVisibilityInfo {

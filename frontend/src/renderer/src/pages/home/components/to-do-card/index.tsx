@@ -4,32 +4,32 @@
 import {
   Button,
   Card,
+  Form,
   Input,
   Message,
   Modal,
   Popconfirm,
   Radio,
   Select,
-  Typography,
+  Tooltip,
   Tree,
-  Form,
-  Tooltip
+  Typography
 } from '@arco-design/web-react'
 import { IconDelete } from '@arco-design/web-react/icon'
-import { useTranslation } from 'react-i18next'
-import { Task, useHomeInfo } from '@renderer/hooks/use-home-info'
-import { FC, useEffect, useMemo, useRef, useState } from 'react'
-import taskEmpty from '@renderer/assets/images/task-empty.svg'
 import addIcon from '@renderer/assets/icons/add.svg'
-import copyIcon from '@renderer/assets/images/copy.svg'
-import { useInitPrepareData } from '@renderer/hooks/use-init-prepare-data'
-import { TaskUrgency, TODO_LIST_STATUS } from '@renderer/constant/feed'
-import { useMemoizedFn } from 'ahooks'
-import highPriorityIcon from '@renderer/assets/icons/high-priority.svg'
-import mediumPriorityIcon from '@renderer/assets/icons/medium-priority.svg'
-import lowPriorityIcon from '@renderer/assets/icons/low-priority.svg'
 import doneIcon from '@renderer/assets/icons/done.svg'
+import highPriorityIcon from '@renderer/assets/icons/high-priority.svg'
+import lowPriorityIcon from '@renderer/assets/icons/low-priority.svg'
+import mediumPriorityIcon from '@renderer/assets/icons/medium-priority.svg'
+import copyIcon from '@renderer/assets/images/copy.svg'
+import taskEmpty from '@renderer/assets/images/task-empty.svg'
+import { TaskUrgency, TODO_LIST_STATUS } from '@renderer/constant/feed'
+import { Task, useHomeInfo } from '@renderer/hooks/use-home-info'
+import { useInitPrepareData } from '@renderer/hooks/use-init-prepare-data'
+import { useMemoizedFn } from 'ahooks'
 import dayjs from 'dayjs'
+import { FC, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { Text } = Typography
 const TextArea = Input.TextArea

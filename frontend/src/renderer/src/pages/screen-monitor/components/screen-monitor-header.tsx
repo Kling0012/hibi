@@ -1,6 +1,6 @@
+import { Button, Popover, Space, Typography } from '@arco-design/web-react'
+import { IconPlayArrow, IconRecordStop, IconSettings } from '@arco-design/web-react/icon'
 import React from 'react'
-import { Button, Space, Typography, Popover } from '@arco-design/web-react'
-import { IconPlayArrow, IconSettings, IconRecordStop } from '@arco-design/web-react/icon'
 import { useTranslation } from 'react-i18next'
 
 const { Title, Text } = Typography

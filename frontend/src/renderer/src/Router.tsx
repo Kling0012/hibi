@@ -3,21 +3,21 @@
 
 // import '@renderer/databases'
 
-import { FC, useEffect, useMemo } from 'react'
-import { HashRouter, Route, Routes, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
+import 'allotment/dist/style.css'
 
+import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
+import { FC, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { HashRouter, Route, Routes, useNavigate } from 'react-router-dom'
+
+import { useObservableTask } from './atom/event-loop.atom'
+import Sidebar from './components/Sidebar'
+import { useEvents } from './hooks/use-events'
 import HomePage from './pages/home/home-page'
-import VaultPage from './pages/vault/Vault'
 import ScreenMonitor from './pages/screen-monitor/screen-monitor'
 import Settings from './pages/settings/settings'
-
 import SyncView from './pages/sync-view/sync-view'
-import Sidebar from './components/Sidebar'
-import 'allotment/dist/style.css'
-import { useEvents } from './hooks/use-events'
-import { useObservableTask } from './atom/event-loop.atom'
-import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
+import VaultPage from './pages/vault/Vault'
 
 const AppContent: FC = () => {
   const navigate = useNavigate()

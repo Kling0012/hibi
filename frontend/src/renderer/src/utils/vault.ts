@@ -3,8 +3,9 @@
 
 import { useVaults } from '@renderer/hooks/use-vault'
 import { VaultTreeNode } from '@renderer/types'
-import { isWithinSevenDays } from './time'
 import dayjs from 'dayjs'
+
+import { isWithinSevenDays } from './time'
 
 /**
  * Recursively find a node with the specified ID
@@ -211,7 +212,7 @@ export function formatVaultDate(date: Date | string | number): string {
   return dayjs(date).format('MMM D, YYYY h:mm:ss A')
 }
 
-export function getAllVaultsFlat(): VaultTreeNode[] {
+export function useAllVaultsFlat(): VaultTreeNode[] {
   const { vaults } = useVaults()
 
   // Flatten the tree structure
@@ -226,8 +227,8 @@ export function getAllVaultsFlat(): VaultTreeNode[] {
   return allDocuments
 }
 
-export function getRecentVaults(): VaultTreeNode[] {
-  const allDocuments = getAllVaultsFlat()
+export function useRecentVaults(): VaultTreeNode[] {
+  const allDocuments = useAllVaultsFlat()
   const recentDocs: VaultTreeNode[] = []
   allDocuments.forEach((doc) => {
     if (doc.updated_at && isWithinSevenDays(doc.updated_at)) {

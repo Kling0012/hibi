@@ -5,49 +5,52 @@ import fs from 'node:fs'
 import { arch } from 'node:os'
 import path from 'node:path'
 
-import { getLogger } from '@shared/logger/main'
-import Logger from 'electron-log/main'
 import { isLinux, isMac, isPortable, isWin } from '@main/constant'
 import { MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH } from '@shared/config/constant'
 import { IpcChannel } from '@shared/IpcChannel'
+import { getLogger } from '@shared/logger/main'
 import { BrowserWindow, dialog, ipcMain, ProxyConfig, session, shell, systemPreferences } from 'electron'
+import Logger from 'electron-log/main'
 import { Notification } from 'src/renderer/src/types/notification'
 
+import { getBackendPort, getBackendStatus } from './backend'
 import appService from './services/AppService'
+import db from './services/DatabaseService'
 import { fileStorage as fileManager } from './services/FileStorage'
 // import FileService from './services/FileSystemService'
 import { NotificationService } from './services/NotificationService'
 import { proxyManager } from './services/ProxyManager'
 import storeSyncService from './services/StoreSyncService'
-import db from './services/DatabaseService'
-import { getBackendPort, getBackendStatus } from './backend'
 
 // 确保数据库已初始化的辅助函数
 async function ensureDbInitialized() {
   await db.initialize()
 }
-import screenshotService from './services/ScreenshotService'
+import { VaultDocumentType } from '@shared/enums/global-enum'
+import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
+import { type Dayjs } from 'dayjs'
+
+import { setMainLanguage } from './i18n'
+import { getTrayService } from './index'
+import { activityService } from './services/ActivityService'
+import AppUpdater from './services/AppUpdater'
+import awayService from './services/AwayService'
 import FileService from './services/FileService'
+import { HeatmapService } from './services/HeatmapService'
+import { localStoreService } from './services/LocalStoreService'
+import screenshotService from './services/ScreenshotService'
+import { workSessionService } from './services/WorkSessionService'
 import { calculateDirectorySize, getResourcePath } from './utils'
 import { getCacheDir, getConfigDir, getFilesDir, hasWritePermission, isPathInside, untildify } from './utils/file'
 import { updateAppDataConfig } from './utils/init'
-import { localStoreService } from './services/LocalStoreService'
-import { activityService } from './services/ActivityService'
-import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
-import { VaultDocumentType } from '@shared/enums/global-enum'
-import { getTrayService } from './index'
-import { setMainLanguage } from './i18n'
-import { type Dayjs } from 'dayjs'
-import AppUpdater from './services/AppUpdater'
-import { HeatmapService } from './services/HeatmapService'
-import { workSessionService } from './services/WorkSessionService'
-import awayService from './services/AwayService'
 
 const logger = getLogger('IPC')
 
 export function registerIpc(mainWindow: BrowserWindow, app: Electron.App) {
   ipcMain.handle(IpcChannel.Away_GetSettings, () => awayService.getSettings())
-  ipcMain.handle(IpcChannel.Away_SetSettings, (_, settings: { awayMinutes: number }) => awayService.setSettings(settings))
+  ipcMain.handle(IpcChannel.Away_SetSettings, (_, settings: { awayMinutes: number }) =>
+    awayService.setSettings(settings)
+  )
 
   const notificationService = new NotificationService(mainWindow)
   const appUpdater = new AppUpdater(mainWindow)

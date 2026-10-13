@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { occupiedDirs } from '@shared/config/constant'
+import { mainLog } from '@shared/logger/main'
 import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
+
 import { initAppDataDir, migrateLegacyUserData } from './utils/init'
-import { mainLog } from '@shared/logger/main'
 
 // Only execute initialization after packaging
 if (app.isPackaged) {

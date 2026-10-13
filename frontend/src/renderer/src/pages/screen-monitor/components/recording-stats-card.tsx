@@ -3,10 +3,10 @@
 // Live recording counters (since the app started): frames sent to the AI,
 // summaries created and events uploaded to the sync server.
 
-import React, { useEffect, useState } from 'react'
-import { get } from 'lodash'
-import { useTranslation } from 'react-i18next'
 import axiosInstance from '@renderer/services/axiosConfig'
+import { get } from 'lodash'
+import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /** Legacy shape still passed by the timeline; the card reads live status itself. */
 export interface RecordingStats {

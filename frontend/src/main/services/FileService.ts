@@ -4,8 +4,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { getLogger } from '@shared/logger/main'
 import { getFilesDir } from '@main/utils/file'
+import { getLogger } from '@shared/logger/main'
 
 const logger = getLogger('FileService')
 

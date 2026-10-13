@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { getLogger } from '@shared/logger/main'
-import { DB } from './Database'
 import dayjs from 'dayjs'
+
+import { DB } from './Database'
 
 const logger = getLogger('MessagesService')
 

@@ -1,19 +1,20 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import React, { useState, useCallback, useMemo, FC, useEffect } from 'react'
-import { Button, Input, Typography, Tag } from '@arco-design/web-react'
+import { Button, Input, Tag, Typography } from '@arco-design/web-react'
 import { IconStop } from '@arco-design/web-react/icon'
-import { useChatStream } from '@renderer/hooks/use-chat-stream'
-import { ChatContext } from '@renderer/services/ChatStreamService'
-import MarkdownIt from 'markdown-it'
 import chatEditIcon from '@renderer/assets/icons/chat-edit.svg'
 import chatSendIcon from '@renderer/assets/icons/chat-send.svg'
-import { useMemoizedFn, useRequest } from 'ahooks'
+import { useChatStream } from '@renderer/hooks/use-chat-stream'
+import { ChatContext } from '@renderer/services/ChatStreamService'
 import { conversationService } from '@renderer/services/conversation-service'
-import { getLogger } from '@shared/logger/renderer'
 import { messageService } from '@renderer/services/messages-service'
+import { getLogger } from '@shared/logger/renderer'
+import { useMemoizedFn, useRequest } from 'ahooks'
+import MarkdownIt from 'markdown-it'
+import React, { FC, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { AIAssistantHeader } from './header'
 
 const { Text } = Typography

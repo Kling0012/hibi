@@ -1,9 +1,10 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { Modal, Button } from '@arco-design/web-react'
+import { Button, Modal } from '@arco-design/web-react'
 import { FC, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { MarkdownContent } from '../ai-assistant'
 import titleBg from './assets/bg.png'
 interface ProactiveFeedModalProps {

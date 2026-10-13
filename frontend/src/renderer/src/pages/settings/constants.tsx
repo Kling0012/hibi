@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ReactNode } from 'react'
-import openAI from '../../assets/images/settings/OpenAI.png'
+
 import custom from '../../assets/images/settings/custom.svg'
+import openAI from '../../assets/images/settings/OpenAI.png'
 
 export enum ModelTypeList {
   OpenAI = 'openai',

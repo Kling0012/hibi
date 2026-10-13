@@ -1,11 +1,10 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import i18n from '@renderer/i18n'
 import { AppDispatch, RootState } from '@renderer/store'
 import { ScreenshotRecord } from '@renderer/store/screen'
-
 import { getLogger } from '@shared/logger/renderer'
-import i18n from '@renderer/i18n'
 
 const logger = getLogger('ScreenThunk')
 

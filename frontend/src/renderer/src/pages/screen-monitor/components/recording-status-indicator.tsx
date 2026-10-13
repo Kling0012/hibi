@@ -1,5 +1,5 @@
-import React from 'react'
 import { Typography } from '@arco-design/web-react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 
 const { Text } = Typography

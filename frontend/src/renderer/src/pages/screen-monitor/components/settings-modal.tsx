@@ -1,10 +1,11 @@
-import React from 'react'
-import { Button, Modal, Slider, TimePicker, Radio, Form, Checkbox, Spin, Switch } from '@arco-design/web-react'
-import { useTranslation } from 'react-i18next'
-import clsx from 'clsx'
-import { Application } from './application'
+import { Button, Checkbox, Form, Modal, Radio, Slider, Spin, Switch, TimePicker } from '@arco-design/web-react'
 import screenIcon from '@renderer/assets/icons/screen.svg'
 import { ApplyToDays } from '@renderer/store/setting'
+import clsx from 'clsx'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
+
+import { Application } from './application'
 
 interface SettingsModalProps {
   visible: boolean
@@ -136,9 +137,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               'flex flex-col flex-1 border-l border-[#efeff4] max-h-[360px] h-[360px] overflow-x-hidden overflow-y-auto px-[16px]  [&_.arco-checkbox-checked_.arco-checkbox-mask]:!bg-[#000000] [&_.arco-checkbox-checked_.arco-checkbox-mask]:!border-[#000000]',
               { hidden: !applicationVisible }
             )}>
-            <div className="text-[15px] leading-[18px] text-[#42464e] mb-[12px] font-medium">
-              {t('sm.targets')}
-            </div>
+            <div className="text-[15px] leading-[18px] text-[#42464e] mb-[12px] font-medium">{t('sm.targets')}</div>
             <div className="[&_.arco-checkbox]:!flex [&_.arco-checkbox]:!items-center">
               <div className="text-[14px] leading-[20px] text-[#42464e] mb-[4px]">{t('sm.screens')}</div>
               <Form.Item field="screenSources">

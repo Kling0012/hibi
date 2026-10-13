@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import '@arco-design/web-react/es/_util/react-19-adapter'
-import { createRoot } from 'react-dom/client'
 import '@renderer/i18n'
+
+import { createRoot } from 'react-dom/client'
+
 import App from './App'
 
 createRoot(document.getElementById('root')!).render(<App />)

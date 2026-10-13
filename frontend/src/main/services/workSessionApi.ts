@@ -24,10 +24,14 @@ function joinUrl(baseUrl: string, path: string): string {
   return baseUrl.replace(/\/+$/, '') + path
 }
 
-async function requestJson(baseUrl: string, path: string, init?: {
-  method?: string
-  body?: unknown
-}): Promise<any> {
+async function requestJson(
+  baseUrl: string,
+  path: string,
+  init?: {
+    method?: string
+    body?: unknown
+  }
+): Promise<any> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
   try {
@@ -46,10 +50,7 @@ async function requestJson(baseUrl: string, path: string, init?: {
     }
     if (!res.ok) {
       const detail = parsed && (parsed.detail || parsed.message)
-      throw new WorkSessionApiError(
-        typeof detail === 'string' ? detail : `HTTP ${res.status} on ${path}`,
-        res.status
-      )
+      throw new WorkSessionApiError(typeof detail === 'string' ? detail : `HTTP ${res.status} on ${path}`, res.status)
     }
     return parsed
   } finally {
@@ -80,11 +81,7 @@ export async function getActiveWorkSession(baseUrl: string): Promise<WorkSession
 }
 
 /** POST /v1/sessions/{id}/end - manual end (confirmed). */
-export async function endWorkSession(
-  baseUrl: string,
-  sessionId: string,
-  endedAt?: string
-): Promise<WorkSession> {
+export async function endWorkSession(baseUrl: string, sessionId: string, endedAt?: string): Promise<WorkSession> {
   return requestJson(baseUrl, `/v1/sessions/${sessionId}/end`, {
     method: 'POST',
     body: { ended_at: endedAt ?? new Date().toISOString() }
@@ -108,10 +105,7 @@ export async function listRecentWorkTitles(
   const limit = opts?.limit ?? 200
   const max = opts?.max ?? 5
   const from = new Date(Date.now() - fromDays * 86_400_000).toISOString()
-  const body = await requestJson(
-    baseUrl,
-    `/v1/sessions?from=${encodeURIComponent(from)}&status=ended&limit=${limit}`
-  )
+  const body = await requestJson(baseUrl, `/v1/sessions?from=${encodeURIComponent(from)}&status=ended&limit=${limit}`)
   const sessions: WorkSession[] = Array.isArray(body?.sessions) ? body.sessions : []
   const titles: string[] = []
   for (const s of sessions) {
@@ -121,12 +115,7 @@ export async function listRecentWorkTitles(
 }
 
 /** PUT /v1/devices/{id} - upsert device registration (best effort). */
-export async function registerDevice(
-  baseUrl: string,
-  deviceId: string,
-  name: string,
-  os: string
-): Promise<void> {
+export async function registerDevice(baseUrl: string, deviceId: string, name: string, os: string): Promise<void> {
   await requestJson(baseUrl, `/v1/devices/${encodeURIComponent(deviceId)}`, {
     method: 'PUT',
     body: { name, os }

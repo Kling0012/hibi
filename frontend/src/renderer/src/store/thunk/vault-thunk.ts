@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { getAllVaults, insertVault, updateVaultById, softDeleteVaultById, createFolder } from '@renderer/databases'
-import { initVaults, addVault, deleteVault, renameVault, updateVault, updateVaultPosition } from '@renderer/store/vault'
+import { createFolder, getAllVaults, insertVault, softDeleteVaultById, updateVaultById } from '@renderer/databases'
+import { addVault, deleteVault, initVaults, renameVault, updateVault, updateVaultPosition } from '@renderer/store/vault'
 import { Vault } from '@renderer/types'
-import { getLogger } from '@shared/logger/renderer'
 import { sortTreeByOrder } from '@renderer/utils/vault'
+import { getLogger } from '@shared/logger/renderer'
 import dayjs from 'dayjs'
 
 import { AppDispatch } from '..'

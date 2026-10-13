@@ -79,7 +79,7 @@ const formatName = (sources?: CaptureSource[]) => {
     // Final cleanup - if appName is still the full window title and it's very long,
     // just use the first part before any separator
     if (appName === source.name && appName.length > 50) {
-      const firstPart = appName.split(/[\-—]/)[0].trim()
+      const firstPart = appName.split(/[-—]/)[0].trim()
       if (firstPart && firstPart.length < 30) {
         appName = firstPart
       }

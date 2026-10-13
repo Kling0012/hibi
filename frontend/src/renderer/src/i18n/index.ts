@@ -5,11 +5,12 @@
 // 'ja', 'en' or 'zh'. Fail-soft: if storage or IPC fails the app keeps
 // running in Japanese, and missing keys fall back to Japanese.
 
+import { IpcChannel } from '@shared/IpcChannel'
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import { IpcChannel } from '@shared/IpcChannel'
-import ja from './ja.json'
+
 import en from './en.json'
+import ja from './ja.json'
 import zh from './zh.json'
 
 export type AppLang = 'ja' | 'en' | 'zh'
@@ -23,8 +24,7 @@ export function normalizeLang(v: unknown): AppLang {
 
 /** navigator.language → app language (ja* → ja, zh* → zh, else en). */
 export function resolveAutoLang(): AppLang {
-  const candidates =
-    typeof navigator !== 'undefined' ? (navigator.languages ?? [navigator.language]) : []
+  const candidates = typeof navigator !== 'undefined' ? (navigator.languages ?? [navigator.language]) : []
   for (const lang of candidates) {
     const v = (lang || '').toLowerCase()
     if (v.startsWith('ja')) return 'ja'

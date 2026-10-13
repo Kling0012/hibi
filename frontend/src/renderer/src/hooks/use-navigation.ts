@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import { useAppDispatch, useAppSelector } from '@renderer/store'
+import { clearActiveVault, initializeFromRoute, setActiveMainTab, setActiveVault } from '@renderer/store/navigation'
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAppDispatch, useAppSelector } from '@renderer/store'
-import { setActiveMainTab, setActiveVault, clearActiveVault, initializeFromRoute } from '@renderer/store/navigation'
 
 export const useNavigation = () => {
   const dispatch = useAppDispatch()
