@@ -19,7 +19,6 @@ from opencontext.llm.global_vlm_client import GlobalVLMClient
 from opencontext.managers.capture_manager import ContextCaptureManager
 from opencontext.managers.consumption_manager import ConsumptionManager
 from opencontext.managers.processor_manager import ContextProcessorManager
-from opencontext.models.context import ProcessedContext, RawContextProperties
 from opencontext.server.component_initializer import ComponentInitializer
 from opencontext.server.context_operations import ContextOperations
 from opencontext.storage.global_storage import GlobalStorage
@@ -66,13 +65,10 @@ class OpenContext:
             GlobalStorage.get_instance()
             GlobalVLMClient.get_instance()
             self.context_operations = ContextOperations()
-            self.capture_manager.set_callback(self._handle_captured_context)
             self.component_initializer.initialize_capture_components(
                 self.capture_manager)
             logger.info("Capture modules initialization completed")
-            self.component_initializer.initialize_processors(
-                self.processor_manager, self._handle_processed_context
-            )
+            self.component_initializer.initialize_processors(self.processor_manager)
             self.consumption_manager = (
                 self.component_initializer.initialize_consumption_components()
             )
@@ -111,44 +107,6 @@ class OpenContext:
             logger.info("Sync outbox worker initialized")
         except Exception as e:
             logger.warning(f"Failed to initialize sync outbox (non-fatal): {e}")
-
-    def _handle_captured_context(self, contexts: List[RawContextProperties]) -> bool:
-        """
-        Handle batch processing and storage of captured context data.
-        """
-        if not contexts:
-            return False
-
-        try:
-            for context_data in contexts:
-                self.processor_manager.process(context_data)
-            return True
-        except Exception as e:
-            logger.error(f"Error processing captured contexts: {e}")
-            return False
-
-    def _handle_processed_context(self, contexts: List[ProcessedContext]) -> bool:
-        """
-        Store processed contexts.
-
-        Args:
-            contexts: List of processed contexts to store
-
-        Returns:
-            True if storage was successful, False otherwise
-        """
-        if not contexts:
-            return False
-
-        if self.storage:
-            try:
-                return self.storage.batch_upsert_processed_context(contexts)
-            except Exception as e:
-                logger.error(f"Error storing processed contexts: {e}")
-                return False
-        else:
-            logger.warning("Storage is not initialized.")
-            return False
 
     def start_capture(self) -> None:
         """Start all capture components."""
@@ -192,65 +150,7 @@ class OpenContext:
             if not graceful:
                 raise
 
-    def add_context(self, context_data: RawContextProperties) -> bool:
-        """
-        Process a single context data item.
-        """
-        try:
-            return self.processor_manager.process(context_data)
-        except Exception as e:
-            logger.error(f"Error adding context: {e}")
-            return False
-
     # Delegate context operations to ContextOperations helper
-    def get_all_contexts(
-        self, limit: int = 10, offset: int = 0, filter_criteria: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, List[ProcessedContext]]:
-        """Get all processed contexts."""
-        if not self.context_operations:
-            logger.warning("Context operations not initialized.")
-            return {}
-        return self.context_operations.get_all_contexts(
-            limit, offset, filter_criteria, need_vector=False
-        )
-
-    def get_context(self, doc_id: str, context_type: str) -> Optional[ProcessedContext]:
-        """Get a single processed context."""
-        if not self.context_operations:
-            logger.warning("Context operations not initialized.")
-            return None
-        return self.context_operations.get_context(doc_id, context_type)
-
-    def update_context(self, doc_id: str, context: ProcessedContext) -> bool:
-        """Update a processed context."""
-        if not self.context_operations:
-            logger.warning("Context operations not initialized.")
-            return False
-        return self.context_operations.update_context(doc_id, context)
-
-    def delete_context(self, doc_id: str, context_type: str) -> bool:
-        """Delete a processed context."""
-        if not self.context_operations:
-            logger.warning("Context operations not initialized.")
-            return False
-        return self.context_operations.delete_context(doc_id, context_type)
-
-    def add_screenshot(self, path: str, window: str, create_time: str, app: str) -> Optional[str]:
-        """Add a screenshot to the system."""
-        if not self.context_operations:
-            logger.warning("Context operations not initialized.")
-            return "Context operations not initialized"
-        return self.context_operations.add_screenshot(
-            path, window, create_time, app, self.add_context
-        )
-
-    def add_document(self, file_path: str) -> Optional[str]:
-        """Add a document to the system."""
-        if not self.context_operations:
-            logger.warning("Context operations not initialized.")
-            return "Context operations not initialized"
-        return self.context_operations.add_document(file_path, self.add_context)
-
     def search(
         self,
         query: str,

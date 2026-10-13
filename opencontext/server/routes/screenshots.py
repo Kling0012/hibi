@@ -5,6 +5,11 @@
 
 """
 Screenshot management routes
+
+Deprecated: the VLM screenshot analysis pipeline (screenshot_processor)
+was removed; screen recording now runs through live_monitor via
+/api/live/frame. These endpoints stay only so old clients get an explicit
+answer instead of a 404, and do not process anything.
 """
 
 from typing import List
@@ -15,11 +20,11 @@ from pydantic import BaseModel
 
 from opencontext.server.middleware.auth import auth_dependency
 from opencontext.server.opencontext import OpenContext
-from opencontext.server.utils import convert_resp, get_context_lab
-from opencontext.utils.logging_utils import get_logger
+from opencontext.server.utils import get_context_lab
 
-logger = get_logger(__name__)
 router = APIRouter(tags=["screenshots"])
+
+_DEPRECATED_RESPONSE = {"accepted": False, "reason": "deprecated"}
 
 
 class AddScreenshotRequest(BaseModel):
@@ -39,16 +44,7 @@ async def add_screenshot(
     opencontext: OpenContext = Depends(get_context_lab),
     _auth: str = auth_dependency,
 ):
-    try:
-        err_msg = opencontext.add_screenshot(
-            request.path, request.window, request.create_time, request.source
-        )
-        if err_msg:
-            return convert_resp(code=400, status=400, message=err_msg)
-        return convert_resp(message="Screenshot added successfully")
-    except Exception as e:
-        logger.exception(f"Error adding screenshot: {e}")
-    return convert_resp(code=500, status=500, message="Internal server error")
+    return JSONResponse(_DEPRECATED_RESPONSE)
 
 
 @router.post("/api/add_screenshots", response_class=JSONResponse)
@@ -57,14 +53,4 @@ async def add_screenshots(
     opencontext: OpenContext = Depends(get_context_lab),
     _auth: str = auth_dependency,
 ):
-    try:
-        for screenshot in request.screenshots:
-            err_msg = opencontext.add_screenshot(
-                screenshot.path, screenshot.window, screenshot.create_time, screenshot.source
-            )
-            if err_msg:
-                return convert_resp(code=400, status=400, message=err_msg)
-        return convert_resp(message="Screenshots added successfully")
-    except Exception as e:
-        logger.exception(f"Error adding screenshots: {e}")
-    return convert_resp(code=500, status=500, message="Internal server error")
+    return JSONResponse(_DEPRECATED_RESPONSE)

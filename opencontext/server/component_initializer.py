@@ -15,29 +15,27 @@ from typing import Any, Dict, Optional
 from opencontext.config.config_manager import ConfigManager
 from opencontext.config.global_config import GlobalConfig
 from opencontext.config.prompt_manager import PromptManager
-
-# Import consumption components
-from opencontext.context_consumption.generation import *
-from opencontext.context_processing.processor.processor_factory import ProcessorFactory
 from opencontext.managers.capture_manager import ContextCaptureManager
 from opencontext.managers.consumption_manager import ConsumptionManager
-from opencontext.managers.processor_manager import ContextProcessorManager
 from opencontext.storage.global_storage import get_storage
 from opencontext.storage.unified_storage import UnifiedStorage
 from opencontext.utils.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
+# Import consumption components
+from opencontext.context_consumption.generation.smart_tip_generator import SmartTipGenerator
+from opencontext.context_consumption.generation.smart_todo_manager import SmartTodoManager
+
 # Component mappings
-# Screen capture is driven by the Electron frontend (POST /api/add_screenshot(s));
-# the backend no longer ships built-in capture components. Custom components can
-# still be registered dynamically via their config "module"/"class" entries.
+# Screen capture is driven by the Electron frontend (frames streamed to
+# /api/live/frame); the backend no longer ships built-in capture or VLM
+# screenshot/document processors. Custom components can still be registered
+# dynamically via their config "module"/"class" entries.
 CAPTURE_COMPONENTS = {}
 
 CONSUMPTION_COMPONENTS = {
     "smart_tip_generator": SmartTipGenerator,
-    "realtime_activity_monitor": RealtimeActivityMonitor,
-    "generation_report": ReportGenerator,
     "smart_todo_manager": SmartTodoManager,
 }
 
@@ -112,61 +110,21 @@ class ComponentInitializer:
         return component_class()
 
     def initialize_processors(
-        self, processor_manager: ContextProcessorManager, processed_context_callback
+        self, processor_manager=None, processed_context_callback=None
     ) -> None:
         """
         Initialize context processors.
 
-        Processors now automatically obtain required dependencies from global configuration.
+        The VLM screenshot/document processors and the context merger were
+        removed (screen analysis now happens in live_monitor via
+        /api/live/frame). Kept as a no-op so old configs that still carry a
+        ``processing`` section (or user settings that enable it) do not break
+        startup.
         """
-        processing_config = self.config.get("processing", {})
-        if not processing_config or not processing_config.get("enabled", False):
-            logger.info("Processing modules not found or not enabled in configuration")
-            return
-
-        processor_factory = ProcessorFactory()
-
-        # Now config.yaml structure is flattened, directly under processing
-        # Create various processors
-        processor_types = ["document_processor", "screenshot_processor"]
-
-        for processor_type in processor_types:
-            processor_config = processing_config.get(processor_type, {})
-            if processor_config.get("enabled", False):
-                try:
-                    # Now processors use parameterless constructors
-                    processor = processor_factory.create_processor(processor_type)
-                    if processor:
-                        processor.set_callback(processed_context_callback)
-                        processor_manager.register_processor(processor)
-                        logger.info(
-                            f"Processor component '{processor_type}' created and registered successfully"
-                        )
-                    else:
-                        logger.error(f"Failed to create processor component '{processor_type}'")
-                        raise RuntimeError(
-                            f"Failed to create processor component '{processor_type}'"
-                        )
-                except Exception as e:
-                    logger.error(
-                        f"Failed to initialize processor component '{processor_type}': {e}",
-                        exc_info=True,
-                    )
-                    raise RuntimeError(
-                        f"Failed to initialize processor component '{processor_type}'"
-                    ) from e
-
-        # Initialize context merger if enabled
-        if processing_config.get("context_merger", {}).get("enabled", False):
-            # Direct instantiation instead of using factory to avoid circular import
-            from opencontext.context_processing.merger.context_merger import ContextMerger
-
-            merger = ContextMerger()
-            processor_manager.set_merger(merger)
-            processor_manager.start_periodic_compression()
-            logger.info("Periodic memory compression started")
-
-        logger.info("Context processors initialization complete")
+        logger.info(
+            "Context processors are deprecated (screenshot analysis moved to "
+            "live_monitor); nothing to initialize"
+        )
 
     def initialize_consumption_components(self) -> ConsumptionManager:
         consumption_manager = ConsumptionManager()

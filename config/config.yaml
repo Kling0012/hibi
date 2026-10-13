@@ -13,16 +13,6 @@ logging:
 
 user_setting_path: "${CONTEXT_PATH:.}/config/user_setting.yaml"
 
-# 文档处理配置
-document_processing:
-  enabled: true
-  batch_size: 3        # Number of images processed by VLM at once (recommended 2-5)
-  max_image_size: 1024 # Maximum image size (pixels), larger sizes increase accuracy but also API costs
-  dpi: 200             # DPI for converting PDF to images (recommended 150-300)
-
-  # Page-by-page detection configuration (to optimize VLM usage)
-  text_threshold_per_page: 50 # Scanned document threshold: pages with fewer characters than this value are considered scanned documents (requires VLM)
-
 # AI providers and priority routes (P1).
 # providers: id is referenced from routes. kind is openai_compat or gemini_live.
 #   Keys: api_key (inline value) or api_key_file (path, ~ expanded). Never put
@@ -126,73 +116,9 @@ sync:
   device_name: ""              # defaults to the hostname
 
 # Context processing module
-processing:
-  enabled: true
-  # Document processor configuration
-  document_processor:
-    enabled: true
-    batch_size: 5
-    batch_timeout: 30
-  screenshot_processor:
-    enabled: true
-    dedup_cache_size: 30
-    similarity_hash_threshold: 7
-    batch_size: 20 # Increase batch size to improve throughput
-    batch_timeout: 10 # Reduce timeout to improve response speed
-    max_image_size: 1920 # Limit image size to reduce memory usage
-    resize_quality: 85 # Balance quality and performance
-    enabled_delete: true
-    max_raw_properties: 5
-
-  # Context merger configuration
-  context_merger:
-    enabled: false
-    # Basic configuration
-    similarity_threshold: 0.90
-    associative_similarity_threshold: 0.6
-
-    # Intelligent merging configuration
-    use_intelligent_merging: true # Enable intelligent strategy merging
-    enable_memory_management: true # Enable memory management
-    cleanup_interval_hours: 24 # Cleanup check interval
-
-    # Cross-type association configuration
-    enable_cross_type_processing: true # Enable cross-type processing
-    conversion_confidence_threshold: 0.8 # Conversion confidence threshold
-    max_conversions_per_session: 10 # Maximum conversions per session
-
-    # Type-specific configuration
-    # Profile type configuration
-    ENTITY_CONTEXT_similarity_threshold: 0.85
-    ENTITY_CONTEXT_retention_days: 365
-    ENTITY_CONTEXT_max_merge_count: 5
-
-    # Activity type configuration
-    activity_context_similarity_threshold: 0.80
-    activity_context_retention_days: 90
-    activity_context_max_merge_count: 3
-    activity_context_time_window_hours: 24
-
-    # Intent type configuration
-    intent_context_similarity_threshold: 0.75
-    intent_context_retention_days: 180
-    intent_context_max_merge_count: 4
-
-    # Semantic type configuration
-    semantic_context_similarity_threshold: 0.72
-    semantic_context_retention_days: 180
-    semantic_context_max_merge_count: 6
-
-    # Procedural type configuration
-    procedural_context_similarity_threshold: 0.75
-    procedural_context_retention_days: 120
-    procedural_context_max_merge_count: 4
-
-    # State type configuration
-    state_context_similarity_threshold: 0.70
-    state_context_retention_days: 7
-    state_context_max_merge_count: 10
-    state_context_time_window_minutes: 30
+# The VLM screenshot/document processors, entity processor and context merger
+# were removed: screen analysis runs in live_monitor (/api/live/frame) and is
+# stored in SQLite + the sync server. This section is no longer read.
 
 # Context storage module
 storage:

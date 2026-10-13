@@ -9,9 +9,6 @@ Vaults document management API routes
 Focuses on document CRUD operations, AI chat functionality handled by advanced_chat
 """
 
-import asyncio
-import json
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
@@ -98,23 +95,12 @@ async def create_document(
             tags=document.tags,
         )
 
-        # Asynchronously trigger context processing
-        document_data = {
-            "title": document.title,
-            "content": document.content,
-            "summary": document.summary,
-            "tags": document.tags,
-            "document_type": document.document_type,
-        }
-        background_tasks.add_task(trigger_document_processing, doc_id, document_data, "created")
-
         return JSONResponse(
             {
                 "success": True,
                 "message": "Document created successfully",
                 "doc_id": doc_id,
                 "table_name": "vaults",
-                "context_processing": "triggered",  # Indicates context processing has been triggered
             }
         )
 
@@ -179,9 +165,6 @@ async def save_document(
     try:
         storage = get_storage()
 
-        # First clean up old context data
-        background_tasks.add_task(cleanup_document_context, document_id)
-
         # Update existing document
         success = storage.update_vault(
             vault_id=document_id,
@@ -192,25 +175,12 @@ async def save_document(
         )
 
         if success:
-            # Asynchronously trigger new context processing
-            document_data = {
-                "title": document.title,
-                "content": document.content,
-                "summary": document.summary,
-                "tags": document.tags,
-                "document_type": document.document_type,
-            }
-            background_tasks.add_task(
-                trigger_document_processing, document_id, document_data, "updated"
-            )
-
             return JSONResponse(
                 {
                     "success": True,
                     "message": "Document saved successfully",
                     "doc_id": document_id,
                     "table_name": "vaults",
-                    "context_processing": "reprocessing",  # Indicates reprocessing context
                 }
             )
         else:
@@ -237,14 +207,10 @@ async def delete_document(
         success = storage.update_vault(vault_id=document_id, is_deleted=True)
 
         if success:
-            # Asynchronously clean up related context data
-            background_tasks.add_task(cleanup_document_context, document_id)
-
             return JSONResponse(
                 {
                     "success": True,
                     "message": "Document deleted successfully",
-                    "context_cleanup": "triggered",  # Indicates context cleanup has been triggered
                 }
             )
         else:
@@ -261,128 +227,15 @@ async def delete_document(
 async def get_document_context_status(document_id: int, _auth: str = auth_dependency):
     """
     Get document context processing status
+
+    The document context pipeline was removed with the VLM processors; vault
+    notes are no longer chunked, so this always reports no context.
     """
-    try:
-        # Get context information
-        context_info = get_document_context_info(document_id)
-
-        return JSONResponse({"success": True, "document_id": document_id, **context_info})
-
-    except Exception as e:
-        logger.exception(f"Failed to get document context status: {e}")
-        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
-
-
-# Context processing helper functions
-
-
-async def trigger_document_processing(
-    doc_id: int, document_data: dict, event_type: str = "created"
-):
-    """
-    Asynchronously trigger document context processing
-
-    Args:
-        doc_id: Document ID
-        document_data: Document data
-        event_type: Event type (created/updated/deleted)
-    """
-    try:
-        from opencontext.context_processing.processor.document_processor import DocumentProcessor
-        from opencontext.models.context import RawContextProperties
-        from opencontext.models.enums import ContentFormat, ContextSource
-
-        # Create RawContextProperties
-        context_data = RawContextProperties(
-            source=ContextSource.TEXT,
-            content_format=ContentFormat.TEXT,
-            content_text=document_data.get("content", ""),
-            create_time=datetime.now(),
-            object_id=f"vault_{doc_id}",
-            additional_info={
-                "vault_id": doc_id,
-                "title": document_data.get("title", ""),
-                "summary": document_data.get("summary", ""),
-                "tags": document_data.get("tags", ""),
-                "document_type": document_data.get("document_type", "vaults"),
-                "event_type": event_type,
-                "folder_path": f"/vault_{doc_id}",  # Simplified path
-            },
-        )
-
-        # Get document processor and trigger processing
-        processor = DocumentProcessor()
-        success = processor.process(context_data)
-
-        if success:
-            logger.info(f"Context processing triggered for document {doc_id} ({event_type})")
-        else:
-            logger.warning(
-                f"Failed to trigger context processing for document {doc_id} ({event_type})"
-            )
-
-    except Exception as e:
-        logger.exception(f"Failed to trigger document context processing: {e}")
-
-
-async def cleanup_document_context(doc_id: int):
-    """
-    Clean up all context data for a document
-
-    Args:
-        doc_id: Document ID
-    """
-    try:
-        from opencontext.tools.retrieval_tools.document_management_tool import (
-            DocumentManagementTool,
-        )
-
-        # Use DocumentManagementTool to delete related chunks
-        management_tool = DocumentManagementTool()
-        result = management_tool.delete_document_chunks(raw_type="vaults", raw_id=str(doc_id))
-
-        if result.get("success"):
-            logger.info(
-                f"Cleaned up {result.get('deleted_count', 0)} context chunks for document {doc_id}"
-            )
-        else:
-            logger.warning(
-                f"Failed to cleanup context for document {doc_id}: {result.get('error')}"
-            )
-
-    except Exception as e:
-        logger.exception(f"Failed to cleanup document context: {e}")
-
-
-def get_document_context_info(doc_id: int) -> dict:
-    """
-    Get document context processing information
-
-    Args:
-        doc_id: Document ID
-
-    Returns:
-        Context information dictionary
-    """
-    try:
-        from opencontext.tools.retrieval_tools.document_management_tool import (
-            DocumentManagementTool,
-        )
-
-        management_tool = DocumentManagementTool()
-        result = management_tool.get_document_by_id(
-            raw_type="vaults", raw_id=str(doc_id), return_chunks=False
-        )
-
-        if result.get("success"):
-            return {
-                "has_context": True,
-                "total_chunks": result.get("total_chunks", 0),
-                "document_info": result.get("document", {}),
-            }
-        else:
-            return {"has_context": False, "total_chunks": 0, "document_info": None}
-
-    except Exception as e:
-        logger.exception(f"Failed to get document context information: {e}")
-        return {"has_context": False, "total_chunks": 0, "error": str(e)}
+    return JSONResponse(
+        {
+            "success": True,
+            "document_id": document_id,
+            "has_context": False,
+            "total_chunks": 0,
+        }
+    )

@@ -4,19 +4,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Context processing module - Handles processing and transformation of captured context information
+Context processing module.
+
+The VLM screenshot/document processors, entity processor and context merger
+were removed: screen analysis now happens in live_monitor (SQLite + sync
+server), so this package no longer contains any processors. It is kept as an
+empty placeholder so old imports fail loudly instead of taking the whole
+package tree down.
 """
-
-from opencontext.context_processing.merger.context_merger import ContextMerger
-from opencontext.context_processing.processor.base_processor import BaseContextProcessor
-from opencontext.context_processing.processor.document_processor import DocumentProcessor
-from opencontext.context_processing.processor.processor_factory import processor_factory
-from opencontext.context_processing.processor.screenshot_processor import ScreenshotProcessor
-
-__all__ = [
-    "BaseContextProcessor",
-    "DocumentProcessor",
-    "processor_factory",
-    "ScreenshotProcessor",
-    "ContextMerger",
-]
