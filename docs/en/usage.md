@@ -19,7 +19,7 @@ Opening the desktop app shows a home screen that tells you today at a glance.
 - **What are you going to do?** — declaring work (below)
 - **Today** — total time of declared work, PC activity time and counts, AI work time and counts, whether screen recording is running
 - **Timeline** — today's lanes (below)
-- **To-dos** / **Hints** — a to-do list you add to and the AI discovers items for, plus insights from your records
+- **To-dos** / **Hints** — a to-do list you add to yourself, plus insights from your records
 
 The bottom of the sidebar always shows the work currently declared and its elapsed time.
 
@@ -37,7 +37,7 @@ Work ended by the AI or by idling becomes "unconfirmed". Tap the work in the tim
 
 ## To-dos
 
-Under **To-dos** on the home screen (to the right of "Today" on a phone), write what you need to do and press "Add". To-dos the AI discovers from screen recordings appear in the same list, labeled "Found by AI". Similar items already on the list are not added again.
+Under **To-dos** on the home screen (to the right of "Today" on a phone), write what you need to do and press "Add". To-dos are only the ones you add yourself; the AI does not add them on its own.
 
 - **Time spent is added automatically.** Every 5 minutes, the sync server checks screen recordings, asks the AI which to-do you were working on, and adds that time. The to-do you are currently working on shows "Working on it".
 - Added time appears as bars in the timeline's "To-dos" lane. If it is wrong, tap the bar and choose "Remove this time".

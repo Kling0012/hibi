@@ -49,7 +49,7 @@ Hibi consists of three repositories with different roles. Each works on its own,
 | AI fallback | Prefers Gemini Live (free tier) and automatically switches to GLM and others on limits or failures | [Desktop app](desktop.html#ai-connections) |
 | Declaring work | Start by saying "I'm about to do X". The AI decides when it ends, and you can confirm or fix it later | [Usage](usage.html#declaring-work) |
 | Timeline | Lays out the day in lanes per work, per device, and per AI, with a one-month heatmap for looking back | [Usage](usage.html#timeline) |
-| To-dos | Lists to-dos you add and those the AI discovers, automatically adding time spent from your records | [Usage](usage.html#to-dos) |
+| To-dos | Automatically adds time spent from your records to to-dos you add yourself | [Usage](usage.html#to-dos) |
 | Away detection | Pauses recording after a while without input and deducts time away from work time | [Usage](usage.html#away) |
 | Share your work | Choose a period and items to include, turn them into a single image, and post it to X | [Usage](usage.html#share-your-work) |
 | Three languages | The UI and documentation support Japanese, English, and Chinese | [Usage](usage.html#display-language) |

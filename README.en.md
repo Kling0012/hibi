@@ -26,7 +26,7 @@ A personal work-tracking app that brings what you did on your PC and what your A
 - **Automatic AI failover** — Prefers Gemini Live (free tier) and automatically switches to GLM and other OpenAI-compatible APIs on limits or failures.
 - **Declaring work** — Start by writing "I'm about to do X"; the AI later decides from the screen when it finished, preserving the time spent.
 - **Timeline** — Lays out the day in lanes per work, device, and AI, with a one-month heatmap for looking back.
-- **To-dos** — Brings together to-dos you add and those the AI discovers, automatically adding time spent from your records.
+- **To-dos** — Automatically adds time spent from your records to to-dos you add yourself.
 - **Away detection** — Pauses recording after a while without input and deducts time away from work time.
 - **Share your work** — Choose a period and items to include, turn them into a single image, and post it to X.
 - **Daily report and blog** — Every night the AI writes a daily report from that day's records and drafts blog posts. You can also have Claude Code write via MCP.

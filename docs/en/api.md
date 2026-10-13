@@ -88,7 +88,7 @@ End reasons (`end_reason`): `manual`, `ai_detected` (AI decision), `idle`, `away
 | Method | Path | Description |
 |---|---|---|
 | GET | `/v1/todos` | List (`status=open\|done\|all`, `limit?`) → `{todos: [...]}`. Open items are ordered by urgency, then newest first |
-| POST | `/v1/todos` | Add (`title`, `note?`, `urgency?` (`high`/`medium`/`low`), `due_date?`, `source?` (`me`/`auto`), `evidence?`, `device_id?`). With `auto`, if a similar to-do exists, returns it with `deduped: true` instead of creating a new one |
+| POST | `/v1/todos` | Add (`title`, `note?`, `urgency?` (`high`/`medium`/`low`), `due_date?`, `evidence?`, `device_id?`). To-dos are not created automatically, so `source` accepts only `me` |
 | PATCH | `/v1/todos/{id}` | Edit / mark done (`title` / `note` / `urgency` / `due_date` / `status` (`open`/`done`)) |
 | DELETE | `/v1/todos/{id}` | Delete (sets `archived`) |
 | GET | `/v1/todos/{id}/entries` | List tracked time entries |

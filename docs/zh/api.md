@@ -88,7 +88,7 @@ nav_order: 8
 | 方法 | 路径 | 内容 |
 |---|---|---|
 | GET | `/v1/todos` | 列表（`status=open\|done\|all`、`limit?`）→ `{todos: [...]}`。open 按紧急程度、从新到旧排序 |
-| POST | `/v1/todos` | 添加（`title`、`note?`、`urgency?`（`high`/`medium`/`low`）、`due_date?`、`source?`（`me`/`auto`）、`evidence?`、`device_id?`）。`auto` 遇到相似待办时不会新建，而是给已有条目加上 `deduped: true` 返回 |
+| POST | `/v1/todos` | 添加（`title`、`note?`、`urgency?`（`high`/`medium`/`low`）、`due_date?`、`evidence?`、`device_id?`）。待办不会自动创建，因此 `source` 只接受 `me` |
 | PATCH | `/v1/todos/{id}` | 修改/标记完成（`title` / `note` / `urgency` / `due_date` / `status`（`open`/`done`）） |
 | DELETE | `/v1/todos/{id}` | 删除（设为 `archived`） |
 | GET | `/v1/todos/{id}/entries` | 已计入时间的列表 |
