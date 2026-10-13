@@ -79,20 +79,39 @@ nav_order: 8
 | PATCH | `/v1/sessions/{id}` | 修改/确认（`title` / `note` / `started_at` / `ended_at` / `confirmed`） |
 | POST | `/v1/sessions/{id}/cancel` | 取消 |
 
-结束方式（`end_reason`）: `manual`（手动）、`ai_detected`（AI 判定）、`idle`（闲置）、`superseded`（被下一项工作的声明取代）。由 AI 和闲置结束的为 `confirmed=false`。
+结束方式（`end_reason`）: `manual`（手动）、`ai_detected`（AI 判定）、`idle`（闲置）、`away`（长时间离开）、`superseded`（被下一项工作的声明取代）。以手动以外的方式结束的为 `confirmed=false`。
+
+`duration_minutes` 是扣除离开时间后的时长，扣除部分放在 `away_minutes` 中。
+
+## 待办
+
+| 方法 | 路径 | 内容 |
+|---|---|---|
+| GET | `/v1/todos` | 列表（`status=open\|done\|all`、`limit?`）→ `{todos: [...]}`。open 按紧急程度、从新到旧排序 |
+| POST | `/v1/todos` | 添加（`title`、`note?`、`urgency?`（`high`/`medium`/`low`）、`due_date?`、`source?`（`me`/`auto`）、`evidence?`、`device_id?`）。`auto` 遇到相似待办时不会新建，而是给已有条目加上 `deduped: true` 返回 |
+| PATCH | `/v1/todos/{id}` | 修改/标记完成（`title` / `note` / `urgency` / `due_date` / `status`（`open`/`done`）） |
+| DELETE | `/v1/todos/{id}` | 删除（设为 `archived`） |
+| GET | `/v1/todos/{id}/entries` | 已计入时间的列表 |
+| DELETE | `/v1/todos/{id}/entries/{entry_id}` | 撤销已计入的时间 |
+
+待办包含 `tracked_minutes`（累加时间的总和）、`last_tracked_at`、`tracking`（当前是否正在处理）。
+
+## 离开
+
+设备在你回来后发送一条 `kind=away` 记录（`started_at`、`ended_at`、`meta.reason` = `idle` / `lock` / `suspend`）。如果这段时间其他设备有记录，相应部分就不算离开。离开的时间会从工作时间、待办时间、`active_minutes` 中排除。
 
 ## 时间线与统计
 
 | 方法 | 路径 | 内容 |
 |---|---|---|
-| GET | `/v1/timeline` | 一天（`date`、`tz`、`include_superseded?`）。把工作、记录、AI 的工作按时间排成一条，并附每项工作的总时长 |
+| GET | `/v1/timeline` | 一天（`date`、`tz`、`include_superseded?`）。把工作、记录、AI 的工作按时间排成一条，并附每项工作的总时长。待办计入的时间放在 `todo_entries` 中 |
 | GET | `/v1/stats/daily` | 按天统计（`from`、`to`、`tz`。最多 400 天。没有记录的日子也按 0 返回） |
 
 `/v1/stats/daily` 的一天:
 
 ```json
 {"date": "2026-10-13", "events": 54, "mine": 53, "ai_work": 1,
- "active_minutes": 20, "ai_active_minutes": 5, "session_minutes": 0,
+ "active_minutes": 20, "ai_active_minutes": 5, "session_minutes": 0, "away_minutes": 0,
  "first_at": "...", "last_at": "..."}
 ```
 
@@ -141,5 +160,6 @@ nav_order: 8
 | `hibi_list_posts` / `hibi_get_post` | 阅读文章 |
 | `hibi_create_draft` / `hibi_update_post` | 创建/修改草稿 |
 | `hibi_publish_post` / `hibi_unpublish_post` | 发布/退回草稿 |
+| `hibi_list_todos` / `hibi_add_todo` / `hibi_complete_todo` | 读取/添加/完成待办 |
 
 用法请看[日报与博客](blog.html#让-ai-写博客)。

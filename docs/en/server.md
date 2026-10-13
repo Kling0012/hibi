@@ -31,7 +31,8 @@ A small machine suffices (production limits: API 512 MB, DB 768 MB).
 | Job | Interval | What it does |
 |---|---|---|
 | Embedding | 5 s (10 s in production) | Embeds records that do not have embeddings yet, in batches |
-| Work-end detection | 120 s (300 s in production) | Asks the LLM whether in-progress work has finished |
+| Work-end detection | 120 s (300 s in production) | Asks the LLM whether in-progress work has finished. Also ends work after 30 minutes or more away |
+| To-do time tracking | 300 s | Checks new records, asks the LLM which to-do you were working on, and adds the time |
 | AI work import | 300 s | Imports new records from the shared memory |
 | Daily report | Daily 23:55 / next 6:00 | Writes the day's report and rewrites it the next morning |
 | Blog | Right after the daily report | Drafts posts depending on configuration ([Daily reports and blog](blog.html)) |
@@ -120,6 +121,11 @@ The server has no user authentication. Do not listen on `0.0.0.0` or a public IP
 | `TZ_DEFAULT` | `Asia/Tokyo` | Timezone used for day boundaries |
 | `API_PORT` | `18741` | Development listen port |
 | `PROD_TAILNET_IP` / `PROD_PORT` | — / `18740` | Production listen address |
+| `SESSION_AWAY_END_MINUTES` | `30` | If you are away for at least this many minutes during work, ends it at the time you left |
+| `TODO_JUDGE_INTERVAL` | `300` | Interval in seconds for to-do time tracking |
+| `TODO_MATCH_THRESHOLD` | `0.7` | Minimum confidence for judging that you were working on a to-do |
+| `TODO_JUDGE_MAX_WINDOW_MIN` | `30` | Time window of records checked per run, in minutes |
+| `TODO_MERGE_GAP_MIN` | `5` | Extends the same bar if the gap since the previous time entry is within this many minutes |
 | `MCP_ALLOWED_HOSTS` | — | Hosts accepted by MCP (`/mcp`), e.g. `100.x.y.z:18740`, comma-separated. If empty, the Host is not checked |
 
 ## Data

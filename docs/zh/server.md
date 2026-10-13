@@ -31,7 +31,8 @@ nav_order: 5
 | 任务 | 周期 | 内容 |
 |---|---|---|
 | 嵌入 | 5 秒（生产 10 秒） | 批量嵌入尚无嵌入的记录 |
-| 工作结束判定 | 120 秒（生产 300 秒） | 让 LLM 判断进行中的工作是否结束 |
+| 工作结束判定 | 120 秒（生产 300 秒） | 让 LLM 判断进行中的工作是否结束。离开 30 分钟以上也会结束 |
+| 待办时间计入 | 300 秒 | 查看新记录，让 LLM 判断你在处理哪项待办，并累加时间 |
 | AI 工作导入 | 300 秒 | 从共享记忆导入新记录 |
 | 日报 | 每天 23:55 / 次日 6:00 | 撰写当天日报，次日早晨重写 |
 | 博客 | 日报之后 | 按配置起草文章（[日报与博客](blog.html)） |
@@ -120,6 +121,11 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml -p hibi up -d --
 | `TZ_DEFAULT` | `Asia/Tokyo` | 用于日期划分的时区 |
 | `API_PORT` | `18741` | 开发用监听端口 |
 | `PROD_TAILNET_IP` / `PROD_PORT` | — / `18740` | 生产监听地址 |
+| `SESSION_AWAY_END_MINUTES` | `30` | 工作期间离开达到该分钟数时，以离开时刻作为工作结束时间 |
+| `TODO_JUDGE_INTERVAL` | `300` | 待办时间计入的运行间隔（秒） |
+| `TODO_MATCH_THRESHOLD` | `0.7` | 判定正在处理某项待办的最低置信度 |
+| `TODO_JUDGE_MAX_WINDOW_MIN` | `30` | 每次查看记录的时间窗口（分钟） |
+| `TODO_MERGE_GAP_MIN` | `5` | 与上次计入相隔不超过该分钟数时，延长同一条带 |
 | `MCP_ALLOWED_HOSTS` | — | MCP（`/mcp`）接受的 Host（如 `100.x.y.z:18740`，逗号分隔）。留空则不校验 Host |
 
 ## 数据

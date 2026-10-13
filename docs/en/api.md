@@ -79,20 +79,39 @@ Vector closeness (top 50) and string similarity (top 50) are merged by rank (RRF
 | PATCH | `/v1/sessions/{id}` | Fix / confirm (`title` / `note` / `started_at` / `ended_at` / `confirmed`) |
 | POST | `/v1/sessions/{id}/cancel` | Cancel |
 
-End reasons (`end_reason`): `manual`, `ai_detected` (AI decision), `idle`, `superseded` (superseded by the next declaration). Those ended by AI or idleness have `confirmed=false`.
+End reasons (`end_reason`): `manual`, `ai_detected` (AI decision), `idle`, `away` (a long period away), `superseded` (superseded by the next declaration). Anything ended other than manually has `confirmed=false`.
+
+`duration_minutes` excludes time away; the deducted time is in `away_minutes`.
+
+## To-dos
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/v1/todos` | List (`status=open\|done\|all`, `limit?`) → `{todos: [...]}`. Open items are ordered by urgency, then newest first |
+| POST | `/v1/todos` | Add (`title`, `note?`, `urgency?` (`high`/`medium`/`low`), `due_date?`, `source?` (`me`/`auto`), `evidence?`, `device_id?`). With `auto`, if a similar to-do exists, returns it with `deduped: true` instead of creating a new one |
+| PATCH | `/v1/todos/{id}` | Edit / mark done (`title` / `note` / `urgency` / `due_date` / `status` (`open`/`done`)) |
+| DELETE | `/v1/todos/{id}` | Delete (sets `archived`) |
+| GET | `/v1/todos/{id}/entries` | List tracked time entries |
+| DELETE | `/v1/todos/{id}/entries/{entry_id}` | Remove a tracked time entry |
+
+To-dos include `tracked_minutes` (total added time), `last_tracked_at`, and `tracking` (whether you are currently working on it).
+
+## Away
+
+When you return from being away, the device sends one `kind=away` record (`started_at`, `ended_at`, `meta.reason` = `idle` / `lock` / `suspend`). If another device has records during that period, that portion does not count as away. Time away is excluded from work time, to-do time, and `active_minutes`.
 
 ## Timeline and stats
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/v1/timeline` | One day (`date`, `tz`, `include_superseded?`). Merges work, records, and AI work into a single time-ordered stream with total time per work |
+| GET | `/v1/timeline` | One day (`date`, `tz`, `include_superseded?`). Merges work, records, and AI work into a single time-ordered stream with total time per work. Tracked to-do time is in `todo_entries` |
 | GET | `/v1/stats/daily` | Daily stats (`from`, `to`, `tz`; up to 400 days. Days without records come back as 0) |
 
 One day of `/v1/stats/daily`:
 
 ```json
 {"date": "2026-10-13", "events": 54, "mine": 53, "ai_work": 1,
- "active_minutes": 20, "ai_active_minutes": 5, "session_minutes": 0,
+ "active_minutes": 20, "ai_active_minutes": 5, "session_minutes": 0, "away_minutes": 0,
  "first_at": "...", "last_at": "..."}
 ```
 
@@ -141,5 +160,6 @@ One day of `/v1/stats/daily`:
 | `hibi_list_posts` / `hibi_get_post` | Read posts |
 | `hibi_create_draft` / `hibi_update_post` | Create / fix drafts |
 | `hibi_publish_post` / `hibi_unpublish_post` | Publish / return to draft |
+| `hibi_list_todos` / `hibi_add_todo` / `hibi_complete_todo` | Read / add / complete to-dos |
 
 See [Daily reports and blog](blog.html#having-ai-write-blog-posts) for usage.
