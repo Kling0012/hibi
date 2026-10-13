@@ -54,6 +54,11 @@ Repository = "https://github.com/Kling0012/hibi"
 Issues = "https://github.com/Kling0012/hibi/issues"
 Documentation = "https://github.com/Kling0012/hibi"
 
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

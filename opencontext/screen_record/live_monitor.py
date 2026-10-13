@@ -33,9 +33,11 @@ import base64
 import datetime
 import json
 import queue
+import re
+import sqlite3
 import threading
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from opencontext.utils.image import calculate_bytes2phash
 from opencontext.utils.logging_utils import get_logger
@@ -64,6 +66,9 @@ _EXACT_USER_PROMPT = (
     "URL・日本語文など）を、原文のまま列挙してください。"
     "最初の1行に内容を短く表す見出し（30字以内）を出し、その後に文字列を改行区切りで"
     "並べてください。自分の言葉で要約しないでください。"
+    "OS のタスクバー、時計、天気、検索ボックス、ブラウザのタブ数表示などの画面の周辺部分は"
+    "書き起こさないでください。"
+    "ページが読み込み中や白紙のときは、本文に「読み込み中」とだけ書いてください。"
 )
 
 
@@ -72,6 +77,109 @@ def _hamming_hex(a: str, b: str) -> Optional[int]:
         return bin(int(a, 16) ^ int(b, 16)).count("1")
     except Exception:
         return None
+
+
+# -- duplication / noise reduction (2026-10-13 production-data analysis) --------
+# These are new constants for de-duplication only; the capture.* intervals and
+# hash thresholds are deliberately unchanged.
+
+_ACTIVITY_MERGE_JACCARD = 0.6
+_ACTIVITY_MAX_EXTENSION = datetime.timedelta(minutes=10)
+_SUMMARY_DEDUPE_JACCARD = 0.6
+_SUMMARY_DEDUPE_WINDOW = 300.0  # seconds
+_LOADING_ONLY_MARK = "読み込み中"
+_SENTENCE_ENDINGS = "。！？"
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def _split_sentences(text: str) -> List[str]:
+    """Split into sentence chunks, keeping the 。！？ delimiter attached."""
+    chunks: List[str] = []
+    start = 0
+    for i, ch in enumerate(text):
+        if ch in _SENTENCE_ENDINGS:
+            chunks.append(text[start:i + 1])
+            start = i + 1
+    if start < len(text):
+        chunks.append(text[start:])
+    return chunks
+
+
+def _dedupe_repeated_sentences(text: str) -> str:
+    """Collapse verbatim repetition sometimes emitted by the Live transcript.
+
+    A sentence (。！？ unit, compared ignoring surrounding whitespace) that
+    immediately repeats the previous kept sentence is dropped, and a text whose
+    second half repeats its first half is collapsed to the first half.
+    """
+    if not text:
+        return text
+    chunks = _split_sentences(text)
+    deduped: List[str] = []
+    for chunk in chunks:
+        if chunk.strip() and deduped and chunk.strip() == deduped[-1].strip():
+            continue
+        deduped.append(chunk)
+    while len(deduped) >= 2 and len(deduped) % 2 == 0:
+        half = len(deduped) // 2
+        if [c.strip() for c in deduped[:half]] == [c.strip() for c in deduped[half:]]:
+            deduped = deduped[:half]
+        else:
+            break
+    result = "".join(deduped)
+    return result if result.strip() else text
+
+
+def _jaccard3(a: str, b: str) -> float:
+    """Jaccard similarity of character 3-gram sets.
+
+    Consecutive whitespace/newlines are collapsed to a single half-width space
+    first. Both texts under 3 characters (empty gram sets) count as identical.
+    """
+    def grams(text: str) -> set:
+        normalized = _WHITESPACE_RE.sub(" ", text or "")
+        return {normalized[i:i + 3] for i in range(len(normalized) - 2)}
+
+    ga, gb = grams(a), grams(b)
+    if not ga and not gb:
+        return 1.0
+    if not ga or not gb:
+        return 0.0
+    return len(ga & gb) / len(ga | gb)
+
+
+def _should_extend_activity(prev_text: str, prev_app: str, prev_title: str,
+                            prev_base_end: datetime.datetime,
+                            app: str, title: str, text: str,
+                            new_end: datetime.datetime) -> bool:
+    """True when a new interval re-describes the previous activity (same
+    window, similar text, extension cap not exceeded) and should be merged
+    into the previous record instead of creating a new one."""
+    if (app or "") != (prev_app or "") or (title or "") != (prev_title or ""):
+        return False
+    if _jaccard3(prev_text, text) < _ACTIVITY_MERGE_JACCARD:
+        return False
+    if new_end - prev_base_end > _ACTIVITY_MAX_EXTENSION:
+        return False
+    return True
+
+
+def _should_suppress_summary(prev_ts: Optional[float], prev_text: str,
+                             frame_ts: float, text: str) -> bool:
+    """True when an 'exact' transcript repeats a recent screen_summary of the
+    same window (same app/title is checked by the caller) and should be
+    dropped instead of saved."""
+    if prev_ts is None:
+        return False
+    if (frame_ts - prev_ts) > _SUMMARY_DEDUPE_WINDOW:
+        return False
+    return _jaccard3(prev_text, text) >= _SUMMARY_DEDUPE_JACCARD
+
+
+def _is_loading_only(text: str) -> bool:
+    """True when the transcript consists solely of the 読み込み中 marker."""
+    lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
+    return bool(lines) and all(ln == _LOADING_ONLY_MARK for ln in lines)
 
 
 class _Frame:
@@ -129,6 +237,9 @@ class ScreenLiveMonitor:
         self._last_summary_ts: float = 0.0
         self._last_drop_log: float = 0.0
         self._last_push_error_log: float = 0.0
+        # de-duplication state (summarizer thread only)
+        self._last_activity: Optional[Dict[str, Any]] = None
+        self._last_summary_by_window: Dict[Tuple[str, str], Tuple[float, str]] = {}
         # runtime status for the settings UI
         self.status: Dict[str, Any] = {
             "frames_received": 0,
@@ -338,8 +449,29 @@ class ScreenLiveMonitor:
         if not text or not text.strip():
             logger.info("[ScreenLive] empty exact response; screen_summary skipped")
             return
-        title = text.strip().splitlines()[0][:60] if text.strip() else ""
-        self._save_screen_summary(title, text.strip(), frame)
+        content = text.strip()
+        # noise reduction, fail-soft: on any error here save as before
+        try:
+            if _is_loading_only(content):
+                logger.debug("[ScreenLive] exact response is loading-only; screen_summary skipped")
+                return
+            window = (frame.app or "", frame.title or "")
+            prev = self._last_summary_by_window.get(window)
+            if _should_suppress_summary(
+                prev[0] if prev else None, prev[1] if prev else "", frame.ts, content
+            ):
+                logger.debug(
+                    "[ScreenLive] screen_summary repeats the recent one; skipped "
+                    f"(app={frame.app!r}, title={frame.title!r})")
+                return
+        except Exception as e:
+            logger.debug(f"[ScreenLive] summary dedupe check failed (saving anyway): {e}")
+        title = content.splitlines()[0][:60] if content else ""
+        self._save_screen_summary(title, content, frame)
+        try:
+            self._last_summary_by_window[(frame.app or "", frame.title or "")] = (frame.ts, content)
+        except Exception:
+            pass
 
     def _save_screen_summary(self, title: str, content: str, frame: _Frame):
         from opencontext.storage.global_storage import get_storage
@@ -396,6 +528,14 @@ class ScreenLiveMonitor:
         if not answer or not answer.strip():
             logger.info("[ScreenLive] empty live answer; activity skipped")
             return
+        content = answer.strip()
+        # sentence-level repetition in the Live transcript, fail-soft
+        try:
+            deduped = _dedupe_repeated_sentences(content)
+            if deduped.strip():
+                content = deduped
+        except Exception as e:
+            logger.debug(f"[ScreenLive] sentence dedupe failed (keeping original): {e}")
 
         from opencontext.storage.global_storage import get_storage
 
@@ -405,31 +545,109 @@ class ScreenLiveMonitor:
             return
         start_dt = datetime.datetime.fromtimestamp(trigger.interval_start)
         end_dt = datetime.datetime.fromtimestamp(trigger.interval_end)
-        title = answer.strip().splitlines()[0][:60]
+        record_title = content.splitlines()[0][:60]
+        win_app = (trigger.interval_meta[0].get("app", "") if trigger.interval_meta else "") or ""
+        win_title = (trigger.interval_meta[0].get("title", "") if trigger.interval_meta else "") or ""
         meta = {"kind": "live", "windows": trigger.interval_meta}
-        activity_id = storage.insert_activity(
-            title=title,
-            content=answer.strip(),
-            resources=None,
-            metadata=json.dumps(meta, ensure_ascii=False),
-            start_time=start_dt,
-            end_time=end_dt,
-        )
-        self.status["live_activities"] += 1
-        logger.info(
-            f"[ScreenLive] live activity saved (id={activity_id}, interval={seconds}s)")
+
+        # merge into the previous activity when this interval just re-describes
+        # the same window; fail-soft: on failure save a new record as before
+        merged = False
+        try:
+            prev = self._last_activity
+            if prev is not None and _should_extend_activity(
+                prev["text"], prev["app"], prev["title"], prev["base_end"],
+                win_app, win_title, content, end_dt,
+            ):
+                self._extend_activity(prev, end_dt)
+                merged = True
+        except Exception as e:
+            logger.warning(f"[ScreenLive] activity merge failed (saving a new record): {e}")
+            merged = False
+
+        if not merged:
+            activity_id = storage.insert_activity(
+                title=record_title,
+                content=content,
+                resources=None,
+                metadata=json.dumps(meta, ensure_ascii=False),
+                start_time=start_dt,
+                end_time=end_dt,
+            )
+            self.status["live_activities"] += 1
+            logger.info(
+                f"[ScreenLive] live activity saved (id={activity_id}, interval={seconds}s)")
+            event_id = self._enqueue_outbox(
+                kind="activity",
+                started_at=start_dt,
+                ended_at=end_dt,
+                app=win_app,
+                title=win_title,
+                text=content,
+                meta={"windows": trigger.interval_meta},
+            )
+            self._last_activity = {
+                "row_id": activity_id,
+                "event_id": event_id,
+                "app": win_app,
+                "title": win_title,
+                "text": content,
+                "start_dt": start_dt,
+                "base_end": end_dt,
+                "windows": trigger.interval_meta,
+            }
+
+    def _extend_activity(self, prev: Dict[str, Any], end_dt) -> None:
+        """Prolong the previous activity record (text unchanged, same row id,
+        same sync event id so the server upsert overwrites it)."""
+        try:
+            self._update_activity_end(prev.get("row_id"), end_dt)
+        except Exception as e:
+            logger.warning(f"[ScreenLive] local activity extension failed (non-fatal): {e}")
         self._enqueue_outbox(
             kind="activity",
-            started_at=start_dt,
+            started_at=prev["start_dt"],
             ended_at=end_dt,
-            app=(trigger.interval_meta[0].get("app") if trigger.interval_meta else ""),
-            title=(trigger.interval_meta[0].get("title") if trigger.interval_meta else ""),
-            text=answer.strip(),
-            meta={"windows": trigger.interval_meta},
+            app=prev["app"],
+            title=prev["title"],
+            text=prev["text"],
+            meta={"windows": prev.get("windows") or []},
+            event_id=prev.get("event_id"),
         )
+        logger.info(f"[ScreenLive] live activity extended to {end_dt.isoformat()} "
+                    f"(row={prev.get('row_id')})")
 
     @staticmethod
-    def _enqueue_outbox(kind: str, started_at, ended_at, app: str, title: str, text: str, meta: Dict[str, Any]):
+    def _update_activity_end(activity_id, end_dt) -> bool:
+        """UPDATE the stored activity row's end_time (own short-lived sqlite
+        connection, like the sync outbox). Fail-soft."""
+        if activity_id is None:
+            return False
+        from opencontext.storage.global_storage import get_storage
+
+        try:
+            storage = get_storage()
+            db_path = storage.get_sqlite_db_path() if storage else None
+            if not db_path:
+                logger.warning("[ScreenLive] no sqlite path; activity end_time not extended")
+                return False
+            connection = sqlite3.connect(db_path, timeout=30)
+            try:
+                connection.execute(
+                    "UPDATE activity SET end_time = ? WHERE id = ?",
+                    (end_dt, activity_id),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            return True
+        except Exception as e:
+            logger.warning(f"[ScreenLive] could not extend activity end_time (non-fatal): {e}")
+            return False
+
+    @staticmethod
+    def _enqueue_outbox(kind: str, started_at, ended_at, app: str, title: str, text: str, meta: Dict[str, Any],
+                        event_id: Optional[str] = None):
         try:
             from opencontext.screen_record.sync_outbox import enqueue_outbox_event
 
@@ -442,6 +660,7 @@ class ScreenLiveMonitor:
                 text=text,
                 meta=meta,
                 source="minecontext-desktop",
+                event_id=event_id,
             )
         except Exception as e:
             logger.warning(f"[ScreenLive] outbox enqueue failed (non-fatal): {e}")

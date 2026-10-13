@@ -121,7 +121,8 @@ class SyncOutbox:
 
     # -- enqueue (producers) -------------------------------------------------------
     def enqueue(self, kind: str, started_at, ended_at, app: str, title: str,
-                text: str, meta: Dict[str, Any], source: str) -> Optional[str]:
+                text: str, meta: Dict[str, Any], source: str,
+                event_id: Optional[str] = None) -> Optional[str]:
         if kind not in _ALLOWED_KINDS:
             logger.warning(f"[SyncOutbox] dropping event with unsupported kind '{kind}'")
             return None
@@ -129,7 +130,9 @@ class SyncOutbox:
         if not db_path:
             logger.warning("[SyncOutbox] no sqlite path; event not queued")
             return None
-        event_id = str(uuid.uuid4())
+        # a caller-supplied id re-sends the same event (server upserts on id,
+        # e.g. when a record is extended); otherwise generate a fresh uuid
+        event_id = event_id or str(uuid.uuid4())
         try:
             connection = sqlite3.connect(db_path, timeout=30)
             try:
@@ -308,13 +311,14 @@ class SyncOutbox:
 
 
 def enqueue_outbox_event(kind: str, started_at, ended_at, app: str, title: str,
-                         text: str, meta: Dict[str, Any], source: str) -> Optional[str]:
+                         text: str, meta: Dict[str, Any], source: str,
+                         event_id: Optional[str] = None) -> Optional[str]:
     """Module-level entry point for producers (starts the worker lazily)."""
     outbox = SyncOutbox.get_instance()
     outbox.start()
     return outbox.enqueue(
         kind=kind, started_at=started_at, ended_at=ended_at, app=app,
-        title=title, text=text, meta=meta, source=source,
+        title=title, text=text, meta=meta, source=source, event_id=event_id,
     )
 
 
