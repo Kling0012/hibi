@@ -6,12 +6,11 @@
 
 """
 Storage backend package initialization file
+
+SQLite only: the chromadb vector backend was removed when search moved to
+the sync server.
 """
 
-from .chromadb_backend import ChromaDBBackend
 from .sqlite_backend import SQLiteBackend
 
-try:
-    __all__ = ["SQLiteBackend", "ChromaDBBackend"]
-except ImportError:
-    __all__ = ["SQLiteBackend", "ChromaDBBackend"]
+__all__ = ["SQLiteBackend"]

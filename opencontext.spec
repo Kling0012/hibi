@@ -84,15 +84,6 @@ a = Analysis(
     hiddenimports=[
         'uvicorn.protocols.http.auto',
         'uvicorn.protocols.websockets.auto',
-        # chromadb 1.x: rust bindings replace hnswlib; telemetry/db/segment
-        # modules are imported dynamically and verified present in 1.5.9.
-        'chromadb_rust_bindings',
-        'chromadb.telemetry.product.posthog',
-        'chromadb.api.rust',
-        'chromadb.db.impl.sqlite',
-        'chromadb.db.impl.grpc',
-        'chromadb.segment.impl.vector.local_hnsw',
-        'chromadb.segment.impl.metadata.sqlite',
         'sqlite3',
         '_ssl',
         '_hashlib',

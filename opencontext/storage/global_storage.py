@@ -10,10 +10,8 @@ Provides global access to UnifiedStorage instance
 """
 
 import threading
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
-from opencontext.models.context import ProcessedContext, Vectorize
-from opencontext.models.enums import ContextType
 from opencontext.storage.unified_storage import UnifiedStorage
 from opencontext.utils.logging_utils import get_logger
 
@@ -118,70 +116,6 @@ class GlobalStorage:
             bool: Whether initialized
         """
         return self._storage is not None
-
-    # Convenience methods - directly call common UnifiedStorage methods
-
-    def upsert_processed_context(self, context: ProcessedContext) -> bool:
-        """Store processed context"""
-        if not self._storage:
-            raise RuntimeError("Storage not initialized")
-        return self._storage.upsert_processed_context(context)
-
-    def batch_upsert_processed_context(self, contexts: List[ProcessedContext]) -> bool:
-        """Batch store processed contexts"""
-        if not self._storage:
-            raise RuntimeError("Storage not initialized")
-        return self._storage.batch_upsert_processed_context(contexts)
-
-    def get_processed_context(
-        self, doc_id: str, context_type: ContextType
-    ) -> Optional[ProcessedContext]:
-        """Get processed context"""
-        if not self._storage:
-            raise RuntimeError("Storage not initialized")
-        return self._storage.get_processed_context(doc_id, context_type)
-
-    def delete_processed_context(self, doc_id: str, context_type: ContextType) -> bool:
-        """Delete processed context"""
-        if not self._storage:
-            raise RuntimeError("Storage not initialized")
-        return self._storage.delete_processed_context(doc_id, context_type)
-
-    def list_processed_contexts(
-        self,
-        context_types: Optional[List[ContextType]] = None,
-        limit: int = 100,
-        offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> List[ProcessedContext]:
-        """List processed contexts"""
-        if not self._storage:
-            raise RuntimeError("Storage not initialized")
-        return self._storage.list_processed_contexts(context_types, limit, offset, filters)
-
-    def search_contexts(
-        self,
-        query: str,
-        context_types: Optional[List[ContextType]] = None,
-        top_k: int = 10,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, Any]]:
-        """Search contexts"""
-        if not self._storage:
-            raise RuntimeError("Storage not initialized")
-        return self._storage.search_contexts(query, context_types, top_k, filters)
-
-    def get_context_types(self) -> List[str]:
-        """Get all context types"""
-        if not self._storage:
-            raise RuntimeError("Storage not initialized")
-        return self._storage.get_context_types()
-
-    def vectorize(self, vectorize: Vectorize, **kwargs):
-        """Vectorize"""
-        if not self._storage:
-            raise RuntimeError("Storage not initialized")
-        return self._storage.vectorize(vectorize, **kwargs)
 
 
 # Convenience functions

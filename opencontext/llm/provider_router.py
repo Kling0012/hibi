@@ -35,11 +35,6 @@ Configuration (config.yaml ``ai`` section)::
           base_url: https://open.bigmodel.cn/api/coding/paas/v4
           api_key_file: ~/.config/minecontext/zhipu-key
           options: {max_tokens: 8192}
-        - id: mcsync_embedding
-          kind: openai_compat
-          model: qwen3-embedding-0.6b
-          api_key: no-key
-          options: {base_url_from_sync: true}
       routes:
         vision: [gemini_live_38, glm_flash]
         chat: [glm_flash, glm_53]
@@ -51,7 +46,9 @@ of ``base_url``: the URL is derived from ``sync.server_url`` (runtime value,
 trailing "/" stripped) + "/v1" — the sync server relays an OpenAI-compatible
 /v1 API (embeddings). When sync.server_url is empty the provider is built
 unusable and dropped from its routes (fail-soft: only embedding-dependent
-features stop; the application keeps running).
+features stop; the application keeps running). The embedding route is
+currently unused: local vector storage / search moved to the sync server,
+but the mechanism is kept for future providers.
 
 Legacy ``vlm_model`` / ``embedding_model`` sections are converted into a
 single openai_compat provider per section when no ``ai.providers`` exist.

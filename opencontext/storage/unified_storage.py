@@ -6,20 +6,18 @@
 
 """
 Unified storage system - unified management supporting multiple storage backends
+
+SQLite document storage only: the chromadb vector backend was removed when
+search moved to the sync server. Vector-related methods are gone; stale
+vector_db entries in the config are skipped (fail-soft).
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from opencontext.models.context import ProcessedContext, Vectorize
-from opencontext.models.enums import ContextType
 from opencontext.storage.base_storage import (
-    DataType,
-    DocumentData,
     IDocumentStorageBackend,
     IStorageBackend,
-    IVectorStorageBackend,
-    QueryResult,
     StorageType,
 )
 from opencontext.utils.logging_utils import get_logger
@@ -32,9 +30,6 @@ class StorageBackendFactory:
 
     def __init__(self):
         self._backends = {
-            StorageType.VECTOR_DB: {
-                "chromadb": self._create_chromadb_backend,
-            },
             StorageType.DOCUMENT_DB: {
                 "sqlite": self._create_sqlite_backend,
             },
@@ -70,11 +65,6 @@ class StorageBackendFactory:
             logger.exception(f"Creating {backend_name} backend failed: {e}")
             return None
 
-    def _create_chromadb_backend(self, config: Dict[str, Any]):
-        from opencontext.storage.backends.chromadb_backend import ChromaDBBackend
-
-        return ChromaDBBackend()
-
     def _create_sqlite_backend(self, config: Dict[str, Any]):
         from opencontext.storage.backends.sqlite_backend import SQLiteBackend
 
@@ -83,20 +73,13 @@ class StorageBackendFactory:
 
 class UnifiedStorage:
     """
-    Unified storage system - manages multiple storage backends, supports automatic routing based on data type and storage requirements
+    Unified storage system - manages the document storage backend
     """
 
     def __init__(self):
         self._factory = StorageBackendFactory()
         self._initialized = False
-        self._vector_backend: IVectorStorageBackend = None
         self._document_backend: IDocumentStorageBackend = None
-
-    def get_vector_collection_names(self) -> Optional[List[str]]:
-        """Get all collection names in vector database"""
-        if not self._vector_backend:
-            return None
-        return self._vector_backend.get_collection_names()
 
     def initialize(self) -> bool:
         """
@@ -105,8 +88,8 @@ class UnifiedStorage:
         Args:
             storage_configs: Storage configuration list, each configuration contains:
                 - name: Backend name
-                - storage_type: Storage type (vector_db/document_db)
-                - backend: Specific backend (chromadb/sqlite etc.)
+                - storage_type: Storage type (document_db)
+                - backend: Specific backend (sqlite)
                 - config: Backend specific configuration
                 - default: Whether it's the default backend for this type
                 - data_types: List of supported data types
@@ -121,16 +104,23 @@ class UnifiedStorage:
                 return False
 
             for config in backend_configs:
-                storage_type = StorageType(config["storage_type"])
+                try:
+                    storage_type = StorageType(config["storage_type"])
+                except ValueError:
+                    storage_type = None
+
+                if storage_type == StorageType.VECTOR_DB:
+                    # chromadb was removed; stale config entries are skipped
+                    logger.info(
+                        f"Storage backend {config.get('name', 'unknown')} is a vector_db "
+                        "entry; vector storage was removed, skipping"
+                    )
+                    continue
+
                 backend = self._factory.create_backend(storage_type, config)
                 if backend:
                     # Set dedicated backend reference
-                    if storage_type == StorageType.VECTOR_DB and isinstance(
-                        backend, IVectorStorageBackend
-                    ):
-                        if self._vector_backend is None or config.get("default", False):
-                            self._vector_backend = backend
-                    elif storage_type == StorageType.DOCUMENT_DB and isinstance(
+                    if storage_type == StorageType.DOCUMENT_DB and isinstance(
                         backend, IDocumentStorageBackend
                     ):
                         if self._document_backend is None or config.get("default", False):
@@ -143,235 +133,16 @@ class UnifiedStorage:
                     logger.error(f"Storage backend {config['name']} initialization failed")
                     return False
 
+            if not self._document_backend:
+                logger.error("No document storage backend initialized")
+                return False
+
             self._initialized = True
             return True
 
         except Exception as e:
             logger.exception(f"Unified storage system initialization failed: {e}")
             return False
-
-    def get_default_backend(self, storage_type: StorageType) -> Optional[IStorageBackend]:
-        """Get default storage backend for specified type"""
-        if storage_type == StorageType.VECTOR_DB:
-            return self._vector_backend
-        elif storage_type == StorageType.DOCUMENT_DB:
-            return self._document_backend
-        return None
-
-    def batch_upsert_processed_context(
-        self, contexts: List[ProcessedContext]
-    ) -> Optional[List[str]]:
-        """Batch store processed contexts to vector database"""
-        if not self._initialized:
-            logger.error("Unified storage system not initialized")
-            return None
-
-        if not self._vector_backend:
-            logger.error("Vector database backend not initialized")
-            return None
-
-        try:
-            # Directly pass ProcessedContext to vector database
-            doc_ids = self._vector_backend.batch_upsert_processed_context(contexts)
-            return doc_ids
-
-        except Exception as e:
-            logger.exception(f"Failed to store context: {e}")
-            return None
-
-    def upsert_processed_context(self, context: ProcessedContext) -> Optional[str]:
-        """Store processed context to vector database"""
-        if not self._initialized:
-            logger.error("Unified storage system not initialized")
-            return None
-
-        if not self._vector_backend:
-            logger.error("Vector database backend not initialized")
-            return None
-
-        try:
-            # Directly pass ProcessedContext to vector database
-            doc_id = self._vector_backend.upsert_processed_context(context)
-            return doc_id
-
-        except Exception as e:
-            logger.exception(f"Failed to store context: {e}")
-            return None
-
-    def get_processed_context(self, id: str, context_type: str):
-        return self._vector_backend.get_processed_context(id, context_type)
-
-    def delete_processed_context(self, id: str, context_type: str):
-        return self._vector_backend.delete_processed_context(id, context_type)
-
-    def get_all_processed_contexts(
-        self,
-        context_types: Optional[List[str]] = None,
-        limit: int = 100,
-        offset: int = 0,
-        filter: Optional[Dict[str, Any]] = None,
-        need_vector: bool = False,
-    ) -> Dict[str, List[ProcessedContext]]:
-        """Get processed contexts, query only from vector database"""
-        if not self._initialized:
-            logger.error("Unified storage system not initialized")
-            return {}
-
-        if not self._vector_backend:
-            logger.error("Vector database backend not initialized")
-            return {}
-
-        if not context_types:
-            context_types = [ct.value for ct in ContextType]
-        try:
-            return self._vector_backend.get_all_processed_contexts(
-                context_types=context_types,
-                limit=limit,
-                offset=offset,
-                filter=filter,
-                need_vector=need_vector,
-            )
-        except Exception as e:
-            logger.exception(f"Failed to query ProcessedContext: {e}")
-            return {}
-
-    def get_processed_context_count(self, context_type: str) -> int:
-        """Get record count for specified context_type"""
-        if not self._initialized:
-            logger.error("Unified storage system not initialized")
-            return 0
-
-        if not self._vector_backend:
-            logger.error("Vector database backend not initialized")
-            return 0
-
-        try:
-            return self._vector_backend.get_processed_context_count(context_type)
-        except Exception as e:
-            logger.exception(f"Failed to get {context_type} record count: {e}")
-            return 0
-
-    def get_all_processed_context_counts(self) -> Dict[str, int]:
-        """Get record count for all context_type"""
-        if not self._initialized:
-            logger.error("Unified storage system not initialized")
-            return {}
-
-        if not self._vector_backend:
-            logger.error("Vector database backend not initialized")
-            return {}
-
-        try:
-            return self._vector_backend.get_all_processed_context_counts()
-        except Exception as e:
-            logger.exception(f"Failed to get all context_type record counts: {e}")
-            return {}
-
-    def get_available_context_types(self) -> List[str]:
-        """Get all available context_type - all ProcessedContext use vector database"""
-        # Return all ContextType enum values, as all ProcessedContext are stored in vector database
-        from opencontext.models.enums import ContextType
-
-        return [ct.value for ct in ContextType]
-
-    def search(
-        self,
-        query: Vectorize,
-        top_k: int = 10,
-        context_types: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> List[Tuple[ProcessedContext, float]]:
-        """Vector search, supports context_type filtering"""
-        if not self._initialized:
-            logger.error("Unified storage system not initialized")
-            return []
-
-        if not self._vector_backend:
-            logger.error("Vector database backend not initialized")
-            return []
-
-        try:
-            # Execute vector search
-            search_results = self._vector_backend.search(
-                query=query, top_k=top_k, context_types=context_types, filters=filters
-            )
-
-            return search_results
-
-        except Exception as e:
-            logger.exception(f"Vector search failed: {e}")
-            return []
-
-    def upsert_todo_embedding(
-        self,
-        todo_id: int,
-        content: str,
-        embedding: List[float],
-        metadata: Optional[Dict] = None,
-    ) -> bool:
-        """Store todo embedding to vector database for deduplication"""
-        if not self._initialized or not self._vector_backend:
-            logger.warning("Storage not initialized, cannot store todo embedding")
-            return False
-
-        return self._vector_backend.upsert_todo_embedding(todo_id, content, embedding, metadata)
-
-    def search_similar_todos(
-        self,
-        query_embedding: List[float],
-        top_k: int = 10,
-        similarity_threshold: float = 0.85,
-    ) -> List[Tuple[int, str, float]]:
-        """Search for similar todos using vector similarity"""
-        if not self._initialized or not self._vector_backend:
-            logger.warning("Storage not initialized, cannot search todos")
-            return []
-
-        return self._vector_backend.search_similar_todos(
-            query_embedding, top_k, similarity_threshold
-        )
-
-    def delete_todo_embedding(self, todo_id: int) -> bool:
-        """Delete todo embedding from vector database"""
-        if not self._initialized or not self._vector_backend:
-            logger.warning("Storage not initialized, cannot delete todo embedding")
-            return False
-
-        return self._vector_backend.delete_todo_embedding(todo_id)
-
-    def get_document(self, doc_id: str) -> Optional[DocumentData]:
-        """Get document"""
-        if not self._initialized:
-            logger.error("Unified storage system not initialized")
-            return None
-
-        if not self._document_backend:
-            return None
-        return self._document_backend.get(doc_id)
-
-    def query_documents(
-        self, query: str, limit: int = 10, filters: Optional[Dict[str, Any]] = None
-    ) -> Optional[QueryResult]:
-        """Query documents"""
-        if not self._initialized:
-            logger.error("Unified storage system not initialized")
-            return None
-
-        if not self._document_backend:
-            return None
-        return self._document_backend.query(query, limit, filters)
-
-    def delete_document(self, doc_id: str) -> bool:
-        """Delete document"""
-        if not self._initialized:
-            logger.error("Unified storage system not initialized")
-            return False
-
-        # Try to delete from all backends
-        if self._document_backend:
-            self._document_backend.delete(doc_id)
-            return True
-        return False
 
     def create_conversation(
         self,
