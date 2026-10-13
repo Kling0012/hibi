@@ -37,6 +37,7 @@ import re
 import sqlite3
 import threading
 import time
+import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
 from opencontext.utils.image import calculate_bytes2phash
@@ -357,7 +358,7 @@ class ScreenLiveMonitor:
     def away_end(self, started_at: str, ended_at: str, reason: str = "idle") -> Dict[str, Any]:
         """The user came back: clear the away state and, when the away period
         was at least 60 s, queue one kind='away' event for the sync server
-        (id `away-<device_id>-<started_at>`, so retries upsert the same event).
+        (UUID v5 of `hibi-event:away-<device_id>-<started_at>`, so retries upsert the same event).
         """
         from opencontext.screen_record.sync_outbox import _iso, enqueue_outbox_event
 
@@ -374,7 +375,12 @@ class ScreenLiveMonitor:
         enqueued = False
         try:
             if started is not None and ended is not None and (ended - started).total_seconds() >= 60:
-                event_id = f"away-{self._away_device_id()}-{_iso(started)}"
+                event_id = str(
+                    uuid.uuid5(
+                        uuid.NAMESPACE_URL,
+                        f"hibi-event:away-{self._away_device_id()}-{_iso(started)}",
+                    )
+                )
                 queued_id = enqueue_outbox_event(
                     kind="away",
                     started_at=started,
