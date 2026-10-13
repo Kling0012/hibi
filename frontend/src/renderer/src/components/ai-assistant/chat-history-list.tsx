@@ -1,5 +1,5 @@
-import { FC, MouseEvent } from 'react'
 import logoImage from '@renderer/assets/icons/ai-assistant/logo.png'
+import { FC, MouseEvent } from 'react'
 
 import { ChatHistoryListItem } from './chat-history-list-item'
 export interface ChatHistoryListProps {

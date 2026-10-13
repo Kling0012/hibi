@@ -1,13 +1,13 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import { execSync } from 'node:child_process'
 import * as fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
 import { isLinux, isPortable, isWin } from '@main/constant'
 import { app } from 'electron'
-import { execSync } from 'node:child_process'
 
 // Please don't import any other modules which is not node/electron built-in modules
 

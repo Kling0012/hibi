@@ -83,4 +83,4 @@ class Power {
   }
 }
 const powerWatcher = new Power()
-export { powerWatcher, Power }
+export { Power, powerWatcher }

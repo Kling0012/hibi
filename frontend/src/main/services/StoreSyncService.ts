@@ -1,9 +1,9 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { BrowserWindow, ipcMain } from 'electron'
 import { IpcChannel } from '@shared/IpcChannel'
 import type { StoreSyncAction } from '@types'
+import { BrowserWindow, ipcMain } from 'electron'
 
 function isFSA(a: any): a is { type: string; [k: string]: any } {
   return a && typeof a === 'object' && typeof a.type === 'string'
@@ -19,7 +19,9 @@ export class StoreSyncService {
   private windowIds = new Set<number>()
   private isIpcHandlerRegistered = false
 
-  private constructor() {}
+  private constructor() {
+    // singleton: prevent external instantiation
+  }
 
   public registerIpcHandler(): void {
     if (this.isIpcHandlerRegistered) return

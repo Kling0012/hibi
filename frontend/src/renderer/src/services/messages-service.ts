@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
+
 import axiosInstance from './axiosConfig'
 
 // Type definitions matching the Python Pydantic models

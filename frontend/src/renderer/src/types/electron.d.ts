@@ -1,9 +1,10 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { WindowApiType } from '../../../preload'
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type { WorkSessionResult, WorkSessionState } from '@shared/work-session'
+
+import { WindowApiType } from '../../../preload'
 
 interface ScreenMonitorAPI {
   checkPermissions: () => Promise<boolean>

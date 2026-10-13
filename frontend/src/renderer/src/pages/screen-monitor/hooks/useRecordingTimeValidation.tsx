@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { ApplyToDays } from '@renderer/store/setting'
 import { useMemoizedFn } from 'ahooks'
 import dayjs from 'dayjs'
-import { ApplyToDays } from '@renderer/store/setting'
+import { useEffect, useState } from 'react'
 
 export const useRecordingTimeValidation = (
   enableRecordingHours: boolean,

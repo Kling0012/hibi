@@ -1,14 +1,16 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import { exec, spawn } from 'node:child_process'
+import path from 'node:path'
+import { promisify } from 'node:util'
+
+import { getLogger } from '@shared/logger/main'
 import { app, desktopCapturer, DesktopCapturerSource, systemPreferences } from 'electron'
 import screenshot from 'screenshot-desktop'
-import { exec, spawn } from 'node:child_process'
-import { promisify } from 'node:util'
-import { getLogger } from '@shared/logger/main'
+
 import { FinalWindowInfo, getAllWindows } from './mac-window-manager'
 import { NativeCaptureHelper } from './native-capture-helper'
-import path from 'node:path'
 const logger = getLogger('ScreenshotService')
 
 /**
@@ -53,7 +55,7 @@ class CaptureSourcesTools {
       })
 
       const formattedSources: CaptureSource[] = sources.map((source) => {
-        let displayName = source.name
+        const displayName = source.name
 
         return {
           id: source.id,
@@ -109,7 +111,7 @@ class CaptureSourcesTools {
             .forEach((source) => {
               // Use real app name if available, otherwise fall back to parsing window title
               const realApp = realAppNames.get(source.name)
-              let appName = realApp || source.name.split(' - ')[0]
+              const appName = realApp || source.name.split(' - ')[0]
 
               // Apply Cursor-specific formatting if we know it's actually Cursor
               let displayName = source.name
@@ -447,7 +449,7 @@ class CaptureSourcesTools {
             if (targetWindow && targetWindow.windowId) {
               logger.log(`[Python Capture] Capturing window ${targetWindow.windowId} for app ${appName}`)
               try {
-                const captureResult = await new Promise(async (resolve, reject) => {
+                const captureResult = await new Promise((resolve, reject) => {
                   const basePath = app.isPackaged
                     ? path.join(process.resourcesPath, 'bin', 'window_capture')
                     : path.join(__dirname, '../..', 'externals/python/window_capture/dist', 'window_capture')

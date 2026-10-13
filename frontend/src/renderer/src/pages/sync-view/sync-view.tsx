@@ -3,12 +3,12 @@
 // Pages served by the sync server (timeline / daily report / blog / search),
 // shown inside the app in embed mode so phone, iPad and desktop share one UI.
 
-import { ReactElement, useEffect, useState } from 'react'
 import { Button } from '@arco-design/web-react'
-import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { syncBase, useWorkSession } from '@renderer/hooks/use-work-session'
 import { getResolvedLang } from '@renderer/i18n'
+import { ReactElement, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 
 /** Builds `${server}${path}` with embed=1 and the UI language before the hash. */
 export function embedUrl(base: string, path: string, query: Record<string, string> = {}): string {
@@ -45,11 +45,7 @@ export function SyncUnavailable({ base, reachable }: { base: string; reachable: 
   return (
     <div className="hb-empty">
       <h2>{base ? t('sync.unreachableTitle') : t('sync.notConfiguredTitle')}</h2>
-      <p>
-        {base
-          ? t('sync.unreachableBody', { base })
-          : t('sync.notConfiguredBody')}
-      </p>
+      <p>{base ? t('sync.unreachableBody', { base }) : t('sync.notConfiguredBody')}</p>
       <Button type="primary" onClick={() => navigate('/settings')}>
         {t('sync.openSettings')}
       </Button>

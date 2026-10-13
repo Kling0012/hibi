@@ -1,11 +1,12 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { app, BrowserWindow, Menu, nativeImage, NativeImage, Tray } from 'electron'
-import path from 'path'
-import { getLogger } from '@shared/logger/main'
-import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
 import { tMain } from '@main/i18n'
+import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
+import { getLogger } from '@shared/logger/main'
+import { app, BrowserWindow, Menu, NativeImage, nativeImage, Tray } from 'electron'
+import path from 'path'
+
 import screenshotService from './ScreenshotService'
 
 const logger = getLogger('TrayService')

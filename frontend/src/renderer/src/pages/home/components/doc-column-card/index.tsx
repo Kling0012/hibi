@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { formatRelativeTime } from '@renderer/utils/time'
 import docIcon from '@renderer/assets/icons/doc-icon.svg'
-import { VaultTreeNode } from '@renderer/types'
 import { useNavigation } from '@renderer/hooks/use-navigation'
 import { CardLayout } from '@renderer/pages/home/components/layout'
+import { VaultTreeNode } from '@renderer/types'
+import { formatRelativeTime } from '@renderer/utils/time'
 
 interface DocColumnBoxProps {
   vaultsList: VaultTreeNode[]

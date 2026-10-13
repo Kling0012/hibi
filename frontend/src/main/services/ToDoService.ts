@@ -1,6 +1,7 @@
 import { getLogger } from '@shared/logger/main'
-import { DB } from './Database'
 import dayjs from 'dayjs'
+
+import { DB } from './Database'
 
 const logger = getLogger('ToDoService')
 
@@ -230,12 +231,7 @@ class ToDoService {
    * @param offset Offset for pagination
    * @returns Array of TODO items
    */
-  static getToDosInTimeRange(
-    startFrom: number,
-    startTo: number,
-    limit = 100,
-    offset = 0
-  ): ToDo[] {
+  static getToDosInTimeRange(startFrom: number, startTo: number, limit = 100, offset = 0): ToDo[] {
     return this.queryToDos({
       startTimeFrom: startFrom,
       startTimeTo: startTo,

@@ -1,32 +1,33 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import React, { useState, useEffect, useRef } from 'react'
-import store, { persistor } from '@renderer/store'
-import { Provider } from 'react-redux'
-import { PersistGate } from 'redux-persist/integration/react'
+import '@renderer/assets/main.css'
+import '@renderer/assets/hibi.css'
+import '@renderer/assets/theme/index.less'
+import 'allotment/dist/style.css'
 
 import { ConfigProvider } from '@arco-design/web-react'
 import enUS from '@arco-design/web-react/es/locale/en-US'
 import jaJP from '@arco-design/web-react/es/locale/ja-JP'
 import zhCN from '@arco-design/web-react/es/locale/zh-CN'
-import { useTranslation } from 'react-i18next'
-import '@renderer/assets/main.css'
-import '@renderer/assets/hibi.css'
-import '@renderer/assets/theme/index.less'
-import 'allotment/dist/style.css'
-import LoadingComponent from './components/Loading'
-import { NotificationProvider } from './context/NotificationProvider'
-import Router from './Router'
-import { BackendStatus } from './components/Loading'
-import { CaptureSourcesProvider } from './atom/capture.atom'
-import Settings from './pages/settings/settings'
-import { ServiceProvider, useObservableTask } from './atom/event-loop.atom'
+import store, { persistor } from '@renderer/store'
 import { getLogger } from '@shared/logger/renderer'
 import { useMemoizedFn } from 'ahooks'
 import { get } from 'lodash'
-import axiosInstance from './services/axiosConfig'
+import React, { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Provider } from 'react-redux'
+import { PersistGate } from 'redux-persist/integration/react'
+
+import { CaptureSourcesProvider } from './atom/capture.atom'
+import { ServiceProvider, useObservableTask } from './atom/event-loop.atom'
+import LoadingComponent from './components/Loading'
+import { BackendStatus } from './components/Loading'
+import { NotificationProvider } from './context/NotificationProvider'
 import { normalizeLang } from './i18n'
+import Settings from './pages/settings/settings'
+import Router from './Router'
+import axiosInstance from './services/axiosConfig'
 
 const logger = getLogger('App.tsx')
 const ARCO_LOCALES = { ja: jaJP, en: enUS, zh: zhCN }
@@ -103,7 +104,8 @@ function AppContent(): React.ReactElement {
   useEffect(() => {
     const onMessage = (e: MessageEvent): void => {
       const d = e.data
-      if (d?.hibi !== 'copy-image' || typeof d.dataUrl !== 'string' || !d.dataUrl.startsWith('data:image/png;base64,')) return
+      if (d?.hibi !== 'copy-image' || typeof d.dataUrl !== 'string' || !d.dataUrl.startsWith('data:image/png;base64,'))
+        return
       const fromEmbed = Array.from(document.querySelectorAll('iframe')).some((f) => f.contentWindow === e.source)
       if (!fromEmbed) return
       void fetch(d.dataUrl)

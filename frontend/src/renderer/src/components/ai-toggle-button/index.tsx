@@ -1,8 +1,8 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import React from 'react'
 import { Button, Tooltip } from '@arco-design/web-react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface AIToggleButtonProps {

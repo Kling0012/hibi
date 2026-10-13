@@ -1,14 +1,15 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { app, desktopCapturer, shell, systemPreferences } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
-import { getLogger } from '@shared/logger/main'
+
 import { isDev, isMac } from '@main/constant'
 import { getCacheDir } from '@main/utils/file'
 import { CaptureSourcesTools } from '@main/utils/get-capture-sources'
+import { getLogger } from '@shared/logger/main'
 import dayjs, { Dayjs } from 'dayjs'
+import { app, desktopCapturer, shell, systemPreferences } from 'electron'
 import { get } from 'lodash'
 
 const logger = getLogger('ScreenshotService')

@@ -3,25 +3,27 @@
 // Home: declare work, see today at a glance (work time, recording state,
 // today's lanes from the sync server), plus todos and tips.
 
-import React, { ReactElement, useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import './home-page.css'
+
+import AIAssistant from '@renderer/components/ai-assistant'
+import AIToggleButton from '@renderer/components/ai-toggle-button'
+import { WorkSessionPanel } from '@renderer/components/WorkSessionPanel'
+import { useAllotment } from '@renderer/hooks/use-allotment'
+import { formatMinutes, syncBase, useWorkSession } from '@renderer/hooks/use-work-session'
+import { getResolvedLang } from '@renderer/i18n'
+import axiosInstance from '@renderer/services/axiosConfig'
+import { RootState, useAppDispatch } from '@renderer/store'
+import { setActiveConversationId, toggleHomeAiAssistant } from '@renderer/store/chat-history'
+import { useMemoizedFn, useUnmount } from 'ahooks'
 import { Allotment } from 'allotment'
 import { get } from 'lodash'
-import { useMemoizedFn, useUnmount } from 'ahooks'
+import React, { ReactElement, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import './home-page.css'
-import { useAllotment } from '@renderer/hooks/use-allotment'
-import AIToggleButton from '@renderer/components/ai-toggle-button'
-import AIAssistant from '@renderer/components/ai-assistant'
-import { WorkSessionPanel } from '@renderer/components/WorkSessionPanel'
-import { ProactiveFeedCard } from './components/proactive-feed-card'
-import { setActiveConversationId, toggleHomeAiAssistant } from '@renderer/store/chat-history'
-import { RootState, useAppDispatch } from '@renderer/store'
-import axiosInstance from '@renderer/services/axiosConfig'
-import { formatMinutes, syncBase, useWorkSession } from '@renderer/hooks/use-work-session'
+import { useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+
 import { embedUrl, useServerReachable } from '../sync-view/sync-view'
-import { getResolvedLang } from '@renderer/i18n'
+import { ProactiveFeedCard } from './components/proactive-feed-card'
 
 const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Tokyo'
 
@@ -130,9 +132,7 @@ const TodayCard = ({ base, reachable }: { base: string; reachable: boolean | nul
         <div className="hb-stat">
           <span className="k">{t('home.aiWork')}</span>
           <span className="v small">
-            {stat
-              ? `${formatMinutes(stat.ai_active_minutes)}${t('home.countItems', { count: stat.ai_work })}`
-              : '—'}
+            {stat ? `${formatMinutes(stat.ai_active_minutes)}${t('home.countItems', { count: stat.ai_work })}` : '—'}
           </span>
         </div>
         <div className="hb-stat">
@@ -153,7 +153,17 @@ const TodayCard = ({ base, reachable }: { base: string; reachable: boolean | nul
 }
 
 /** A part of the sync server's page (`only=lanes|todos`), sized to its content. */
-const ServerPart = ({ base, only, title, minHeight }: { base: string; only: string; title: string; minHeight: number }): ReactElement => {
+const ServerPart = ({
+  base,
+  only,
+  title,
+  minHeight
+}: {
+  base: string
+  only: string
+  title: string
+  minHeight: number
+}): ReactElement => {
   const [height, setHeight] = useState(minHeight)
   useEffect(() => {
     const onMessage = (e: MessageEvent): void => {
@@ -164,12 +174,7 @@ const ServerPart = ({ base, only, title, minHeight }: { base: string; only: stri
     return () => window.removeEventListener('message', onMessage)
   }, [only])
   return (
-    <iframe
-      className="hb-lanes-frame"
-      style={{ height }}
-      src={embedUrl(base, '/ui/#today', { only })}
-      title={title}
-    />
+    <iframe className="hb-lanes-frame" style={{ height }} src={embedUrl(base, '/ui/#today', { only })} title={title} />
   )
 }
 

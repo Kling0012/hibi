@@ -1,24 +1,25 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useCallback, useMemo } from 'react'
-import { debounce } from 'lodash'
+import './vault.css'
+
 import { Card, Spin } from '@arco-design/web-react'
-import { useSearchParams } from 'react-router-dom'
-import { useVaults } from '@renderer/hooks/use-vault'
-import { useTranslation } from 'react-i18next'
+import AIAssistant from '@renderer/components/ai-assistant'
+import AIToggleButton from '@renderer/components/ai-toggle-button'
 import MarkdownEditor from '@renderer/components/markdown-editor'
 import StatusBar from '@renderer/components/status-bar/StatusBar'
-import { Allotment } from 'allotment'
 import { useAllotment } from '@renderer/hooks/use-allotment'
-import AIToggleButton from '@renderer/components/ai-toggle-button'
-import AIAssistant from '@renderer/components/ai-assistant'
-import { removeMarkdownSymbols } from '@renderer/utils/vault'
-import './vault.css'
-import { useSelector } from 'react-redux'
+import { useVaults } from '@renderer/hooks/use-vault'
 import { RootState, useAppDispatch } from '@renderer/store'
 import { setActiveConversationId, toggleCreationAiAssistant } from '@renderer/store/chat-history'
+import { removeMarkdownSymbols } from '@renderer/utils/vault'
 import { useUnmount } from 'ahooks'
+import { Allotment } from 'allotment'
+import { debounce } from 'lodash'
+import { useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useSelector } from 'react-redux'
+import { useSearchParams } from 'react-router-dom'
 
 const VaultPage = () => {
   const { t } = useTranslation()

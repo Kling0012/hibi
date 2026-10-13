@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ElectronAPI } from '@electron-toolkit/preload'
+import type { WorkSessionResult, WorkSessionState } from '@shared/work-session'
 
 import type { WindowApiType } from './index'
-import type { WorkSessionResult, WorkSessionState } from '@shared/work-session'
 
 declare global {
   interface Window {

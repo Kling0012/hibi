@@ -1,29 +1,29 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { Dropdown, Menu, Space, Typography, Input, Message } from '@arco-design/web-react'
-import { Tree, NodeRendererProps } from 'react-arborist'
-
-import { useVaults } from '@renderer/hooks/use-vault'
-import { useNavigation } from '@renderer/hooks/use-navigation'
-import { useTranslation } from 'react-i18next'
-import { VaultTreeNode } from '@renderer/types'
-import folderStrokedIcon from '/src/assets/icons/folder-stroked.svg'
-import folderOpenIcon from '/src/assets/icons/folder-open.svg'
-import fileIcon from '/src/assets/icons/file.svg'
-import addIcon from '/src/assets/icons/add.svg'
-import deleteIcon from '/src/assets/icons/delete.svg'
-import renameIcon from '/src/assets/icons/rename.svg'
-import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
-import { useEvents } from '@renderer/hooks/use-events'
+import { Dropdown, Input, Menu, Message, Space, Typography } from '@arco-design/web-react'
 import { PushDataTypes } from '@renderer/constant/feed'
-import { get } from 'lodash'
-import { useMemoizedFn, useMount, useRequest } from 'ahooks'
-import PQueue from 'p-queue'
+import { useEvents } from '@renderer/hooks/use-events'
+import { useNavigation } from '@renderer/hooks/use-navigation'
+import { useVaults } from '@renderer/hooks/use-vault'
+import { VaultTreeNode } from '@renderer/types'
 import { VaultDocumentType, VaultTitle } from '@shared/enums/global-enum'
 import { getLogger } from '@shared/logger/renderer'
-import dayjs from 'dayjs'
+import { useMemoizedFn, useMount, useRequest } from 'ahooks'
 import clsx from 'clsx'
+import dayjs from 'dayjs'
+import { get } from 'lodash'
+import PQueue from 'p-queue'
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
+import { NodeRendererProps, Tree } from 'react-arborist'
+import { useTranslation } from 'react-i18next'
+
+import addIcon from '/src/assets/icons/add.svg'
+import deleteIcon from '/src/assets/icons/delete.svg'
+import fileIcon from '/src/assets/icons/file.svg'
+import folderOpenIcon from '/src/assets/icons/folder-open.svg'
+import folderStrokedIcon from '/src/assets/icons/folder-stroked.svg'
+import renameIcon from '/src/assets/icons/rename.svg'
 
 const queue = new PQueue({ concurrency: 2 })
 const { Text, Ellipsis } = Typography

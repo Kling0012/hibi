@@ -6,8 +6,9 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { app } from 'electron'
+
 import { getLogger } from '@shared/logger/main'
+import { app } from 'electron'
 
 const logger = getLogger('MainI18n')
 
@@ -93,8 +94,7 @@ export function initMainLanguage(): void {
   } catch {
     stored = undefined // no file (first run) or unreadable: use the OS locale
   }
-  currentLang =
-    stored === 'ja' || stored === 'en' || stored === 'zh' ? stored : resolveAutoMainLang(app.getLocale())
+  currentLang = stored === 'ja' || stored === 'en' || stored === 'zh' ? stored : resolveAutoMainLang(app.getLocale())
   logger.info(`main language: ${currentLang}`)
 }
 

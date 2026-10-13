@@ -4,10 +4,12 @@
 // src/main/lib/logger/init.ts
 
 import path from 'node:path'
-import { app } from 'electron'
-import log from 'electron-log/main'
+
 import { is } from '@electron-toolkit/utils'
 import dayjs from 'dayjs'
+import { app } from 'electron'
+import log from 'electron-log/main'
+
 import { type Json, redact } from './redact'
 
 /**

@@ -1,21 +1,21 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useCallback, useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
 import { RootState, useAppDispatch } from '@renderer/store'
 import {
-  initVaultsThunk,
   addVaultThunk,
+  createFolderThunk,
   deleteVaultThunk,
-  updateVaultThunk,
-  updateVaultPositionThunk,
+  initVaultsThunk,
   renameVaultThunk,
-  createFolderThunk
+  updateVaultPositionThunk,
+  updateVaultThunk
 } from '@renderer/store/thunk/vault-thunk'
 import { Vault, VaultTreeNode } from '@renderer/types'
-import { findNodeById, findParentNodeById, collectAllNodeIds, getNodePath, traverseNodes } from '@renderer/utils/vault'
+import { collectAllNodeIds, findNodeById, findParentNodeById, getNodePath, traverseNodes } from '@renderer/utils/vault'
 import { getLogger } from '@shared/logger/renderer'
+import { useCallback, useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
 
 const logger = getLogger('useVaults')
 

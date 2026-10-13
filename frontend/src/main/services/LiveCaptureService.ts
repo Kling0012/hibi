@@ -7,10 +7,10 @@
 // get-windows. Everything is fail-soft: a failed capture or upload is
 // logged and skipped; the loop keeps running.
 
-import { desktopCapturer, systemPreferences } from 'electron'
-import axios from 'axios'
 import { getBackendPort } from '@main/backend'
 import { getLogger } from '@shared/logger/main'
+import axios from 'axios'
+import { desktopCapturer, systemPreferences } from 'electron'
 
 const logger = getLogger('LiveCaptureService')
 

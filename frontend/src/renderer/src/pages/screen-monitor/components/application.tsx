@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { FC } from 'react'
 import { Button } from '@arco-design/web-react'
 import screenIcon from '@renderer/assets/icons/screen.svg'
 import clsx from 'clsx'
+import { FC } from 'react'
 export interface ApplicationProps {
   value?: any[]
   onCancel?: () => void

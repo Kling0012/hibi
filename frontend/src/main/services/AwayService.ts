@@ -2,10 +2,12 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { app, powerMonitor } from 'electron'
-import axios from 'axios'
+
 import { getBackendPort } from '@main/backend'
 import { getLogger } from '@shared/logger/main'
+import axios from 'axios'
+import { app, powerMonitor } from 'electron'
+
 import liveCaptureService from './LiveCaptureService'
 
 const logger = getLogger('AwayService')

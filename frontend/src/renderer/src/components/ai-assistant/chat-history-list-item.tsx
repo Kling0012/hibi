@@ -1,12 +1,11 @@
-import { FC, useState, MouseEvent } from 'react'
-
-import { Typography, Trigger, Modal, Form, Input } from '@arco-design/web-react'
+import { Form, Input, Modal, Trigger, Typography } from '@arco-design/web-react'
 import { IconDelete, IconMore } from '@arco-design/web-react/icon'
-import { useMemoizedFn, useRequest } from 'ahooks'
-import { conversationService } from '@renderer/services/conversation-service'
 import chatHistoryIcon from '@renderer/assets/icons/ai-assistant/chat-history.svg'
 import renameIcon from '@renderer/assets/icons/rename.svg'
+import { conversationService } from '@renderer/services/conversation-service'
+import { useMemoizedFn, useRequest } from 'ahooks'
 import clsx from 'clsx'
+import { FC, MouseEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 export interface ChatHistoryListItemProps {
   conversation: any

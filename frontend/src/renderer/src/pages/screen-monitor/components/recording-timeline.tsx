@@ -1,11 +1,12 @@
+import { Timeline, Typography } from '@arco-design/web-react'
+import { formatTime } from '@renderer/utils/time'
+import dayjs from 'dayjs'
 import React from 'react'
-import { Typography, Timeline } from '@arco-design/web-react'
 import { useTranslation } from 'react-i18next'
+
 import { Activity } from '../screen-monitor'
 import { ActivityTimelineItem } from './activitie-timeline-item'
-import { formatTime } from '@renderer/utils/time'
 import RecordingStatsCard, { RecordingStats } from './recording-stats-card'
-import dayjs from 'dayjs'
 
 const { Text } = Typography
 const TimelineItem = Timeline.Item

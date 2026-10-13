@@ -1,17 +1,18 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { app, dialog, BrowserWindow } from 'electron'
-import fs from 'fs'
-import path from 'path'
-// import os from 'os'
-import { spawn } from 'child_process'
-import http from 'http'
-import net from 'net'
-import { isPackaged, actuallyDev, serverRunInFrontend, getResourcesPath } from './utils/env'
-import { IpcChannel } from '@shared/IpcChannel'
 import { is } from '@electron-toolkit/utils'
 import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
+import { IpcChannel } from '@shared/IpcChannel'
+// import os from 'os'
+import { spawn } from 'child_process'
+import { app, BrowserWindow, dialog } from 'electron'
+import fs from 'fs'
+import http from 'http'
+import net from 'net'
+import path from 'path'
+
+import { actuallyDev, getResourcesPath, isPackaged, serverRunInFrontend } from './utils/env'
 
 let backendLogFile: string | null = null
 let backendProcess: any = null
@@ -89,12 +90,7 @@ async function findAvailablePort(startPort: number = 1733, maxAttempts: number =
 // The backend service supports health checks
 // @ts-expect-error Ignore type error
 async function checkBackendHealth(options: HealthCheckOptions = {}) {
-  const {
-    port = backendPort,
-    maxRetries = 20,
-    retryDelayMs = 1000,
-    requestTimeoutMs = 5000
-  } = options
+  const { port = backendPort, maxRetries = 20, retryDelayMs = 1000, requestTimeoutMs = 5000 } = options
 
   for (let i = 0; i < maxRetries; i++) {
     try {

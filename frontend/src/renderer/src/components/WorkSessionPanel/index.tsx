@@ -5,11 +5,11 @@
 // shortcuts. All actions go through the workSessionAPI exposed by the preload
 // script; the main process owns the logic and pushes state changes.
 
-import { useCallback, useState } from 'react'
 import { Button, Input } from '@arco-design/web-react'
-import { useTranslation } from 'react-i18next'
 import { formatElapsed, useNow, useWorkSession } from '@renderer/hooks/use-work-session'
 import { getResolvedLang } from '@renderer/i18n'
+import { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const clock = (iso: string): string =>
   new Date(iso).toLocaleTimeString(getResolvedLang() === 'en' ? 'en-GB' : getResolvedLang(), {
@@ -25,48 +25,42 @@ export function WorkSessionPanel() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
-  const submit = useCallback(
-    async (): Promise<void> => {
-      if (busy) return
-      const value = title.trim()
-      if (!value) {
-        setMessage({ kind: 'err', text: t('declare.noTitle') })
-        return
+  const submit = useCallback(async (): Promise<void> => {
+    if (busy) return
+    const value = title.trim()
+    if (!value) {
+      setMessage({ kind: 'err', text: t('declare.noTitle') })
+      return
+    }
+    setBusy(true)
+    setMessage(null)
+    try {
+      const result = await window.workSessionAPI.declare(value)
+      if (result.ok) {
+        setTitle('')
+      } else {
+        setMessage({ kind: 'err', text: result.error ?? t('declare.declareFailed') })
       }
-      setBusy(true)
-      setMessage(null)
-      try {
-        const result = await window.workSessionAPI.declare(value)
-        if (result.ok) {
-          setTitle('')
-        } else {
-          setMessage({ kind: 'err', text: result.error ?? t('declare.declareFailed') })
-        }
-      } finally {
-        setBusy(false)
-      }
-    },
-    [busy, title, t]
-  )
+    } finally {
+      setBusy(false)
+    }
+  }, [busy, title, t])
 
-  const endActive = useCallback(
-    async (): Promise<void> => {
-      if (busy) return
-      setBusy(true)
-      setMessage(null)
-      try {
-        const result = await window.workSessionAPI.endActive()
-        setMessage(
-          result.ok
-            ? { kind: 'ok', text: t('declare.ended') }
-            : { kind: 'err', text: result.error ?? t('declare.endFailed') }
-        )
-      } finally {
-        setBusy(false)
-      }
-    },
-    [busy, t]
-  )
+  const endActive = useCallback(async (): Promise<void> => {
+    if (busy) return
+    setBusy(true)
+    setMessage(null)
+    try {
+      const result = await window.workSessionAPI.endActive()
+      setMessage(
+        result.ok
+          ? { kind: 'ok', text: t('declare.ended') }
+          : { kind: 'err', text: result.error ?? t('declare.endFailed') }
+      )
+    } finally {
+      setBusy(false)
+    }
+  }, [busy, t])
 
   const canDeclare = Boolean(state?.ready && state.enabled && state.connected) && !busy
   const active = state?.active ?? null

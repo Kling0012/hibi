@@ -4,8 +4,8 @@
 // electron/main/taskQueueManager.ts
 import Database from 'better-sqlite3'
 import { BrowserWindow } from 'electron'
-import { Worker } from 'worker_threads'
 import path from 'path'
+import { Worker } from 'worker_threads'
 
 export class TaskQueueManager {
   private db: Database.Database

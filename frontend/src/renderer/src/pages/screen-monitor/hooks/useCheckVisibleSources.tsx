@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useMemoizedFn } from 'ahooks'
-import { useRef } from 'react'
-import dayjs from 'dayjs'
 import { CaptureSource } from '@interface/common/source'
+import { useMemoizedFn } from 'ahooks'
+import dayjs from 'dayjs'
+import { useRef } from 'react'
 const VISIBILITY_CHECK_INTERVAL = 2000
 
 const useCheckVisibleSources = () => {

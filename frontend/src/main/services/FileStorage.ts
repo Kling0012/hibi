@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { getLogger } from '@shared/logger/main'
 import { tMain } from '@main/i18n'
 import { getFilesDir, getFileType, getTempDir } from '@main/utils/file'
 import { imageExts, MB } from '@shared/config/constant'
+import { getLogger } from '@shared/logger/main'
 import { FileMetadata } from '@types'
 import * as crypto from 'crypto'
 import {

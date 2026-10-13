@@ -1,12 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { Modal, Image, Form, Message } from '@arco-design/web-react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { useSetting } from '@renderer/hooks/use-setting'
-import { useScreen } from '@renderer/hooks/use-screen'
-import dayjs from 'dayjs'
-
-import { useMemoizedFn, useMount } from 'ahooks'
+import { Form, Image, Message, Modal } from '@arco-design/web-react'
+import { CaptureSource } from '@interface/common/source'
 import {
   appStore,
   loadableCaptureSourcesAtom,
@@ -14,20 +7,27 @@ import {
   refreshCaptureSourcesAtom,
   refreshCaptureSourcesFromSettingsAtom
 } from '@renderer/atom/capture.atom'
-import { get } from 'lodash'
-import { useAtomValue } from 'jotai'
 import { useObservableTask } from '@renderer/atom/event-loop.atom'
+import { useScreen } from '@renderer/hooks/use-screen'
+import { useSetting } from '@renderer/hooks/use-setting'
+import axiosInstance from '@renderer/services/axiosConfig'
+import { IpcChannel } from '@shared/IpcChannel'
+import { getLogger } from '@shared/logger/renderer'
+import { useMemoizedFn, useMount } from 'ahooks'
+import dayjs from 'dayjs'
+import { useAtomValue } from 'jotai'
+import { get } from 'lodash'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useLocation, useNavigate } from 'react-router-dom'
+
+import DateNavigation from './components/date-navigation'
+import EmptyStatePlaceholder from './components/empty-state-placeholder'
+import type { RecordingStats } from './components/recording-stats-card'
+import RecordingTimeline from './components/recording-timeline'
 // Extracted components
 import ScreenMonitorHeader from './components/screen-monitor-header'
-import DateNavigation from './components/date-navigation'
-import RecordingTimeline from './components/recording-timeline'
-import EmptyStatePlaceholder from './components/empty-state-placeholder'
 import SettingsModal from './components/settings-modal'
-import { getLogger } from '@shared/logger/renderer'
-import { IpcChannel } from '@shared/IpcChannel'
-import type { RecordingStats } from './components/recording-stats-card'
-import { CaptureSource } from '@interface/common/source'
-import axiosInstance from '@renderer/services/axiosConfig'
 
 const logger = getLogger('ScreenMonitor')
 
@@ -539,7 +539,9 @@ const ScreenMonitor: React.FC = () => {
               onSetCurrentDate={setCurrentDate}
               disabledDate={disabledDate}
             />
-            {((isMonitoring || awaySince) && isToday) || activities.length > 0 || Object.keys(screenshots).length > 0 ? (
+            {((isMonitoring || awaySince) && isToday) ||
+            activities.length > 0 ||
+            Object.keys(screenshots).length > 0 ? (
               <RecordingTimeline
                 isMonitoring={isMonitoring}
                 isToday={isToday}

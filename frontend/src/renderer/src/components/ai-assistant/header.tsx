@@ -1,13 +1,14 @@
-import { FC, useState, MouseEvent } from 'react'
+import { Button, Divider, Popover, Space } from '@arco-design/web-react'
+import { IconClose } from '@arco-design/web-react/icon'
 import addChatIcon from '@renderer/assets/icons/ai-assistant/add-chat.svg'
 import chatHistoryIcon from '@renderer/assets/icons/ai-assistant/chat-history.svg'
-import { Button, Space, Divider, Popover } from '@arco-design/web-react'
-import { IconClose } from '@arco-design/web-react/icon'
-import { useMemoizedFn, useRequest } from 'ahooks'
-import { useTranslation } from 'react-i18next'
 import { conversationService } from '@renderer/services/conversation-service'
-import { ChatHistoryList } from './chat-history-list'
+import { useMemoizedFn, useRequest } from 'ahooks'
 import clsx from 'clsx'
+import { FC, MouseEvent, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+
+import { ChatHistoryList } from './chat-history-list'
 export interface AIAssistantHeaderProps {
   onClose: () => void
   startNewConversation: () => void

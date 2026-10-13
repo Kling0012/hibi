@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
-import { ipcRenderer } from 'electron'
 import { getLogger } from '@shared/logger/main'
+import { ipcRenderer } from 'electron'
 const logger = getLogger('ServerPushAPI')
 
 export const serverPushAPI = {
