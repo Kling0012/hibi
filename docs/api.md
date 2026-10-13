@@ -87,7 +87,7 @@ nav_order: 8
 | メソッド | パス | 内容 |
 |---|---|---|
 | GET | `/v1/todos` | 一覧（`status=open|done|all`, `limit?`）→ `{todos: [...]}`。open は急ぎの順・新しい順 |
-| POST | `/v1/todos` | 追加（`title`, `note?`, `urgency?`(`high`/`medium`/`low`), `due_date?`, `source?`(`me`/`auto`), `evidence?`, `device_id?`）。`auto` は似た ToDo があれば作らず、既存のものに `deduped: true` を付けて返す |
+| POST | `/v1/todos` | 追加（`title`, `note?`, `urgency?`(`high`/`medium`/`low`), `due_date?`, `evidence?`, `device_id?`）。ToDo の自動作成はしないので、`source` は `me` だけを受け付ける |
 | PATCH | `/v1/todos/{id}` | 直す・完了にする（`title` / `note` / `urgency` / `due_date` / `status`(`open`/`done`)） |
 | DELETE | `/v1/todos/{id}` | 削除（`archived` にする） |
 | GET | `/v1/todos/{id}/entries` | 計上した時間の一覧 |
