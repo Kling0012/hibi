@@ -4,6 +4,7 @@
 import dayjs from 'dayjs'
 import isBetween from 'dayjs/plugin/isBetween'
 import utc from 'dayjs/plugin/utc'
+import i18n from '@renderer/i18n'
 dayjs.extend(isBetween)
 dayjs.extend(utc)
 
@@ -34,7 +35,7 @@ export const formatRelativeTime = (dateString: string): string => {
   const diffInMinutes = now.diff(time, 'minute')
 
   if (diffInMinutes < 1) {
-    return 'Just now'
+    return i18n.t('time.justNow')
   }
 
   // Calculate the difference in days
@@ -47,16 +48,16 @@ export const formatRelativeTime = (dateString: string): string => {
 
   // If it's more than 24 hours but less than 7 days, display as N days ago
   if (days > 0) {
-    return `${days} day${days > 1 ? 's' : ''} ago`
+    return i18n.t('time.daysAgo', { count: days })
   }
 
   const hours = Math.floor(diffInMinutes / 60)
   const minutes = diffInMinutes % 60
 
   if (hours > 0) {
-    return `${hours}h ago`
+    return i18n.t('time.hoursAgo', { count: hours })
   } else {
-    return `${minutes}m ago`
+    return i18n.t('time.minutesAgo', { count: minutes })
   }
 }
 

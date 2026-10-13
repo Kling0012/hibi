@@ -7,6 +7,7 @@ import { Notification } from '@renderer/types/notification'
 import { addEvent } from '@renderer/store/events'
 import { removeMarkdownSymbols } from '@renderer/utils/time'
 import { PushDataTypes } from '@renderer/constant/feed'
+import i18n from '@renderer/i18n'
 import { getLogger } from '@shared/logger/renderer'
 const logger = getLogger('GlobalEventService')
 const NORMAL_POLLING_INTERVAL = 30 * 1000 // Normal: 30 seconds
@@ -84,7 +85,7 @@ class GlobalEventService {
         id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         type: this.mapEventTypeToNotificationType(event.type),
         title: this.getEventTitle(event),
-        message: removeMarkdownSymbols(event.data.title || '有新的事件通知'),
+        message: removeMarkdownSymbols(event.data.title || i18n.t('globalEvent.newEvent')),
         timestamp: Date.now(),
         source: 'assistant', // Can be set based on the event source
         channel: 'in-app',
@@ -112,14 +113,14 @@ class GlobalEventService {
   // Get event title
   private getEventTitle(event: any): string {
     const titleMap: Record<string, string> = {
-      tip: '提示信息',
-      todo: '待办事项',
-      activity: '活动通知',
-      daily_summary: '每日总结',
-      weekly_summary: '每周总结',
-      system_status: '系统状态'
+      tip: i18n.t('globalEvent.tip'),
+      todo: i18n.t('globalEvent.todo'),
+      activity: i18n.t('globalEvent.activity'),
+      daily_summary: i18n.t('globalEvent.dailySummary'),
+      weekly_summary: i18n.t('globalEvent.weeklySummary'),
+      system_status: i18n.t('globalEvent.systemStatus')
     }
-    return titleMap[event.type] || '新通知'
+    return titleMap[event.type] || i18n.t('globalEvent.newNotification')
   }
 }
 

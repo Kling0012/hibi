@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { getLogger } from '@shared/logger/main'
+import { tMain } from '@main/i18n'
 import { getFilesDir, getFileType, getTempDir } from '@main/utils/file'
 import { imageExts, MB } from '@shared/config/constant'
 import { FileMetadata } from '@types'
@@ -396,9 +397,9 @@ class FileStorage {
   ): Promise<{ fileName: string; filePath: string; content?: Buffer; size: number } | null> => {
     try {
       const result: OpenDialogReturnValue = await dialog.showOpenDialog({
-        title: '打开文件',
+        title: tMain('dialog.openFile'),
         properties: ['openFile'],
-        filters: [{ name: '所有文件', extensions: ['*'] }],
+        filters: [{ name: tMain('dialog.allFiles'), extensions: ['*'] }],
         ...options
       })
 
@@ -449,7 +450,7 @@ class FileStorage {
   ): Promise<string> => {
     try {
       const result: SaveDialogReturnValue = await dialog.showSaveDialog({
-        title: '保存文件',
+        title: tMain('dialog.saveFile'),
         defaultPath: fileName,
         ...options
       })
@@ -488,7 +489,7 @@ class FileStorage {
   public selectFolder = async (_: Electron.IpcMainInvokeEvent, options: OpenDialogOptions): Promise<string | null> => {
     try {
       const result: OpenDialogReturnValue = await dialog.showOpenDialog({
-        title: '选择文件夹',
+        title: tMain('dialog.selectFolder'),
         properties: ['openDirectory'],
         ...options
       })

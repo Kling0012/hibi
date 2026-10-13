@@ -36,6 +36,7 @@ import { activityService } from './services/ActivityService'
 import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
 import { VaultDocumentType } from '@shared/enums/global-enum'
 import { getTrayService } from './index'
+import { setMainLanguage } from './i18n'
 import { type Dayjs } from 'dayjs'
 import AppUpdater from './services/AppUpdater'
 import { HeatmapService } from './services/HeatmapService'
@@ -91,6 +92,17 @@ export function registerIpc(mainWindow: BrowserWindow, app: Electron.App) {
 
   ipcMain.handle(IpcChannel.App_Reload, () => mainWindow.reload())
   ipcMain.handle(IpcChannel.Open_Website, (_, url: string) => shell.openExternal(url))
+  // UI language preference from the renderer: persist it and rebuild tray texts.
+  // Fail-soft: unknown values are ignored; a missing tray just skips the rebuild.
+  ipcMain.handle(IpcChannel.App_SetLanguage, (_, lang: unknown) => {
+    if (lang !== 'ja' && lang !== 'en' && lang !== 'zh') return
+    setMainLanguage(lang)
+    try {
+      getTrayService()?.onLanguageChanged()
+    } catch (error) {
+      logger.warn('rebuilding tray after language change failed:', error)
+    }
+  })
   // check for update
   ipcMain.handle(IpcChannel.App_CheckForUpdate, async () => {
     return await appUpdater.checkForUpdates()

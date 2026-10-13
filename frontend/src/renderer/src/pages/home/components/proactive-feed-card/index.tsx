@@ -7,6 +7,7 @@ import { Message } from '@arco-design/web-react'
 import { IconClose } from '@arco-design/web-react/icon'
 import dayjs from 'dayjs'
 import removeMarkdown from 'remove-markdown'
+import { useTranslation } from 'react-i18next'
 import { FeedEvent, useEvents } from '@renderer/hooks/use-events'
 import { ProactiveFeedModal } from '@renderer/components/proactive-feed-modal'
 import { formatRelativeTime } from '@renderer/utils/time'
@@ -27,6 +28,7 @@ interface FeedCardProps {
 
 const ProactiveFeedCardItem: FC<FeedCardProps> = (props) => {
   const { id, feedType, time, desc, doc_content, doc_id } = props
+  const { t } = useTranslation()
   // const isDocument =
   //   feedType === PushDataTypes.DAILY_SUMMARY_GENERATED || feedType === PushDataTypes.WEEKLY_SUMMARY_GENERATED
   // const { navigateToVault } = useNavigation()
@@ -47,22 +49,22 @@ const ProactiveFeedCardItem: FC<FeedCardProps> = (props) => {
     }
   }
 
-  const [eventIcon, eventTitle] = useMemo(() => {
+  const [eventIcon, eventTitleKey] = useMemo(() => {
     switch (feedType) {
       case PushDataTypes.TIP_GENERATED:
-        return ['💡', 'Tip']
+        return ['💡', 'feed.tip']
       case PushDataTypes.DAILY_SUMMARY_GENERATED:
-        return ['👋', 'Daily Summary']
+        return ['👋', 'feed.dailySummary']
       case PushDataTypes.WEEKLY_SUMMARY_GENERATED:
-        return ['🌟', 'Weekly Summary']
+        return ['🌟', 'feed.weeklySummary']
       default:
-        return ['🔔', 'New Notification']
+        return ['🔔', 'feed.notification']
     }
   }, [feedType])
 
   const handleRemoveEvent = (id: string) => {
     removeEvent(id)
-    Message.success('insight deleted')
+    Message.success(t('feed.deleted'))
   }
 
   return (
@@ -72,7 +74,9 @@ const ProactiveFeedCardItem: FC<FeedCardProps> = (props) => {
         <div className="flex flex-col items-start gap-1 w-full">
           <div className="flex justify-between items-center w-full">
             <div className="flex gap-2 items-center flex-1">
-              <div className="text-black font-['Roboto'] text-[13px] leading-[22px] font-medium">{eventTitle}</div>
+              <div className="text-black font-['Roboto'] text-[13px] leading-[22px] font-medium">
+                {t(eventTitleKey)}
+              </div>
             </div>
             <div className="text-[var(--text-color-text-3,#6E718C)] font-['Roboto'] text-xs font-normal leading-5 group-hover:hidden">
               {formatRelativeTime(time)}
@@ -102,7 +106,7 @@ const ProactiveFeedCardItem: FC<FeedCardProps> = (props) => {
                 <img src={chatIcon} alt="chat icon" />
               </div>
               <div className="text-[var(--text-color-text-3,#5252FF)] font-['Roboto'] text-xs font-normal leading-5">
-                {feedType === PushDataTypes.DAILY_SUMMARY_GENERATED ? 'View' : 'Check'}
+                {feedType === PushDataTypes.DAILY_SUMMARY_GENERATED ? t('feed.view') : t('feed.check')}
               </div>
             </div>
           </div>
@@ -120,6 +124,7 @@ const ProactiveFeedCardItem: FC<FeedCardProps> = (props) => {
 
 const ProactiveFeedCard: React.FC = ({}) => {
   const { feedEvents } = useEvents()
+  const { t } = useTranslation()
   const transferType = (event: FeedEvent): FeedCardProps => {
     return {
       id: event.id,
@@ -135,7 +140,7 @@ const ProactiveFeedCard: React.FC = ({}) => {
   const isEmpty = sortedEventsList.length === 0
   return (
     <div className="flex w-full flex-col items-start gap-3 self-stretch rounded-[14px] border border-[#e6e8ee] bg-white p-4 h-[460px]">
-      <div className="text-sm font-semibold text-[#667085]">ヒント</div>
+      <div className="text-sm font-semibold text-[#667085]">{t('feed.title')}</div>
       <div
         className={`flex flex-col item-center ${!isEmpty && 'items-start'} gap-[6px] flex-1 self-stretch min-h-0 overflow-y-auto`}>
         {!isEmpty ? (
@@ -144,7 +149,7 @@ const ProactiveFeedCard: React.FC = ({}) => {
           <div className="flex flex-col items-center justify-center mt-14 gap-[8px]">
             <img src={feedEmptyIcon} alt="empty icon" />
             <div className="max-w-[280px] text-center text-[#6E718C] font-roboto text-[12px] font-normal leading-[20px] tracking-[0.036px]">
-              記録から気づいたことがここに届きます
+              {t('feed.empty')}
             </div>
           </div>
         )}

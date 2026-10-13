@@ -3,6 +3,7 @@
 
 import '@arco-design/web-react/es/_util/react-19-adapter'
 import { createRoot } from 'react-dom/client'
+import '@renderer/i18n'
 import App from './App'
 
 createRoot(document.getElementById('root')!).render(<App />)

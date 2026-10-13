@@ -6,6 +6,7 @@ import { Tree, NodeRendererProps } from 'react-arborist'
 
 import { useVaults } from '@renderer/hooks/use-vault'
 import { useNavigation } from '@renderer/hooks/use-navigation'
+import { useTranslation } from 'react-i18next'
 import { VaultTreeNode } from '@renderer/types'
 import folderStrokedIcon from '/src/assets/icons/folder-stroked.svg'
 import folderOpenIcon from '/src/assets/icons/folder-open.svg'
@@ -32,6 +33,7 @@ const Node = ({ node, dragHandle }: NodeRendererProps<VaultTreeNode>) => {
   const isFolder = node.data.is_folder === 1
   const { deleteVault, createFolder, addVault, getVaultPath } = useVaults()
   const { navigateToVault, isVaultActive } = useNavigation()
+  const { t } = useTranslation()
   const [visible, setVisible] = useState(false)
   const [isFolderHover, setIsFolderHover] = useState(false)
 
@@ -46,7 +48,7 @@ const Node = ({ node, dragHandle }: NodeRendererProps<VaultTreeNode>) => {
         } else if (key === 'new-folder') {
           const path = getVaultPath(node.data.id)
           if (path && path.length >= 6) {
-            Message.warning('Maximum folder depth of 5 levels reached.')
+            Message.warning(t('vault.maxDepth'))
             return
           }
           await createFolder('Untitled', node.data.id)

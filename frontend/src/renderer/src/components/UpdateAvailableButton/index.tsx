@@ -4,6 +4,7 @@ import { UpdateInfo } from 'electron-updater'
 import { IpcChannel } from '@shared/IpcChannel'
 import { debounce } from 'lodash'
 import { useSetting } from '@renderer/hooks/use-setting'
+import { useTranslation } from 'react-i18next'
 
 // First check 30s after startup, then every 6 hours.
 const CHECK_UPDATE_DELAY_MS = 30 * 1000
@@ -11,6 +12,7 @@ const CHECK_UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000
 const RELEASE_PAGE_URL_PREFIX = 'https://github.com/Kling0012/hibi/releases/tag/v'
 
 export default function UpdateAvailableButton() {
+  const { t } = useTranslation()
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [isDownloaded, setIsDownloaded] = useState(false)
   const { autoCheckUpdate } = useSetting()
@@ -78,9 +80,9 @@ export default function UpdateAvailableButton() {
     >
       <img src={rocketSvg} className="w-3 h-3" />
       <span className="text-[#3F3F51] text-[12px] ml-1">
-        {isWindows ? '再起動して更新（' : '新しい版 '}
+        {isWindows ? t('update.restartToUpdatePrefix') : `${t('update.newVersion')} `}
         <span className="font-['Roboto'] text-[10px] text-[#AEAFC2]">v{updateInfo.version}</span>
-        {isWindows ? '）' : ' があります'}
+        {isWindows ? '）' : ` ${t('update.hasNewVersion')}`}
       </span>
 
       <span className="w-1.5 h-1.5 bg-[#5252FF] rounded-full absolute top-[-1px] right-[-1px]"></span>

@@ -5,6 +5,7 @@
 
 import { FC, useEffect, useMemo } from 'react'
 import { HashRouter, Route, Routes, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import HomePage from './pages/home/home-page'
 import VaultPage from './pages/vault/Vault'
@@ -20,6 +21,7 @@ import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
 
 const AppContent: FC = () => {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { startPolling, stopPolling } = useEvents()
   useObservableTask({
     active: startPolling,
@@ -69,13 +71,20 @@ const AppContent: FC = () => {
         <Route path="/vault" element={<VaultPage />} />
         <Route path="/screen-monitor" element={<ScreenMonitor />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/timeline" element={<SyncView title="タイムライン" path="/ui/#today" />} />
-        <Route path="/report" element={<SyncView title="日報" sub="AI がその日の記録からまとめます" path="/ui/#report" />} />
-        <Route path="/blog" element={<SyncView title="ブログ" path="/blog/" />} />
-        <Route path="/search" element={<SyncView title="検索" sub="自分の記録と AI の作業をまとめて探せます" path="/ui/#search" />} />
+        <Route path="/timeline" element={<SyncView title={t('sync.timeline')} path="/ui/#today" />} />
+        <Route
+          path="/report"
+          element={<SyncView title={t('sync.report')} sub={t('sync.reportSub')} path="/ui/#report" />}
+        />
+        <Route path="/blog" element={<SyncView title={t('sync.blog')} path="/blog/" />} />
+        <Route
+          path="/search"
+          element={<SyncView title={t('sync.search')} sub={t('sync.searchSub')} path="/ui/#search" />}
+        />
       </Routes>
     )
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t])
 
   return (
     <div className="hb-app">

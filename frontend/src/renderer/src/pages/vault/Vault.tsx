@@ -6,6 +6,7 @@ import { debounce } from 'lodash'
 import { Card, Spin } from '@arco-design/web-react'
 import { useSearchParams } from 'react-router-dom'
 import { useVaults } from '@renderer/hooks/use-vault'
+import { useTranslation } from 'react-i18next'
 import MarkdownEditor from '@renderer/components/markdown-editor'
 import StatusBar from '@renderer/components/status-bar/StatusBar'
 import { Allotment } from 'allotment'
@@ -20,6 +21,7 @@ import { setActiveConversationId, toggleCreationAiAssistant } from '@renderer/st
 import { useUnmount } from 'ahooks'
 
 const VaultPage = () => {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const id = searchParams.get('id')
   const loading = false
@@ -81,7 +83,7 @@ const VaultPage = () => {
             <Card className="vault-card">
               {loading || !vault ? (
                 <div className="flex justify-center items-center h-full text-[#333]">
-                  <Spin tip="Loading..." />
+                  <Spin tip={t('common.loading')} />
                 </div>
               ) : error ? (
                 <div className="text-red-500">{error}</div>

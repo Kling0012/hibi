@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import { Allotment } from 'allotment'
 import { get } from 'lodash'
 import { useMemoizedFn, useUnmount } from 'ahooks'
+import { useTranslation } from 'react-i18next'
 import './home-page.css'
 import { useAllotment } from '@renderer/hooks/use-allotment'
 import AIToggleButton from '@renderer/components/ai-toggle-button'
@@ -21,6 +22,7 @@ import { RootState, useAppDispatch } from '@renderer/store'
 import axiosInstance from '@renderer/services/axiosConfig'
 import { formatMinutes, syncBase, useWorkSession } from '@renderer/hooks/use-work-session'
 import { embedUrl, useServerReachable } from '../sync-view/sync-view'
+import { getResolvedLang } from '@renderer/i18n'
 
 const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Tokyo'
 
@@ -30,9 +32,17 @@ const todayStr = (): string => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+// "10月13日（月）" / "Mon, Oct 13" / "10月13日周一"
 const todayLabel = (): string => {
   const d = new Date()
-  return `${d.getMonth() + 1}月${d.getDate()}日（${'日月火水木金土'[d.getDay()]}）`
+  const lang = getResolvedLang()
+  if (lang === 'en') {
+    return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(d)
+  }
+  if (lang === 'zh') {
+    return new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' }).format(d)
+  }
+  return new Intl.DateTimeFormat('ja-JP', { month: 'numeric', day: 'numeric', weekday: 'short' }).format(d)
 }
 
 interface DayStat {
@@ -73,6 +83,7 @@ function usePoll<T>(load: () => Promise<T | null>, ms: number, deps: unknown[]):
 
 const TodayCard = ({ base, reachable }: { base: string; reachable: boolean | null }): ReactElement => {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const day = todayStr()
   const stat = usePoll<DayStat>(
     async () => {
@@ -96,34 +107,38 @@ const TodayCard = ({ base, reachable }: { base: string; reachable: boolean | nul
   return (
     <section className="hb-card">
       <h2>
-        今日
+        {t('home.today')}
         <button className="hb-link" onClick={() => navigate('/timeline')}>
-          タイムライン
+          {t('home.timelineLink')}
         </button>
       </h2>
       <div className="hb-stats">
         <div className="hb-stat">
-          <span className="k">作業時間</span>
+          <span className="k">{t('home.workTime')}</span>
           <span className="v">{stat ? formatMinutes(stat.session_minutes) : '—'}</span>
         </div>
         <div className="hb-stat">
-          <span className="k">PC の活動</span>
-          <span className="v small">{stat ? `${formatMinutes(stat.active_minutes)}（${stat.mine}件）` : '—'}</span>
-        </div>
-        <div className="hb-stat">
-          <span className="k">AI の作業</span>
+          <span className="k">{t('home.pcActivity')}</span>
           <span className="v small">
-            {stat ? `${formatMinutes(stat.ai_active_minutes)}（${stat.ai_work}件）` : '—'}
+            {stat ? `${formatMinutes(stat.active_minutes)}${t('home.countItems', { count: stat.mine })}` : '—'}
           </span>
         </div>
         <div className="hb-stat">
-          <span className="k">画面の記録</span>
+          <span className="k">{t('home.aiWork')}</span>
+          <span className="v small">
+            {stat
+              ? `${formatMinutes(stat.ai_active_minutes)}${t('home.countItems', { count: stat.ai_work })}`
+              : '—'}
+          </span>
+        </div>
+        <div className="hb-stat">
+          <span className="k">{t('home.screenRecording')}</span>
           <span className="v small" style={{ cursor: 'pointer' }} onClick={() => navigate('/screen-monitor')}>
             <span className={`hb-dot${recording ? ' on' : ''}`} />
-            {recording ? '記録中' : '停止中'}
+            {recording ? t('home.recording') : t('home.stopped')}
             {live && live.screen_summaries > 0 && (
               <span className="hb-sub" style={{ fontWeight: 400, marginLeft: 6 }}>
-                要約 {live.screen_summaries}件
+                {t('home.summaries', { count: live.screen_summaries })}
               </span>
             )}
           </span>
@@ -155,6 +170,7 @@ const ServerPart = ({ base, only, title, minHeight }: { base: string; only: stri
 }
 
 const HomePage: React.FC = () => {
+  const { t } = useTranslation()
   const isVisible = useSelector((state: RootState) => state.chatHistory.home.aiAssistantVisible)
   const activeConversationId = useSelector((state: RootState) => state.chatHistory.activeConversationId)
   const { controller, defaultSizes, leftMinSize, rightMinSize } = useAllotment(isVisible)
@@ -175,7 +191,7 @@ const HomePage: React.FC = () => {
           <div className="hb-page" style={{ height: '100%' }}>
             <div className="hb-page-head" style={{ appRegion: 'drag' } as React.CSSProperties}>
               <h1>{todayLabel()}</h1>
-              <span className="hb-sub">今日の記録</span>
+              <span className="hb-sub">{t('home.todayRecord')}</span>
               <div className="hb-actions" style={{ appRegion: 'no-drag' } as React.CSSProperties}>
                 <AIToggleButton onClick={openChat} isActive={isVisible} />
               </div>
@@ -188,13 +204,13 @@ const HomePage: React.FC = () => {
                 </div>
                 {base && reachable && (
                   <section className="hb-card">
-                    <ServerPart base={base} only="lanes" title="今日のタイムライン" minHeight={140} />
+                    <ServerPart base={base} only="lanes" title={t('home.todayTimeline')} minHeight={140} />
                   </section>
                 )}
                 <div className="hb-cols">
                   {base && reachable ? (
                     <section className="hb-card">
-                      <ServerPart base={base} only="todos" title="ToDo" minHeight={200} />
+                      <ServerPart base={base} only="todos" title={t('home.todo')} minHeight={200} />
                     </section>
                   ) : (
                     <ToDoCard selectedDays={null} />

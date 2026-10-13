@@ -12,6 +12,7 @@
 import os from 'node:os'
 import { getLogger } from '@shared/logger/main'
 import { getBackendPort } from '@main/backend'
+import { tMain } from '@main/i18n'
 import type { ActiveWork, WorkSession, WorkSessionResult, WorkSessionState } from '@shared/work-session'
 import { localStoreService } from './LocalStoreService'
 import {
@@ -120,7 +121,7 @@ class WorkSessionService {
         // Local backend not up yet (or settings unreachable): retry sooner,
         // keep whatever we knew about the active session.
         this.state.ready = false
-        this.state.lastError = 'ローカルバックエンドに接続できません'
+        this.state.lastError = tMain('ws.errBackend')
         this.notify()
         this.scheduleRefresh(FAST_RETRY_MS)
         return
@@ -183,17 +184,17 @@ class WorkSessionService {
   async declare(title: string): Promise<WorkSessionResult> {
     const trimmed = (title ?? '').trim()
     if (!trimmed) {
-      return { ok: false, error: '作業名を入力してください' }
+      return { ok: false, error: tMain('ws.errNoTitle') }
     }
     const { ready, enabled, connected, serverUrl, deviceId } = this.state
     if (!ready) {
-      return { ok: false, error: '同期設定を取得できません（バックエンド起動待ち）' }
+      return { ok: false, error: tMain('ws.errNotReady') }
     }
     if (!enabled || !serverUrl) {
-      return { ok: false, error: '同期サーバが無効です（設定で有効化してください）' }
+      return { ok: false, error: tMain('ws.errDisabled') }
     }
     if (!connected) {
-      return { ok: false, error: '同期サーバに接続できません' }
+      return { ok: false, error: tMain('ws.errUnreachable') }
     }
     try {
       const session = await createWorkSession(serverUrl, { title: trimmed, deviceId })
@@ -222,10 +223,10 @@ class WorkSessionService {
   async endActive(): Promise<WorkSessionResult> {
     const { active, connected, serverUrl } = this.state
     if (!active) {
-      return { ok: false, error: '作業中の宣言はありません' }
+      return { ok: false, error: tMain('ws.errNoActive') }
     }
     if (!connected) {
-      return { ok: false, error: '同期サーバに接続できません' }
+      return { ok: false, error: tMain('ws.errUnreachable') }
     }
     try {
       const session: WorkSession | null = await endWorkSession(serverUrl, active.id)

@@ -8,7 +8,9 @@ import { PersistGate } from 'redux-persist/integration/react'
 
 import { ConfigProvider } from '@arco-design/web-react'
 import enUS from '@arco-design/web-react/es/locale/en-US'
+import jaJP from '@arco-design/web-react/es/locale/ja-JP'
 import zhCN from '@arco-design/web-react/es/locale/zh-CN'
+import { useTranslation } from 'react-i18next'
 import '@renderer/assets/main.css'
 import '@renderer/assets/hibi.css'
 import '@renderer/assets/theme/index.less'
@@ -24,9 +26,10 @@ import { getLogger } from '@shared/logger/renderer'
 import { useMemoizedFn } from 'ahooks'
 import { get } from 'lodash'
 import axiosInstance from './services/axiosConfig'
+import { normalizeLang } from './i18n'
 
 const logger = getLogger('App.tsx')
-const isEnglish = true // Hardcode for now, will change later
+const ARCO_LOCALES = { ja: jaJP, en: enUS, zh: zhCN }
 interface BackendStatusInfo {
   status: BackendStatus
   port: number
@@ -152,9 +155,11 @@ function AppContent(): React.ReactElement {
 }
 
 function App(): React.ReactElement {
+  const { i18n } = useTranslation()
+  const arcoLocale = ARCO_LOCALES[normalizeLang(i18n.language)] ?? jaJP
   return (
     <Provider store={store}>
-      <ConfigProvider locale={isEnglish ? enUS : zhCN}>
+      <ConfigProvider locale={arcoLocale}>
         <ServiceProvider>
           <NotificationProvider>
             <PersistGate loading={null} persistor={persistor}>

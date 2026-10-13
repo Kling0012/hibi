@@ -3,12 +3,14 @@
 
 import { Typography, Progress } from '@arco-design/web-react'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 const { Title, Text } = Typography
 import logo from '/src/assets/images/logo.png'
 
 export type BackendStatus = 'starting' | 'running' | 'stopped' | 'error'
 
 const LoadingComponent = ({ backendStatus }: { backendStatus: BackendStatus }) => {
+  const { t } = useTranslation()
   const [progress, setProgress] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
 
@@ -68,7 +70,7 @@ const LoadingComponent = ({ backendStatus }: { backendStatus: BackendStatus }) =
       <div style={{ appRegion: 'drag' } as React.CSSProperties} className="absolute top-0 left-0 w-full h-[30px]" />
       <img src={logo} alt="Logo" className="w-[100px] h-[100px]" />
       <Title className="text-white text-[32px] font-bold" style={{ marginBottom: '40px', marginTop: '24px' }}>
-        Welcome to Hibi
+        {t('loading.welcome')}
       </Title>
 
       {/* Dynamic progress bar */}
@@ -82,7 +84,7 @@ const LoadingComponent = ({ backendStatus }: { backendStatus: BackendStatus }) =
       />
 
       <Text className="text-gray-600 text-14" style={{ marginTop: '16px' }}>
-        It may take a few seconds to awaken your Context-Aware AI partner
+        {t('loading.hint')}
       </Text>
     </div>
   )

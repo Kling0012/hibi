@@ -16,6 +16,7 @@ import {
   Tooltip
 } from '@arco-design/web-react'
 import { IconDelete } from '@arco-design/web-react/icon'
+import { useTranslation } from 'react-i18next'
 import { Task, useHomeInfo } from '@renderer/hooks/use-home-info'
 import { FC, useEffect, useMemo, useRef, useState } from 'react'
 import taskEmpty from '@renderer/assets/images/task-empty.svg'
@@ -49,18 +50,18 @@ function getTodoIcon(urgency: TaskUrgency) {
   }
 }
 
-function genTodoTitle(urgency: TaskUrgency) {
+function genTodoTitleKey(urgency: TaskUrgency): string {
   switch (urgency) {
     case TaskUrgency.High:
-      return '急ぎ'
+      return 'todo.urgencyHigh'
     case TaskUrgency.Medium:
-      return '普通'
+      return 'todo.urgencyMedium'
     case TaskUrgency.Low:
-      return '後で'
+      return 'todo.urgencyLow'
     case TaskUrgency.Done:
-      return '完了'
+      return 'todo.urgencyDone'
     default:
-      return 'その他'
+      return 'todo.urgencyOther'
   }
 }
 export interface ToDoCardProps {
@@ -68,6 +69,7 @@ export interface ToDoCardProps {
 }
 const ToDoCard: FC<ToDoCardProps> = (props) => {
   const { selectedDays } = props
+  const { t } = useTranslation()
   const { tasks, toggleTaskStatus, updateTask, deleteTask, addTask, fetchTasks } = useHomeInfo()
   const hasTasks = useMemo(() => tasks.length > 0, [tasks])
   const [isTaskHover, setIsTaskHover] = useState<number | null>(null) // Edit task status
@@ -96,9 +98,9 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
       await deleteTask(taskId)
       // TODO: Separate deletion from initial data
       deleteTodoList(taskId)
-      Message.success('削除しました')
+      Message.success(t('todo.deleted'))
     } catch (error) {
-      Message.error('削除できませんでした')
+      Message.error(t('todo.deleteFailed'))
     } finally {
       setIsDeleting(false)
       setIsTaskHover(null)
@@ -117,7 +119,7 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
         setCopiedTaskId(null)
       }, 2000)
     } catch (error) {
-      Message.error('コピーできませんでした')
+      Message.error(t('todo.copyFailed'))
     }
   })
 
@@ -142,7 +144,7 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
         </div>
       </div>
       <div className={`flex items-center ml-2 gap-3 ${isTaskHover === task.id ? 'opacity-100' : 'opacity-0'}`}>
-        <Tooltip content="Copied!" position="top" popupVisible={copiedTaskId === task.id}>
+        <Tooltip content={t('todo.copied')} position="top" popupVisible={copiedTaskId === task.id}>
           <Button
             type="text"
             size="small"
@@ -153,8 +155,8 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
           />
         </Tooltip>
         <Popconfirm
-          title="Confirm delete"
-          content="Confirm to delete this todo?"
+          title={t('todo.confirmDeleteTitle')}
+          content={t('todo.confirmDeleteContent')}
           onOk={() => handleDeleteTask(task.id)}
           onCancel={() => {
             setIsDeleting(false)
@@ -166,8 +168,8 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
               setIsTaskHover(null)
             }
           }}
-          okText="Confirm"
-          cancelText="キャンセル">
+          okText={t('common.confirm')}
+          cancelText={t('common.cancel')}>
           <Button
             type="text"
             size="small"
@@ -192,7 +194,7 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
           style={{
             fontWeight: 500
           }}>
-          {genTodoTitle(urgency)}
+          {t(genTodoTitleKey(urgency))}
         </div>
       </div>
     )
@@ -200,22 +202,22 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
     const baseTree: { title: React.ReactNode; key: string; children: { title: React.ReactNode; key: string }[] }[] = [
       {
         title: rootTitle(TaskUrgency.High),
-        key: genTodoTitle(TaskUrgency.High),
+        key: 'High',
         children: []
       },
       {
         title: rootTitle(TaskUrgency.Medium),
-        key: genTodoTitle(TaskUrgency.Medium),
+        key: 'Medium',
         children: []
       },
       {
         title: rootTitle(TaskUrgency.Low),
-        key: genTodoTitle(TaskUrgency.Low),
+        key: 'Low',
         children: []
       },
       {
         title: rootTitle(TaskUrgency.Done),
-        key: genTodoTitle(TaskUrgency.Done),
+        key: 'Done',
         children: []
       }
     ]
@@ -295,7 +297,7 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
         content: values.content,
         urgency: values.urgency
       })
-      Message.success('追加しました')
+      Message.success(t('todo.added'))
     } catch (error: any) {
       Message.error(error.message || '')
     }
@@ -317,7 +319,7 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
           urgency: values.urgency
         })
       }
-      Message.success('更新しました')
+      Message.success(t('todo.updated'))
     } catch (error: any) {
       Message.error(error.message || '')
     }
@@ -354,7 +356,7 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
         }}
         title={
           <div className="flex flex-1 justify-between items-center w-full">
-            <div className="text-sm font-semibold text-[#667085]">今日の ToDo</div>
+            <div className="text-sm font-semibold text-[#667085]">{t('todo.title')}</div>
             <img src={addIcon} alt="" onClick={handleCreateToDoList} className="cursor-pointer" />
           </div>
         }
@@ -372,19 +374,19 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
           ) : (
             <div className="flex flex-col items-center justify-center pt-[60px] pb-[60px] text-center">
               <img src={taskEmpty} alt="empty" className="w-20 h-20 mb-4" />
-              <Text type="secondary">記録をもとに毎朝 8 時に作られます</Text>
+              <Text type="secondary">{t('todo.emptyHint')}</Text>
             </div>
           )}
         </div>
       </Card>
       {/* Edit task modal */}
       <Modal
-        title={status === TODO_LIST_STATUS.Create ? 'ToDo を追加' : 'ToDo を編集'}
+        title={status === TODO_LIST_STATUS.Create ? t('todo.addTitle') : t('todo.editTitle')}
         visible={visible}
         onOk={handleSave}
         onCancel={() => setVisible(false)}
-        okText={status === TODO_LIST_STATUS.Create ? '追加' : '更新'}
-        cancelText="キャンセル"
+        okText={status === TODO_LIST_STATUS.Create ? t('todo.add') : t('todo.update')}
+        cancelText={t('common.cancel')}
         unmountOnExit>
         <Form
           layout="vertical"
@@ -395,16 +397,16 @@ const ToDoCard: FC<ToDoCardProps> = (props) => {
             <Input className="hidden" />
           </Form.Item>
           <Form.Item
-            label="内容"
+            label={t('todo.contentLabel')}
             field="content"
-            rules={[{ required: true, message: '内容を入力してください' }]}>
-            <TextArea autoSize placeholder="やること" />
+            rules={[{ required: true, message: t('todo.contentRequired') }]}>
+            <TextArea autoSize placeholder={t('todo.contentPlaceholder')} />
           </Form.Item>
-          <Form.Item label="優先度" field="urgency">
+          <Form.Item label={t('todo.priorityLabel')} field="urgency">
             <Select>
-              <Select.Option value={TaskUrgency.High}>急ぎ</Select.Option>
-              <Select.Option value={TaskUrgency.Medium}>普通</Select.Option>
-              <Select.Option value={TaskUrgency.Low}>後で</Select.Option>
+              <Select.Option value={TaskUrgency.High}>{t('todo.urgencyHigh')}</Select.Option>
+              <Select.Option value={TaskUrgency.Medium}>{t('todo.urgencyMedium')}</Select.Option>
+              <Select.Option value={TaskUrgency.Low}>{t('todo.urgencyLow')}</Select.Option>
             </Select>
           </Form.Item>
         </Form>

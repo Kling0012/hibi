@@ -1,5 +1,6 @@
 import React from 'react'
 import { Typography } from '@arco-design/web-react'
+import { useTranslation } from 'react-i18next'
 
 const { Text } = Typography
 
@@ -10,6 +11,7 @@ interface RecordingStatusIndicatorProps {
 }
 
 const RecordingStatusIndicator: React.FC<RecordingStatusIndicatorProps> = ({ isMonitoring, canRecord, isToday }) => {
+  const { t } = useTranslation()
   if (!isToday) return null
 
   return (
@@ -18,26 +20,22 @@ const RecordingStatusIndicator: React.FC<RecordingStatusIndicatorProps> = ({ isM
         canRecord ? (
           <div className="w-full text-sm">
             <Text className="[&_.arco-typography]: !font-bold [&_.arco-typography]: !text-[#5252FF] [&_.arco-typography]: !text-xs">
-              画面を記録しています…
+              {t('sm.recordingNow')}
             </Text>
-            <div className="text-[#C9C9D4]">
-              30 秒ごとに活動を要約し、画面が変わったときに文字を書き起こします。
-            </div>
+            <div className="text-[#C9C9D4]">{t('sm.recordingDesc')}</div>
           </div>
         ) : (
           <div className="w-full text-sm">
             <Text className="[&_.arco-typography]: !font-bold [&_.arco-typography]: !text-[#FF4D4F] [&_.arco-typography]: !text-xs">
-              記録は止まっています
+              {t('sm.recordingStopped')}
             </Text>
-            <div className="text-[#C9C9D4]">
-              今は記録する時間帯の外です。次の時間帯になると自動で始まります。
-            </div>
+            <div className="text-[#C9C9D4]">{t('sm.outsideHours')}</div>
           </div>
         )
       ) : (
         <div style={{ width: '100%', fontSize: 14 }}>
-          <Text style={{ fontWeight: 'bold', color: '#FF4D4F', fontSize: 12 }}>記録は止まっています</Text>
-          <div style={{ color: '#C9C9D4' }}>いつでも記録を再開できます</div>
+          <Text style={{ fontWeight: 'bold', color: '#FF4D4F', fontSize: 12 }}>{t('sm.recordingStopped')}</Text>
+          <div style={{ color: '#C9C9D4' }}>{t('sm.canResume')}</div>
         </div>
       )}
     </>
