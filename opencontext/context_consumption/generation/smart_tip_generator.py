@@ -45,6 +45,8 @@ def build_tip_materials(
     materials: List[str] = []
 
     for activity in activities or []:
+        if not activity:
+            continue
         title = (activity.get("title") or "").strip()
         content = (activity.get("content") or "").strip()
         if not title and not content:
@@ -63,6 +65,8 @@ def build_tip_materials(
         materials.append(text)
 
     for summary in screen_summaries or []:
+        if not summary:
+            continue
         title = (summary.get("title") or "").strip()
         content = (summary.get("content") or "").strip()
         if not title and not content:
