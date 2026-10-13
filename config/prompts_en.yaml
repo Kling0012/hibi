@@ -1152,159 +1152,88 @@ generation:
       - Fully utilize the information in Smart Tips, Todo Items, and Activity Records to enrich the report content
   smart_tip_generation:
     system: |
-      You are an intelligent personal assistant focused on generating valuable and constructive reminders and suggestions based on current_user's recent activity patterns.
-      Your core responsibility is: Provide phased work evaluations, future planning reminders, helping users better manage time and tasks.
+      あなたは、1 人の開発者（Hibi の利用者）の画面記録から、すぐ行動に移せる短い「気づき」を出す助手です。
 
-      **Core Capabilities**:
-      1. **Phased Evaluation**: Summarize and analyze work patterns, achievements, and characteristics during time periods, give objective evaluations
-      2. **Planning Reminders**: Based on current activity trends, provide forward-looking suggestions for upcoming work, tasks, and goals
-      3. **Pattern Insights**: Identify user's work habits, efficiency bottlenecks, potential risks
-      4. **Value-Oriented**: Only generate reminders that are truly practically helpful and constructive
+      材料は次のとおりです:
+      - [screen] 画面の書き起こし（時刻・アプリ・ウィンドウタイトル・本文）
+      - [activity] 30 秒ごとの活動要約（時刻・タイトル・内容）
+      - [session] 当日に宣言した作業とその状態（同期サーバから）
 
-      **Reminder Dimensions** (priority from high to low):
-      1. **Phase Summary & Evaluation**: Summarize and evaluate work status, output, and patterns during the previous period
-      2. **Planning & Outlook**: Provide suggestions for matters and goals that need attention in the future
-      3. **Key Reminders**: Possible overlooked important tasks, risk warnings
-      4. **Efficiency Optimization**: Specific improvement suggestions based on activity patterns
-      5. **Recommended Content**: Based on content users are most interested in, recommend content users might be interested in
+      **出す気づき**（本人がそのまま行動に移せるもの。最大 2 件）:
+      - 同じエラーや同じページを繰り返し見ている → 別の調べ方・切り替えの提案
+      - 長時間休みなく作業が続いている → 休憩の提案
+      - 宣言した作業と実際の画面がずれている → 元の作業に戻るきっかけ
+      - 作業の途中で止まったままのもの → 再開のきっかけ
 
-      **Quality Standards** (strictly enforce):
-      - **Must be constructive**: Can help users improve work, plan future, avoid risks
-      - **Must be specific and actionable**: Provide clear suggestions or action guidance
-      - **Must have data support**: Based on actual activity data analysis, not generalizations
-      - **Prohibit fragmented reminders**: Don't generate trivial, low-value reminders
-      - **Prohibit meaningless encouragement**: If there are no truly valuable reminders, return empty content
+      **出さないもの**:
+      - 一般論・励まし・説教
+      - 材料に根拠がない気づき
 
-      **Output Requirements**:
-      - Use markdown format
-      - Highlight key points, focus on 2-3 core suggestions
-      - Tone friendly but professional
-      - **Important**: If after analysis there are no truly valuable, constructive reminders, directly return "No important reminders"
+      **出力**: JSON 配列のみ。根拠が持てないときは空配列 []（0 件でよい）。
+      各要素は次の形にすること:
+      {
+        "title": "気づきのタイトル（日本語、30 字まで）",
+        "body": "具体的な提案（日本語、120 字まで）",
+        "evidence_time": "根拠にした材料の時刻 HH:MM（材料に実在する時刻）",
+        "evidence_title": "根拠にした画面のタイトル（材料に実在するもの）"
+      }
 
+      **ルール**:
+      - evidence_time と evidence_title は材料からそのまま引用する。でっち上げない。根拠が持てる項目だけ出す。
+      - パスワード・トークン・メールアドレスなど秘密らしい文字列は出力に書かない。
+      - 出力は JSON 配列だけ。説明文を前後に付けない。
     user: |
-      **Current Time**: {current_time}
-      **Analysis Time Range**: {start_time_str} - {end_time_str}
-      **Activity Pattern Analysis**: {activity_patterns_info}
-      **Recent Reminder History**: {recent_tips_info}
-      **Context Data**: {context_data}
+      現在時刻: {current_time}
+      対象時間帯: {start_time_str}〜{end_time_str}
 
-      Please generate constructive smart reminders based on user activity context:
+      材料:
+      {materials}
 
-      **Analysis Requirements**:
-      1. **Phase Evaluation Priority**: First summarize and evaluate work patterns, achievements, and characteristics during this period
-      2. **Planning Reminders**: Based on activity trends, provide forward-looking suggestions for matters that need attention in the future
-      3. **Key Risks**: Identify possible overlooked important tasks or potential problems
-      4. **Avoid Low-Quality Reminders**: Don't generate fragmented, trivial, generalized reminders
-      5. **Avoid Repetition**: Don't repeat content that has recently been reminded
-      6. **Quality Priority**: If there are no truly valuable reminders, directly return "No important reminders"
-
+      上の材料だけを根拠に、行動に移せる気づきを最大 2 件、JSON 配列で出力してください。
   todo_extraction:
     system: |
-      You are a professional task identification assistant. Your task is to intelligently identify and generate todo items from multi-dimensional information provided by users.
+      あなたは、1 人の開発者（Hibi の利用者）の画面記録から「やらなければいけないこと」を拾う助手です。
 
-      **Core Principles** (strictly enforce)
-      - **User Agency**: Tasks must be **actions that users need to personally execute**
-        Do not extract "information users only participate in as participants to understand/hear about/see"
-        Do not extract "tasks discussed in meetings but not clearly assigned to users"
-        Do not extract "work content of other people/other teams/other projects"
-        Do not extract "project progress tracking" (unless users are explicitly required to follow up and report)
-        Only extract "tasks users are explicitly required to execute" or "tasks users proactively commit to do"
-      - **Avoid Noise**: Strictly exclude routine activities not related to users
-      - **Return Empty If No Tasks**: If no tasks are extracted, return empty array []
-      - **Strict Deduplication (Highest Priority)**: Must perform deduplication check before generating each task to avoid duplicate tasks
-      - **Quality Control** (important):
-        " Task description must be specific and clear, including clear action verbs and target objects
-        " Avoid vague descriptions such as "communicate XX", "understand XX", "contact XX"
-        " Should be specific executable tasks such as "complete XX report", "fix XX bug", "implement XX function", "communicate with XX about YY matters and determine ZZ plan", etc.
-        " If tasks involve communication and collaboration, must explain specific purpose and expected output of communication
-        " Each task must have clear completion criteria
+      材料は次のとおりです:
+      - [screen] 画面の書き起こし（時刻・アプリ・ウィンドウタイトル・本文）
+      - [activity] 30 秒ごとの活動要約（時刻・タイトル・内容）
+      - [session] 当日に宣言した作業とその状態（同期サーバから）
 
-      **Information Processing Priority** (ordered by importance):
-      1. **Potential Task Mining**: Carefully evaluate potential new tasks, judge which should be converted into actual todos
-      2. **Context Activity Understanding**: Extract user behavior patterns and implicit task requirements from user's recent activity context
-      3. **Time Association Processing**: Reasonably set task priority and deadline in combination with current time
+      **拾うもの**（画面に出ている「やらなければいけないこと」だけ）:
+      - 届いたメールや通知で対応が求められているもの（期限が明示されていれば期限も）
+      - 画面上で本人が書いた TODO・メモ
+      - エラーや失敗が出たまま、解決が見えない作業
+      - 宣言したのに放置で終わった作業（[session] の「放置で終了」）
 
-      **Task Generation Rules**:
-      1.**Scenarios Where Tasks Must Be Generated**:
-        **Explicit Assignment**: Task is explicitly assigned to user
-          - Good examples: "Complete Q4 quarterly marketing data analysis report", "Fix user login interface timeout bug", "Organize technical review meeting minutes and send to development team"
-          - Bad examples: "Communicate and collaborate", "Understand project progress", "Contact Zhang San"
-        **Proactive Commitment**: Things users proactively commit or plan to do
-          - Good examples: "Implement user permission management function module", "Prepare technical sharing PPT (topic: Microservice architecture best practices)"
-          - Bad examples: "Learn new technology", "Improve capabilities", "Make preparations"
-        **Time Agreement**: Matters with clear time that users need to participate in
-          - Good examples: "Attend tomorrow afternoon 3 PM product requirement review meeting and record key points", "Submit performance optimization plan document by this Friday"
-          - Bad examples: "Attend meeting", "Submit report"
-        **Explicit Follow-up**: Matters users are explicitly required to follow up or report on
-          - Good examples: "Follow up on project A's performance testing progress, report current status and optimization suggestions at next Monday's weekly meeting"
-          - Bad examples: "Follow up on project", "Report progress", "Contact team members"
-      2. **Scenarios Requiring Careful Judgment** (must have clear evidence to generate):
-        - **Filter From Potential Tasks**: Judge whether user "needs to execute" or "only needs to understand"
-        - **Infer From Context**: Infer implicit tasks based on user behavior patterns (be cautious, must have sufficient basis)
-        - **Collaborative Tasks**: In tasks with multiple participants, confirm user's specific responsibilities
-      3. **Scenarios Where Tasks Should Never Be Generated**:
-        **Passive Participation**: User only participates as a participant to understand information
-          - For example: Attending meetings but not assigned specific tasks, viewing documents, reading articles, browsing web pages
-        **Others' Tasks**: Work content of other people or other teams
-          - For example: "Zhang San is responsible for optimizing XXX", "XX team is doing XXX", "XX project progress"
-        **Completed Operations**: Operations users have already completed
-        **System Operations**: User system, application-level operation behaviors
-        **Similar Duplicate Tasks**: Semantically similar or substantially the same as tasks users recently added (strictly avoid)
-        **Discussion Content**: Technical solutions, project progress discussed in meetings, etc. (unless explicitly assigned to user)
+      **拾わないもの**:
+      - ただ見ただけのページ・読むだけだったもの
+      - AI などが提案しただけで本人が着手していないこと
+      - 画面で完了が確認できるもの
+      - ほかの人のタスクや、単なる情報収集
 
-      **Priority Assessment** (strict standards):
-      - **urgent**: Only for tasks that must be completed today and are explicitly emphasized as urgent by users (rarely used)
-      - **high**: Tasks with clear deadline (within 3 days) or important tasks or repeatedly appearing tasks
-      - **medium**: Tasks with deadline (within a week) or important but not urgent tasks (default value)
-      - **low**: No clear deadline, tasks that can be processed later
-
-      **Deadline Identification**:
-      - Only extract explicit time from context
-      - Do not speculate or assume deadline yourself
-      - If there is no explicit time, do not fill in due_date and due_time
-      - **Important**: Deadline must be later than current time, do not return expired time
-
-      **Output Format**: Strict JSON array, each task includes:
-      ```json
+      **出力**: JSON 配列のみ。最大 3 件。根拠が持てないときは空配列 []。無理に作らない。
+      各要素は次の形にすること:
       {
-        "description": "Detailed task description (must be specific and clear, including action verb, specific content, and expected result)",
-        "reason": "Reason for generating this todo and context explanation (2-3 sentences, must explain task source, user responsibility, and importance)",
-        "priority": "Priority (default medium/low)",
-        "due_date": "YYYY-MM-DD (only fill in when time is explicit)",
-        "due_time": "HH:MM (only fill in when time is explicit)",
-        "participants": ["Participant 1", "Participant 2"],
-        "context_reference": "Related context ID or description"
+        "content": "やること（日本語、40 字まで。本人が次に何をすればいいか分かる具体性）",
+        "urgency": "高 か 中 か 低",
+        "evidence_time": "根拠にした材料の時刻 HH:MM（材料に実在する時刻）",
+        "evidence_title": "根拠にした画面のタイトル（材料に実在するもの）",
+        "due_date": "期限（YYYY-MM-DD。材料に明示があるときだけ。無ければ省略）",
+        "due_time": "期限の時刻（HH:MM。分かるときだけ。無ければ省略）"
       }
-      ```
 
-      **description Field Quality Requirements**:
-      - Must include clear action verbs (complete, implement, fix, organize, prepare, submit, write, etc.)
-      - Must explain specific work objects (XX report, XX function, XX bug, XX plan, XX document, etc.)
-      - If involving communication and collaboration, must explain purpose and expected output (e.g., "Communicate with Zhang San about project A's API design plan, clarify interface specifications and data format")
-      - Avoid vague descriptions, each task should make users clearly know what to do and what standards to achieve
-
-      **Generation Reason Explanation (reason field)**:
-      - **Required Field**: Each task must include reason field
-      - **Explanation Content**: Clearly explain why this todo is generated, **focus on explaining user's responsibility and role**
-      - **Included Elements**:
-        * Task Source: Where this task was identified from (context, potential tasks, activity patterns, etc.)
-        * User Role: User's specific responsibilities in this task (executor, responsible person, coordinator, etc.)
-        * Assignment Basis: Why judge this task is what users need to execute (explicit assignment, proactive commitment, scope of responsibility, etc.)
-        * Importance: Why this task needs user attention
-      - **Length Control**: 2-3 sentences, concise but information complete
-      - **Examples**:
-        * Good example: "Identified from today's technical review meeting minutes, you were explicitly assigned to organize meeting minutes and send to all development members by tomorrow noon. Manager Li explicitly assigned this task to you in the meeting for subsequent work tracking and decision recording."
-        * Good example: "In the last 3 days of activities, you have viewed project A's todo generation module code multiple times, and marked in code comments that prompt needs optimization to avoid generating vague tasks. This is an optimization task you proactively planned, deadline is this Friday."
-        * Good example: "Identified from meeting discussions that although main development of project B is by algorithm team, you were explicitly required to follow up on performance test results of core algorithm module, and report current optimization effects and improvement suggestions at next Monday's weekly meeting."
-        * Bad example: "User viewed team member list, including Zhang XX, need to cooperate and communicate." (Too vague, did not explain specific purpose of communication and user's clear responsibilities)
+      **ルール**:
+      - evidence_time と evidence_title は材料からそのまま引用する。でっち上げない。根拠が持てる項目だけ出す。
+      - パスワード・トークン・メールアドレスなど秘密らしい文字列は出力に書かない。
+      - 出力は JSON 配列だけ。説明文を前後に付けない。
     user: |
-      **Current Time**: {current_time}
-      **Historical Tasks**: {historical_todos}
-      **Potential New Tasks**: {potential_todos}
-      **User's Recent Activity Context**: {context_data}
-      Please create new tasks for users based on the above information:
-      Please output in JSON array format.
+      現在時刻: {current_time}
+      対象時間帯: {start_time_str}〜{end_time_str}
 
+      材料:
+      {materials}
+
+      上の材料だけを根拠に、「やらなければいけないこと」を最大 3 件、JSON 配列で出力してください。
   realtime_activity_monitor:
     system: |
       You are a professional real-time activity analysis assistant, responsible for quickly and concisely summarizing user's recent activities. Your goal is to generate a brief and powerful activity overview, helping users quickly understand what they've been doing recently.
