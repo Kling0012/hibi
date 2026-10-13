@@ -9,19 +9,13 @@
 Context consumption manager, responsible for managing and coordinating context consumption components
 """
 
-import asyncio
 import threading
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, Optional
 
-from opencontext.context_consumption.generation.generation_report import ReportGenerator
-from opencontext.context_consumption.generation.realtime_activity_monitor import (
-    RealtimeActivityMonitor,
-)
 from opencontext.context_consumption.generation.smart_tip_generator import SmartTipGenerator
 from opencontext.context_consumption.generation.smart_todo_manager import SmartTodoManager
 from opencontext.managers.event_manager import EventType, get_event_manager
-from opencontext.models.enums import VaultType
 from opencontext.storage.global_storage import get_storage
 from opencontext.utils.logging_utils import get_logger
 
@@ -33,6 +27,10 @@ class ConsumptionManager:
     Context consumption manager
 
     Responsible for managing and coordinating context consumption components, providing a unified interface for context consumption
+
+    The 15-minute activity generator and the daily report generator were
+    removed: activity records now come from live_monitor and reports are no
+    longer generated locally. Only tips / todos scheduled tasks remain.
     """
 
     def __init__(self):
@@ -44,9 +42,6 @@ class ConsumptionManager:
             "consumers": {},
             "errors": 0,
         }
-        # ReportGenerator instance
-        self._activity_generator: Optional[ReportGenerator] = None
-        self._real_activity_monitor: Optional[RealtimeActivityMonitor] = None
         self._smart_tip_generator: Optional[SmartTipGenerator] = None
         self._smart_todo_manager: Optional[SmartTodoManager] = None
 
@@ -60,28 +55,21 @@ class ConsumptionManager:
         self._scheduled_tasks_enabled = False
         self._task_timers: Dict[str, threading.Timer] = {}
         self._task_intervals = {
-            "activity": content_gen_config.get("activity", {}).get("interval", 900),
             "tips": content_gen_config.get("tips", {}).get("interval", 3600),
             "todos": content_gen_config.get("todos", {}).get("interval", 1800),
         }
         self._task_enabled = {
-            "activity": content_gen_config.get("activity", {}).get("enabled", True),
             "tips": content_gen_config.get("tips", {}).get("enabled", True),
             "todos": content_gen_config.get("todos", {}).get("enabled", True),
-            "report": content_gen_config.get("report", {}).get("enabled", True),
         }
 
         # Maintain local last successful generation time
         self._last_generation_times = {
-            "activity": None,
             "tips": None,
             "todos": None,
         }
 
-        self._daily_report_time = content_gen_config.get("report", {}).get("time", "08:00")
         self._config_lock = threading.Lock()
-        self._activity_generator = ReportGenerator()
-        self._real_activity_monitor = RealtimeActivityMonitor()
         self._smart_tip_generator = SmartTipGenerator()
         self._smart_todo_manager = SmartTodoManager()
 
@@ -136,10 +124,6 @@ class ConsumptionManager:
             return
 
         if config:
-            if "daily_report_time" in config:
-                self._daily_report_time = config["daily_report_time"]
-            if "activity_interval" in config:
-                self._task_intervals["activity"] = config["activity_interval"]
             if "tips_interval" in config:
                 self._task_intervals["tips"] = config["tips_interval"]
             if "todos_interval" in config:
@@ -148,8 +132,6 @@ class ConsumptionManager:
         self._scheduled_tasks_enabled = True
 
         # Start various scheduled tasks
-        self._start_report_timer()
-        self._start_activity_timer()
         self._start_tips_timer()
         self._start_todos_timer()
 
@@ -167,117 +149,6 @@ class ConsumptionManager:
         self._task_timers.clear()
 
         logger.info("Scheduled tasks stopped")
-
-    def _calculate_seconds_until_daily_time(self, target_time_str: str) -> float:
-        try:
-            hour, minute = map(int, target_time_str.split(":"))
-            now = datetime.now()
-            target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-
-            if target <= now:
-                target += timedelta(days=1)
-            return (target - now).total_seconds()
-        except Exception as e:
-            logger.error(
-                f"Failed to parse daily report time configuration: {e}, using default 24 hours"
-            )
-            return 24 * 60 * 60
-
-    def _get_last_report_time(self) -> datetime:
-        """Get last daily report generation time from database, return current time if none"""
-        try:
-            reports = get_storage().get_vaults(
-                document_type=VaultType.DAILY_REPORT.value, limit=1, offset=0, is_deleted=False
-            )
-            if reports:
-                created_at_str = reports[0]["created_at"]
-                if created_at_str:
-                    return datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
-            return datetime.now()
-        except Exception:
-            return datetime.now()
-
-    def _start_report_timer(self):
-        """Start daily report timer"""
-        if not self._task_enabled.get("report", True):
-            logger.info("Report task is disabled, skipping timer start")
-            return
-
-        # Get last daily report time from database
-        last_report_time = self._get_last_report_time()
-        self._last_report_date = (
-            last_report_time.date()
-        )  # Record date of last daily report generation
-
-        def check_and_generate_daily_report():
-            if not self._activity_generator or not self._task_enabled.get("report", True):
-                return
-            try:
-                now = datetime.now()
-                today = now.date()
-
-                hour, minute = map(int, self._daily_report_time.split(":"))
-                target_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-
-                if now >= target_time and self._last_report_date != today:
-                    try:
-                        end_time = int(now.timestamp())
-                        start_time = int((now - timedelta(days=1)).timestamp())
-
-                        asyncio.run(self._activity_generator.generate_report(start_time, end_time))
-                        # Update last report date to prevent duplicate generation on the same day
-                        self._last_report_date = today
-                    except Exception as e:
-                        logger.exception(f"Failed to generate daily report: {e}")
-            except Exception as e:
-                logger.error(f"Failed to check daily report generation time: {e}")
-
-            if self._scheduled_tasks_enabled and self._task_enabled.get("report", True):
-                self._task_timers["report"] = threading.Timer(
-                    60 * 30, check_and_generate_daily_report
-                )
-                self._task_timers["report"].start()
-
-        check_and_generate_daily_report()
-
-    def _start_activity_timer(self):
-        """Start activity recording timer"""
-        if not self._task_enabled.get("activity", True):
-            logger.info("Activity task is disabled, skipping timer start")
-            return
-
-        def generate_activity():
-            if not (
-                self._scheduled_tasks_enabled
-                and self._real_activity_monitor
-                and self._task_enabled.get("activity", True)
-            ):
-                return
-
-            try:
-                if self._should_generate("activity"):
-                    end_time = int(datetime.now().timestamp())
-                    last_generation_time = self._last_generation_time("activity")
-                    start_time = (
-                        int(last_generation_time.timestamp())
-                        if last_generation_time
-                        else end_time - self._task_intervals.get("activity", 15 * 60)
-                    )
-                    self._real_activity_monitor.generate_realtime_activity_summary(
-                        start_time, end_time
-                    )
-                    self._last_generation_times["activity"] = datetime.now()
-            except Exception as e:
-                logger.exception(f"Failed to generate activity record: {e}")
-
-            self._schedule_next_check("activity", generate_activity)
-
-        check_interval = self._calculate_check_interval("activity")
-        self._task_timers["activity"] = threading.Timer(check_interval, generate_activity)
-        self._task_timers["activity"].start()
-        logger.info(
-            f"Activity timer started, check interval: {check_interval}s, generation interval: {self._task_intervals['activity']}s"
-        )
 
     def _start_tips_timer(self):
         """Start smart tips timer"""
@@ -358,7 +229,7 @@ class ConsumptionManager:
     def _calculate_check_interval(self, task_name: str) -> int:
         """Calculate check interval for a task (1/4 of generation interval with limits)"""
         interval = self._task_intervals.get(task_name, 900)
-        limits = {"activity": 180, "tips": 200, "todos": 250}
+        limits = {"tips": 200, "todos": 250}
         max_check = limits.get(task_name, 180)
         return min(max_check, interval // 4)
 
@@ -372,7 +243,6 @@ class ConsumptionManager:
     def get_scheduled_tasks_status(self) -> Dict[str, Any]:
         return {
             "enabled": self._scheduled_tasks_enabled,
-            "daily_report_time": self._daily_report_time,
             "intervals": self._task_intervals.copy(),
             "active_timers": list(self._task_timers.keys()),
         }
@@ -381,10 +251,6 @@ class ConsumptionManager:
         """Get detailed task configuration"""
         with self._config_lock:
             return {
-                "activity": {
-                    "enabled": self._task_enabled.get("activity", True),
-                    "interval": self._task_intervals.get("activity", 15 * 60),
-                },
                 "tips": {
                     "enabled": self._task_enabled.get("tips", True),
                     "interval": self._task_intervals.get("tips", 60 * 60),
@@ -392,10 +258,6 @@ class ConsumptionManager:
                 "todos": {
                     "enabled": self._task_enabled.get("todos", True),
                     "interval": self._task_intervals.get("todos", 30 * 60),
-                },
-                "report": {
-                    "enabled": self._task_enabled.get("report", True),
-                    "time": self._daily_report_time,
                 },
             }
 
@@ -405,11 +267,9 @@ class ConsumptionManager:
         """
         try:
             with self._config_lock:
-                for task_name in ["activity", "tips", "todos"]:
+                for task_name in ["tips", "todos"]:
                     if task_name in config:
                         self._update_interval_task(task_name, config[task_name])
-                if "report" in config:
-                    self._update_report_task(config["report"])
 
                 return True
         except Exception as e:
@@ -417,7 +277,7 @@ class ConsumptionManager:
             return False
 
     def _update_interval_task(self, task_name: str, task_cfg: Dict[str, Any]) -> None:
-        """Update configuration for interval-based tasks (activity/tips/todos)"""
+        """Update configuration for interval-based tasks (tips/todos)"""
         need_restart = False
 
         if "enabled" in task_cfg:
@@ -447,39 +307,6 @@ class ConsumptionManager:
         if need_restart:
             self._restart_task_timer(task_name)
 
-    def _update_report_task(self, report_cfg: Dict[str, Any]) -> None:
-        """Update configuration for report task"""
-        need_restart = False
-
-        # Update enabled status
-        if "enabled" in report_cfg:
-            old_enabled = self._task_enabled.get("report", True)
-            new_enabled = report_cfg["enabled"]
-            self._task_enabled["report"] = new_enabled
-
-            if old_enabled != new_enabled:
-                action = "Enabling" if new_enabled else "Disabling"
-                logger.info(f"{action} report task")
-                if new_enabled:
-                    need_restart = True
-                else:
-                    self._stop_task_timer("report")
-                    return  # Don't process time if disabling
-
-        # Update time
-        if "time" in report_cfg:
-            old_time = self._daily_report_time
-            new_time = report_cfg["time"]
-            self._daily_report_time = new_time
-
-            if old_time != new_time and self._task_enabled.get("report", True):
-                logger.info(f"Updating report time to {new_time}")
-                need_restart = True
-
-        # Restart timer if needed
-        if need_restart:
-            self._restart_task_timer("report")
-
     def _stop_task_timer(self, task_name: str) -> None:
         """Stop a specific task timer"""
         if task_name in self._task_timers:
@@ -499,14 +326,10 @@ class ConsumptionManager:
         self._stop_task_timer(task_name)
 
         # Start new timer based on task type
-        if task_name == "activity":
-            self._start_activity_timer()
-        elif task_name == "tips":
+        if task_name == "tips":
             self._start_tips_timer()
         elif task_name == "todos":
             self._start_todos_timer()
-        elif task_name == "report":
-            self._start_report_timer()
 
         logger.info(f"Restarted {task_name} timer")
 

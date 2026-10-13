@@ -163,6 +163,9 @@ prompts:
   language: "en"
 
 # Content generation service configuration
+# The 15-minute activity generator and the daily report generator were
+# removed (activity records now come from live_monitor); only tips / todos
+# scheduled tasks remain.
 content_generation:
   # Debug configuration
   debug:
@@ -170,10 +173,6 @@ content_generation:
     output_path: "${CONTEXT_PATH:.}/debug/generation" # Debug output directory
 
   # Task configurations
-  activity:
-    enabled: true
-    interval: 900 # Seconds, minimum 600 (10 minutes), recommended 900-1800 (15-30 minutes)
-
   tips:
     enabled: true
     interval: 3600 # Seconds, minimum 1800 (30 minutes), recommended 3600-7200 (1-2 hours)
@@ -181,7 +180,3 @@ content_generation:
   todos:
     enabled: true
     interval: 1800 # Seconds, minimum 1800 (30 minutes), recommended 1800-3600 (30-60 minutes)
-
-  report:
-    enabled: true
-    time: "08:00" # Daily report generation time (HH:MM)

@@ -925,20 +925,34 @@ class SQLiteBackend(IDocumentStorageBackend):
         self,
         limit: int = 100,
         offset: int = 0,
+        start_time: datetime = None,
+        end_time: datetime = None,
     ) -> List[Dict]:
         """Get screen summary records (newest first)"""
         if not self._initialized:
             return []
         cursor = self.connection.cursor()
         try:
+            where_conditions = []
+            params = []
+            if start_time:
+                where_conditions.append("created_at >= ?")
+                params.append(start_time)
+            if end_time:
+                where_conditions.append("created_at <= ?")
+                params.append(end_time)
+            where_clause = " AND ".join(
+                where_conditions) if where_conditions else "1=1"
+            params.extend([limit, offset])
             cursor.execute(
-                """
+                f"""
                 SELECT id, title, content, app, window_title, url, metadata, created_at
                 FROM screen_summary
+                WHERE {where_clause}
                 ORDER BY created_at DESC
                 LIMIT ? OFFSET ?
             """,
-                (limit, offset),
+                params,
             )
             return [dict(row) for row in cursor.fetchall()]
         except Exception as e:

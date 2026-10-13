@@ -14,7 +14,6 @@ from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, Query
 
-from opencontext.models.enums import VaultType
 from opencontext.server.middleware.auth import auth_dependency
 from opencontext.server.opencontext import OpenContext
 from opencontext.server.utils import convert_resp, get_context_lab
@@ -142,87 +141,6 @@ async def update_debug_todo_status(
         return convert_resp(code=500, status=500, message=f"Failed to update todo: {str(e)}")
 
 
-@router.post("/api/debug/generate/report")
-async def manual_generate_debug_report(
-    start_time: Optional[int] = Query(None, description="Start timestamp"),
-    end_time: Optional[int] = Query(None, description="End timestamp"),
-    opencontext: OpenContext = Depends(get_context_lab),
-    _auth: str = auth_dependency,
-):
-    """Manually generate daily report (for debugging)"""
-    try:
-        if not hasattr(opencontext, "consumption_manager") or not opencontext.consumption_manager:
-            return convert_resp(code=500, status=500, message="Consumption manager not initialized")
-
-        if not opencontext.consumption_manager._activity_generator:
-            return convert_resp(code=500, status=500, message="Activity generator not initialized")
-
-        if start_time is None or end_time is None:
-            from datetime import datetime, timedelta
-
-            now = datetime.now()
-            end_time = int(now.timestamp())
-            start_time = int((now - timedelta(days=1)).timestamp())
-
-        report_content = await opencontext.consumption_manager._activity_generator.generate_report(
-            start_time, end_time
-        )
-
-        if report_content:
-            from datetime import datetime
-
-            return convert_resp(
-                data={
-                    "content": report_content,
-                    "summary": "",
-                    "message": "Report generated successfully",
-                }
-            )
-        else:
-            return convert_resp(code=404, status=404, message="No content to generate report")
-
-    except Exception as e:
-        logger.exception(f"Error generating debug report: {e}")
-        return convert_resp(code=500, status=500, message=f"Failed to generate report: {str(e)}")
-
-
-@router.post("/api/debug/generate/activity")
-async def manual_generate_debug_activity(
-    minutes: int = Query(15, description="Review minutes"),
-    opencontext: OpenContext = Depends(get_context_lab),
-    _auth: str = auth_dependency,
-):
-    """Manually generate activity record (for debugging)"""
-    try:
-        if not hasattr(opencontext, "consumption_manager") or not opencontext.consumption_manager:
-            return convert_resp(code=500, status=500, message="Consumption manager not initialized")
-
-        if not opencontext.consumption_manager._real_activity_monitor:
-            return convert_resp(code=500, status=500, message="Activity monitor not initialized")
-
-        start_time = int(datetime.now().timestamp()) - (minutes * 60)
-        end_time = int(datetime.now().timestamp())
-        activity_result = opencontext.consumption_manager._real_activity_monitor.generate_realtime_activity_summary(
-            start_time, end_time
-        )
-
-        if activity_result:
-            return convert_resp(
-                data={
-                    "activity_id": activity_result.get("activity_id"),
-                    "title": activity_result.get("title"),
-                    "description": activity_result.get("description"),
-                    "message": "Activity generated successfully",
-                }
-            )
-        else:
-            return convert_resp(code=404, status=404, message="No content to generate activity")
-
-    except Exception as e:
-        logger.exception(f"Error generating debug activity: {e}")
-        return convert_resp(code=500, status=500, message=f"Failed to generate activity: {str(e)}")
-
-
 @router.post("/api/debug/generate/tips")
 async def manual_generate_debug_tips(
     lookback_minutes: int = Query(60, description="Lookback minutes"),
@@ -319,8 +237,6 @@ async def export_debug_prompts(
         categories = {
             "tips": "smart_tip_generation",
             "todo": "todo_extraction",
-            "report": "generation_report",
-            "activity": "realtime_activity_monitor",
         }
 
         for cat_key, prompt_key in categories.items():
@@ -369,12 +285,6 @@ async def restore_debug_prompts(
             ]
         if "todo" in restored_prompts:
             opencontext._custom_prompts["generation.todo_extraction"] = restored_prompts["todo"]
-        if "report" in restored_prompts:
-            opencontext._custom_prompts["generation.generation_report"] = restored_prompts["report"]
-        if "activity" in restored_prompts:
-            opencontext._custom_prompts["generation.realtime_activity_monitor"] = restored_prompts[
-                "activity"
-            ]
 
         return convert_resp(
             data={
@@ -405,8 +315,6 @@ async def get_debug_prompts(
         category_map = {
             "tips": "generation.smart_tip_generation",
             "todo": "generation.todo_extraction",
-            "report": "generation.generation_report",
-            "activity": "generation.realtime_activity_monitor",
         }
 
         if category not in category_map:
@@ -466,8 +374,6 @@ async def update_debug_prompts(
         category_map = {
             "tips": "generation.smart_tip_generation",
             "todo": "generation.todo_extraction",
-            "report": "generation.generation_report",
-            "activity": "generation.realtime_activity_monitor",
         }
 
         if category not in category_map:
@@ -591,96 +497,6 @@ async def generate_with_custom_prompts(
                 if original_prompts:
                     prompt_manager.prompts["generation"]["todo_extraction"] = original_prompts
 
-        elif category == "report":
-            if not opencontext.consumption_manager._activity_generator:
-                return convert_resp(
-                    code=500, status=500, message="Activity generator not initialized"
-                )
-
-            # Handle time parameters
-            if start_time is None or end_time is None:
-                from datetime import datetime, timedelta
-
-                now = datetime.now()
-                end_time = int(now.timestamp())
-                start_time = int((now - timedelta(days=1)).timestamp())
-
-            # Temporarily replace prompts
-            original_prompts = None
-            if custom_prompts.get("generation.generation_report"):
-                from opencontext.config.global_config import get_prompt_manager
-
-                prompt_manager = get_prompt_manager()
-                original_prompts = prompt_manager.prompts.get("generation", {}).get(
-                    "generation_report", {}
-                )
-                prompt_manager.prompts["generation"]["generation_report"] = custom_prompts[
-                    "generation.generation_report"
-                ]
-
-            try:
-                report_content = (
-                    await opencontext.consumption_manager._activity_generator.generate_report(
-                        start_time, end_time
-                    )
-                )
-
-                if report_content and len(report_content.strip()) > 50:
-                    summary = opencontext.consumption_manager._generate_summary(report_content)
-                    return convert_resp(
-                        data={
-                            "content": report_content,
-                            "summary": summary,
-                            "message": "Report generated with custom prompts",
-                        }
-                    )
-                else:
-                    return convert_resp(
-                        code=404, status=404, message="No content to generate report"
-                    )
-
-            finally:
-                # Restore original prompts
-                if original_prompts:
-                    prompt_manager.prompts["generation"]["generation_report"] = original_prompts
-
-        elif category == "activity":
-            if not opencontext.consumption_manager._real_activity_monitor:
-                return convert_resp(
-                    code=500, status=500, message="Activity monitor not initialized"
-                )
-
-            # Temporarily replace prompts
-            original_prompts = None
-            if custom_prompts.get("generation.realtime_activity_monitor"):
-                from opencontext.config.global_config import get_prompt_manager
-
-                prompt_manager = get_prompt_manager()
-                original_prompts = prompt_manager.prompts.get("generation", {}).get(
-                    "realtime_activity_monitor", {}
-                )
-                prompt_manager.prompts["generation"]["realtime_activity_monitor"] = custom_prompts[
-                    "generation.realtime_activity_monitor"
-                ]
-
-            try:
-                activity_result = opencontext.consumption_manager._real_activity_monitor.generate_realtime_activity_summary(
-                    minutes=lookback_minutes or 15
-                )
-                logger.info(f"activity_result: {activity_result}")
-                if activity_result:
-                    return convert_resp(activity_result)
-                else:
-                    return convert_resp(
-                        code=404, status=404, message="No content to generate activity"
-                    )
-
-            finally:
-                # Restore original prompts
-                if original_prompts:
-                    prompt_manager.prompts["generation"][
-                        "realtime_activity_monitor"
-                    ] = original_prompts
         else:
             return convert_resp(code=400, status=400, message=f"Invalid category: {category}")
 

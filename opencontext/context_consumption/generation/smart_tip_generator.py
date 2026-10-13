@@ -10,15 +10,11 @@ Smart Tip Generator - Generates personalized reminders and suggestions based on 
 
 import datetime
 import json
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional
 
 from opencontext.config.global_config import get_prompt_group
 from opencontext.context_consumption.generation.debug_helper import DebugHelper
 from opencontext.llm.global_vlm_client import generate_with_messages
-from opencontext.models.context import ProcessedContext
-from opencontext.models.enums import ContextType
-from opencontext.storage.base_storage import DocumentData
 from opencontext.storage.global_storage import get_storage
 from opencontext.tools.tool_definitions import ALL_TOOL_DEFINITIONS
 from opencontext.utils.logging_utils import get_logger
@@ -26,15 +22,62 @@ from opencontext.utils.logging_utils import get_logger
 logger = get_logger(__name__)
 
 
-@dataclass
-class ActivityPattern:
-    """Activity pattern data structure."""
+def _row_time(row: Dict[str, Any], *keys: str) -> str:
+    """First non-empty time field of a sqlite row, trimmed for display."""
+    for key in keys:
+        value = row.get(key)
+        if value:
+            return str(value)[:16]
+    return "?"
 
-    work_time_distribution: Dict[str, float]
-    category_trends: List[Dict[str, Any]]
-    key_entities: List[str]
-    focus_shifts: List[str]
-    continuous_work_periods: List[int]
+
+def build_tip_materials(
+    activities: List[Dict[str, Any]],
+    screen_summaries: List[Dict[str, Any]],
+    max_items: int = 100,
+) -> List[str]:
+    """Build LLM material strings from SQLite activity / screen_summary rows.
+
+    Pure function (no storage access) so it can be tested directly.
+    Rows are the dicts returned by ``get_activities`` / ``get_screen_summaries``;
+    missing fields never raise.
+    """
+    materials: List[str] = []
+
+    for activity in activities or []:
+        title = (activity.get("title") or "").strip()
+        content = (activity.get("content") or "").strip()
+        if not title and not content:
+            continue
+        span = "-".join(
+            part
+            for part in (
+                _row_time(activity, "start_time"),
+                "" if not activity.get("end_time") else _row_time(activity, "end_time"),
+            )
+            if part and part != "?"
+        )
+        text = f"[activity] {span or '?'} {title}".strip()
+        if content and content != title:
+            text += f": {content}"
+        materials.append(text)
+
+    for summary in screen_summaries or []:
+        title = (summary.get("title") or "").strip()
+        content = (summary.get("content") or "").strip()
+        if not title and not content:
+            continue
+        where = (summary.get("app") or "").strip()
+        if summary.get("window_title"):
+            where = f"{where} {summary['window_title']}".strip()
+        text = f"[screen] {_row_time(summary, 'created_at')} {title}".strip()
+        if where:
+            text += f" ({where})"
+        if content and content != title:
+            text += f": {content}"
+        materials.append(text)
+
+    return materials[:max_items]
 
 
 class SmartTipGenerator:
@@ -192,33 +235,21 @@ class SmartTipGenerator:
             logger.exception(f"Failed to get historical tips: {e}")
             return []
 
-    def _get_comprehensive_contexts(self, start_time: int, end_time: int) -> List[Any]:
-        """Get comprehensive context data for analysis."""
+    def _get_comprehensive_contexts(self, start_time: int, end_time: int) -> List[str]:
+        """Get comprehensive context material for analysis from SQLite."""
         try:
-            filters = {"create_time_ts": {"$gte": start_time, "$lte": end_time}}
+            start = datetime.datetime.fromtimestamp(start_time)
+            end = datetime.datetime.fromtimestamp(end_time)
 
-            # Get multiple types of context for comprehensive analysis
-            context_types = [
-                ContextType.ACTIVITY_CONTEXT.value,
-                ContextType.SEMANTIC_CONTEXT.value,
-                ContextType.INTENT_CONTEXT.value,
-                ContextType.ENTITY_CONTEXT.value,
-                ContextType.PROCEDURAL_CONTEXT.value,
-                ContextType.STATE_CONTEXT.value,
-            ]
-
-            all_contexts = get_storage().get_all_processed_contexts(
-                context_types=context_types, limit=10000, offset=0, filter=filters
+            # Reuse the caller's time window: activities + screen summaries
+            activities = get_storage().get_activities(
+                start_time=start, end_time=end, limit=50
+            )
+            screen_summaries = get_storage().get_screen_summaries(
+                start_time=start, end_time=end, limit=50
             )
 
-            contexts = []
-            for context_type, context_list in all_contexts.items():
-                contexts.extend(context_list)
-
-            # Sort by time, with the newest first
-            contexts.sort(key=lambda x: x.properties.create_time, reverse=True)
-
-            return contexts
+            return build_tip_materials(activities, screen_summaries)
 
         except Exception as e:
             logger.exception(f"Failed to get context data: {e}")
@@ -250,8 +281,8 @@ class SmartTipGenerator:
         system_prompt = prompt_group["system"]
         user_prompt_template = prompt_group["user"]
 
-        # Prepare context data
-        context_data = self._prepare_context_data_for_analysis(contexts) if contexts else []
+        # Material strings built from SQLite activity / screen_summary rows
+        context_data = contexts or []
 
         # Format time information
         start_time_str = datetime.datetime.fromtimestamp(start_time).strftime("%H:%M:%S")
@@ -301,72 +332,3 @@ class SmartTipGenerator:
         )
 
         return tip_content
-
-    def _prepare_context_data_for_analysis(self, contexts: List[ProcessedContext]) -> List[Dict]:
-        """Prepare context data for analysis."""
-        context_data = []
-        for context in contexts:
-            try:
-                context_data.append(context.get_llm_context_string())
-
-            except Exception as e:
-                logger.debug(f"Failed to process context {getattr(context, 'id', 'unknown')}: {e}")
-                continue
-        return context_data
-
-    def get_recent_tips(self, limit: int = 10) -> List[DocumentData]:
-        """
-        Get recent smart tips.
-
-        Args:
-            limit: The number of results to return.
-
-        Returns:
-            List[DocumentData]: A list of recent smart tips.
-        """
-        try:
-            results = self.activity_manager.search_activities(
-                query="", limit=limit, filters={"activity_type": "smart_tip"}
-            )
-
-            if results:
-                return results.documents
-            return []
-
-        except Exception as e:
-            logger.exception(f"Failed to get recent smart tips: {e}")
-            return []
-
-    def cleanup_old_tips(self, keep_hours: int = 48):
-        """
-        Clean up old smart tips.
-
-        Args:
-            keep_hours: The number of hours to keep, default is 48 hours.
-        """
-        try:
-            cutoff_time = datetime.datetime.now() - datetime.timedelta(hours=keep_hours)
-            cutoff_timestamp = int(cutoff_time.timestamp())
-
-            # Get all tips
-            tips = self.get_recent_tips(limit=1000)
-
-            deleted_count = 0
-            for tip in tips:
-                try:
-                    if "start_time" in tip.metadata:
-                        tip_time = tip.metadata["start_time"]
-                        if tip_time < cutoff_timestamp:
-                            # Delete old tips
-                            get_storage().delete_document(tip.id)
-                            deleted_count += 1
-                except Exception as e:
-                    logger.debug(f"Failed to delete tip {tip.id}: {e}")
-
-            if deleted_count > 0:
-                logger.info(
-                    f"Cleaned up {deleted_count} old smart tips over {keep_hours} hours old."
-                )
-
-        except Exception as e:
-            logger.exception(f"Failed to clean up old smart tips: {e}")

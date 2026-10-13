@@ -4,7 +4,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Content generation routes (smart tips, todos, activities, reports)
+Content generation routes (smart tips, todos)
+
+The activity and daily-report generators were removed; only tips / todos
+scheduled tasks remain configurable.
 """
 
 from typing import Optional
@@ -21,15 +24,6 @@ logger = get_logger(__name__)
 router = APIRouter(tags=["content-generation"])
 
 # ==================== Data Models ====================
-
-
-class ActivityConfig(BaseModel):
-    """Configuration for activity task"""
-
-    enabled: Optional[bool] = None
-    interval: Optional[int] = Field(
-        None, ge=600, description="Interval in seconds, minimum 600 (10 minutes)"
-    )
 
 
 class TipsConfig(BaseModel):
@@ -50,20 +44,11 @@ class TodosConfig(BaseModel):
     )
 
 
-class ReportConfig(BaseModel):
-    """Configuration for daily report"""
-
-    enabled: Optional[bool] = None
-    time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}$", description="Time in HH:MM format")
-
-
 class ContentGenerationConfig(BaseModel):
     """Complete content generation configuration"""
 
-    activity: Optional[ActivityConfig] = None
     tips: Optional[TipsConfig] = None
     todos: Optional[TodosConfig] = None
-    report: Optional[ReportConfig] = None
 
 
 @router.get("/api/content_generation/config")
@@ -98,7 +83,7 @@ async def update_content_generation_config(
         if not hasattr(opencontext, "consumption_manager") or not opencontext.consumption_manager:
             return convert_resp(code=500, status=500, message="Consumption manager not initialized")
         config_dict = {}
-        for task_name in ["activity", "tips", "todos"]:
+        for task_name in ["tips", "todos"]:
             task_config = getattr(config, task_name, None)
             if task_config is not None:
                 task_dict = {}
@@ -108,14 +93,6 @@ async def update_content_generation_config(
                     task_dict["interval"] = task_config.interval
                 if task_dict:
                     config_dict[task_name] = task_dict
-        if config.report is not None:
-            report_dict = {}
-            if config.report.enabled is not None:
-                report_dict["enabled"] = config.report.enabled
-            if config.report.time is not None:
-                report_dict["time"] = config.report.time
-            if report_dict:
-                config_dict["report"] = report_dict
 
         if not config_dict:
             return convert_resp(code=400, status=400, message="No valid configuration provided")

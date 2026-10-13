@@ -675,7 +675,13 @@ class UnifiedStorage:
             title, content, app, window_title, url, metadata
         )
 
-    def get_screen_summaries(self, limit: int = 100, offset: int = 0) -> List[Dict]:
+    def get_screen_summaries(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        start_time: datetime = None,
+        end_time: datetime = None,
+    ) -> List[Dict]:
         """Get screen summary records (P1-B)"""
         if not self._initialized:
             logger.error("Unified storage system not initialized")
@@ -683,7 +689,7 @@ class UnifiedStorage:
 
         if not self._document_backend:
             return []
-        return self._document_backend.get_screen_summaries(limit, offset)
+        return self._document_backend.get_screen_summaries(limit, offset, start_time, end_time)
 
     def get_sqlite_db_path(self) -> Optional[str]:
         """sqlite database file path (for separate connections, P1-B sync)."""

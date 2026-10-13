@@ -10,19 +10,74 @@ Smart Todo Manager - Intelligently identifies and manages to-do items based on u
 
 import datetime
 import json
-import os
+import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional
 
 from opencontext.config.global_config import get_prompt_group
 from opencontext.context_consumption.generation.debug_helper import DebugHelper
+from opencontext.context_consumption.generation.smart_tip_generator import build_tip_materials
 from opencontext.llm.global_vlm_client import generate_with_messages
-from opencontext.models.context import ContextType, Vectorize
 from opencontext.storage.global_storage import get_storage
 from opencontext.utils.json_parser import parse_json_from_response
 from opencontext.utils.logging_utils import get_logger
 
 logger = get_logger(__name__)
+
+_WHITESPACE_RE = re.compile(r"\s+")
+
+# Two todos whose description 3-gram Jaccard is at or above this value count
+# as duplicates (replaces the removed embedding-based similarity check).
+TODO_DUPLICATE_JACCARD = 0.6
+
+
+def trigram_jaccard(a: str, b: str) -> float:
+    """Jaccard similarity of character 3-gram sets.
+
+    Consecutive whitespace/newlines are collapsed to a single half-width
+    space first. Both texts under 3 characters (empty gram sets) count as
+    identical. Pure function, mirrored after live_monitor._jaccard3.
+    """
+
+    def grams(text: str) -> set:
+        normalized = _WHITESPACE_RE.sub(" ", text or "")
+        return {normalized[i : i + 3] for i in range(len(normalized) - 2)}
+
+    ga, gb = grams(a), grams(b)
+    if not ga and not gb:
+        return 1.0
+    if not ga or not gb:
+        return 0.0
+    return len(ga & gb) / len(ga | gb)
+
+
+def deduplicate_todo_texts(
+    new_texts: List[str],
+    existing_texts: List[str],
+    threshold: float = TODO_DUPLICATE_JACCARD,
+) -> List[bool]:
+    """Decide for each new todo text whether it is a duplicate.
+
+    Pure function: returns one keep-flag per ``new_texts`` entry. A text is
+    dropped when it matches an existing todo or an earlier kept entry of the
+    same batch at ``trigram_jaccard >= threshold``.
+    """
+    kept: List[str] = []
+    flags: List[bool] = []
+    for text in new_texts:
+        normalized = (text or "").strip()
+        if not normalized:
+            flags.append(False)
+            continue
+        duplicate = any(
+            trigram_jaccard(normalized, (existing or "").strip()) >= threshold
+            for existing in existing_texts
+            if (existing or "").strip()
+        ) or any(trigram_jaccard(normalized, prev) >= threshold for prev in kept)
+        flags.append(not duplicate)
+        if not duplicate:
+            kept.append(normalized)
+    return flags
 
 
 @dataclass
@@ -104,22 +159,6 @@ class SmartTodoManager:
                 )
                 todo_ids.append(todo_id)
 
-                # Store todo embedding to vector database for future deduplication
-                if task.get("_embedding"):
-                    try:
-                        get_storage().upsert_todo_embedding(
-                            todo_id=todo_id,
-                            content=content,
-                            embedding=task["_embedding"],
-                            metadata={
-                                "urgency": urgency,
-                                "priority": task.get("priority", "medium"),
-                            },
-                        )
-                        logger.debug(f"Stored embedding for todo {todo_id}")
-                    except Exception as e:
-                        logger.warning(f"Failed to store todo embedding for {todo_id}: {e}")
-
                 # Queue for upload to the sync server (fail-soft)
                 try:
                     from opencontext.screen_record.sync_outbox import enqueue_outbox_event
@@ -197,41 +236,23 @@ class SmartTodoManager:
 
     def _get_task_relevant_contexts(
         self, start_time: int, end_time: int, activity_insights: Dict[str, Any] = None
-    ) -> List[Any]:
-        """Get context data relevant to the task."""
+    ) -> List[str]:
+        """Get task-relevant context material from SQLite."""
         try:
-            context_types = [
-                ContextType.ACTIVITY_CONTEXT.value,
-                ContextType.SEMANTIC_CONTEXT.value,
-                ContextType.INTENT_CONTEXT.value,
-                ContextType.ENTITY_CONTEXT.value,
-            ]
-            filters = {"update_time_ts": {"$gte": start_time, "$lte": end_time}}
-            all_contexts = []
-            if activity_insights.get("potential_todos", []):
-                for todo in activity_insights["potential_todos"]:
-                    text = todo["description"]
-                    contexts = get_storage().search(
-                        query=Vectorize(text=text),
-                        top_k=5,
-                        context_types=context_types,
-                        filters=filters,
-                    )
-                    ctxs = [ctx[0] for ctx in contexts]
-                    all_contexts.extend(ctxs)
-            else:
-                contexts = get_storage().get_all_processed_contexts(
-                    context_types=context_types, limit=80, offset=0, filter=filters
-                )
-                for context_type, context_list in contexts.items():
-                    all_contexts.extend(context_list)
+            start = datetime.datetime.fromtimestamp(start_time)
+            end = datetime.datetime.fromtimestamp(end_time)
 
-            # Sort by time, with the newest first
-            all_contexts.sort(key=lambda x: x.properties.create_time, reverse=True)
-            logger.info(
-                f"Retrieved {len(all_contexts)} context records relevant to task identification."
+            activities = get_storage().get_activities(
+                start_time=start, end_time=end, limit=50
             )
-            all_contexts_data = [ctx.get_llm_context_string() for ctx in all_contexts]
+            screen_summaries = get_storage().get_screen_summaries(
+                start_time=start, end_time=end, limit=50
+            )
+
+            all_contexts_data = build_tip_materials(activities, screen_summaries)
+            logger.info(
+                f"Retrieved {len(all_contexts_data)} context records relevant to task identification."
+            )
             return all_contexts_data
 
         except Exception as e:
@@ -302,8 +323,8 @@ class SmartTodoManager:
             tasks = parse_json_from_response(task_response)
             tasks = self._post_process_tasks(tasks)
 
-            # Apply vector-based deduplication
-            tasks = self._deduplicate_with_vector_search(tasks, similarity_threshold=0.85)
+            # Deduplicate against existing incomplete todos (character 3-gram Jaccard)
+            tasks = self._deduplicate_todos(tasks)
 
             logger.info(f"Identified {len(tasks)} tasks from the context after deduplication.")
             return tasks
@@ -385,101 +406,40 @@ class SmartTodoManager:
             logger.debug(f"Failed to process deadline for task {task.get('title', 'unknown')}: {e}")
             return task
 
-    def _deduplicate_with_vector_search(
-        self, new_tasks: List[Dict], similarity_threshold: float = 0.85
+    def _deduplicate_todos(
+        self, new_tasks: List[Dict], threshold: float = TODO_DUPLICATE_JACCARD
     ) -> List[Dict]:
-        """Deduplicate new todos using vector similarity search"""
-        from opencontext.llm.global_embedding_client import do_vectorize
-        from opencontext.models.context import Vectorize
-        from opencontext.storage.global_storage import get_storage
+        """Deduplicate new todos against existing incomplete todos and the batch.
 
+        Uses character 3-gram Jaccard similarity instead of the removed
+        embedding vector search. Storage failures degrade to no dedup
+        (fail-soft).
+        """
         if not new_tasks:
             return []
 
-        storage = get_storage()
-        filtered_tasks = []
-        filtered_count = 0
-
-        for task in new_tasks:
-            task_text = task.get("description", "")
-            if not task_text.strip():
-                continue
-
-            # Generate embedding for the task
-            try:
-                todo_vectorize = Vectorize(text=task_text)
-                do_vectorize(todo_vectorize)
-                if not todo_vectorize.vector:
-                    # If embedding generation fails, conservatively keep the task
-                    logger.warning(f"Unable to generate embedding for todo: {task_text[:50]}...")
-                    continue
-
-                task_embedding = todo_vectorize.vector
-
-            except Exception as e:
-                continue
-
-            # Search for similar historical todos
-            similar_todos = storage.search_similar_todos(
-                query_embedding=task_embedding,
-                top_k=5,
-                similarity_threshold=similarity_threshold,
-            )
-
-            if similar_todos:
-                # Found similar historical todo, filter out
-                most_similar = similar_todos[0]
-                logger.info(
-                    f"🚫 Todo filtered (duplicate with historical task): "
-                    f"New='{task_text}' | "
-                    f"Historical='{most_similar[1]}' | "
-                    f"Similarity={most_similar[2]:.3f}"
-                )
-                filtered_count += 1
-                continue
-
-            # Compare with already approved todos in this batch
-            is_duplicate_in_batch = False
-            for existing_task in filtered_tasks:
-                existing_text = existing_task.get("description", "")
-                try:
-                    # Reuse the embedding that was already computed and cached
-                    existing_embedding = existing_task.get("_embedding")
-                    if not existing_embedding:
-                        continue
-                    similarity = self._cosine_similarity(task_embedding, existing_embedding)
-
-                    if similarity >= similarity_threshold:
-                        logger.info(
-                            f"🚫 Todo filtered (duplicate within batch): "
-                            f"'{task_text}' vs '{existing_text}' | "
-                            f"Similarity={similarity:.3f}"
-                        )
-                        is_duplicate_in_batch = True
-                        filtered_count += 1
-                        break
-                except Exception as e:
-                    continue
-
-            if not is_duplicate_in_batch:
-                task["_embedding"] = task_embedding
-                filtered_tasks.append(task)
-        return filtered_tasks
-
-    def _cosine_similarity(self, vec1: List[float], vec2: List[float]) -> float:
-        """Calculate cosine similarity between two vectors"""
+        existing_texts: List[str] = []
         try:
-            import numpy as np
-
-            v1 = np.array(vec1)
-            v2 = np.array(vec2)
-            norm_product = np.linalg.norm(v1) * np.linalg.norm(v2)
-            if norm_product == 0:
-                return 0.0
-            return float(np.dot(v1, v2) / norm_product)
+            existing_todos = get_storage().get_todos(status=0, limit=200)
+            existing_texts = [todo.get("content") or "" for todo in existing_todos]
         except Exception as e:
-            logger.error(f"Failed to calculate cosine similarity: {e}")
-            return 0.0
+            logger.warning(f"Failed to load existing todos for dedup: {e}")
+
+        keep_flags = deduplicate_todo_texts(
+            [task.get("description", "") for task in new_tasks],
+            existing_texts,
+            threshold=threshold,
+        )
+
+        filtered_tasks = []
+        for task, keep in zip(new_tasks, keep_flags):
+            if not keep:
+                logger.info(
+                    f"🚫 Todo filtered (duplicate): {task.get('description', '')[:60]}"
+                )
+                continue
+            filtered_tasks.append(task)
+        return filtered_tasks
 
     def _process_task_people(self, task: Dict) -> Dict:
         """Process task personnel information."""
