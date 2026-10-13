@@ -1,13 +1,13 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import axiosInstance from '@renderer/services/axiosConfig'
-import { NotificationQueue } from '@renderer/utils/queue/NotificationQueue'
-import { Notification } from '@renderer/types/notification'
-import { addEvent } from '@renderer/store/events'
-import { removeMarkdownSymbols } from '@renderer/utils/time'
 import { PushDataTypes } from '@renderer/constant/feed'
 import i18n from '@renderer/i18n'
+import axiosInstance from '@renderer/services/axiosConfig'
+import { addEvent } from '@renderer/store/events'
+import { Notification } from '@renderer/types/notification'
+import { NotificationQueue } from '@renderer/utils/queue/NotificationQueue'
+import { removeMarkdownSymbols } from '@renderer/utils/time'
 import { getLogger } from '@shared/logger/renderer'
 const logger = getLogger('GlobalEventService')
 const NORMAL_POLLING_INTERVAL = 30 * 1000 // Normal: 30 seconds

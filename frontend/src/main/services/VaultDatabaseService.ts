@@ -1,10 +1,11 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 
+import { VaultDocumentType } from '@shared/enums/global-enum'
 import { getLogger } from '@shared/logger/main'
 import type { Vault } from '@types'
-import { DB } from './Database'
-import { VaultDocumentType } from '@shared/enums/global-enum'
 import dayjs from 'dayjs'
+
+import { DB } from './Database'
 // SPDX-License-Identifier: Apache-2.0
 const logger = getLogger('VaultDatabaseService')
 
@@ -36,9 +37,7 @@ class VaultDatabaseService {
 
       // Document types filter
       if (options.documentTypes !== undefined) {
-        const types = Array.isArray(options.documentTypes)
-          ? options.documentTypes
-          : [options.documentTypes]
+        const types = Array.isArray(options.documentTypes) ? options.documentTypes : [options.documentTypes]
         const placeholders = types.map((_, index) => `@docType${index}`).join(', ')
         conditions.push(`document_type IN (${placeholders})`)
         types.forEach((type, index) => {
@@ -330,12 +329,7 @@ class VaultDatabaseService {
    * @param offset Offset for pagination
    * @returns Array of Vault items
    */
-  public getVaultsInTimeRange(
-    createdFrom: number,
-    createdTo: number,
-    limit = 100,
-    offset = 0
-  ): Vault[] {
+  public getVaultsInTimeRange(createdFrom: number, createdTo: number, limit = 100, offset = 0): Vault[] {
     return this.queryVaults({
       createdFrom,
       createdTo,

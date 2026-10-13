@@ -1,11 +1,10 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import { getLogger } from '@shared/logger/main'
 import { spawn } from 'child_process'
 import { app } from 'electron'
-
 import * as path from 'path'
-import { getLogger } from '@shared/logger/main'
 const logger = getLogger('mac-window-manager')
 // --- Type Definitions ---
 

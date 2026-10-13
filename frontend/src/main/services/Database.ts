@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { is } from '@electron-toolkit/utils'
-import BetterSqlite3, { type Statement, type RunResult, type Database as BetterSqliteDatabase } from 'better-sqlite3'
-import path from 'path'
-import fs from 'fs'
-import { app } from 'electron'
 import { getLogger } from '@shared/logger/main'
+import BetterSqlite3, { type Database as BetterSqliteDatabase, type RunResult, type Statement } from 'better-sqlite3'
+import { app } from 'electron'
+import fs from 'fs'
+import path from 'path'
 const logger = getLogger('Database')
 /**
  * Represents the result of a query returning a list of items.

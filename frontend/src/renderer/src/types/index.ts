@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 export * from './file'
-
 export * from './vault'
 
 export interface StoreSyncAction {

@@ -1,14 +1,14 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import csvIcon from '@renderer/assets/images/files/csv.png'
+import docIcon from '@renderer/assets/images/files/doc.png'
+import faqIcon from '@renderer/assets/images/files/faq.png'
+import markdownIcon from '@renderer/assets/images/files/markdown.png'
 import pdfIcon from '@renderer/assets/images/files/pdf.png'
 import pptIcon from '@renderer/assets/images/files/ppt.png'
-import docIcon from '@renderer/assets/images/files/doc.png'
-import xlsxIcon from '@renderer/assets/images/files/xlsx.png'
-import csvIcon from '@renderer/assets/images/files/csv.png'
 import txtIcon from '@renderer/assets/images/files/txt.png'
-import markdownIcon from '@renderer/assets/images/files/markdown.png'
-import faqIcon from '@renderer/assets/images/files/faq.png'
+import xlsxIcon from '@renderer/assets/images/files/xlsx.png'
 
 export const typeIconMap = {
   pdf: pdfIcon,

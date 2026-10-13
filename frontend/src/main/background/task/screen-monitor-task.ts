@@ -1,17 +1,18 @@
-import { ScreenSettings } from './../../../renderer/src/store/setting';
 import { CaptureSource } from '@interface/common/source'
 import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
-import { BrowserWindow, ipcMain } from 'electron'
-import { pick } from 'lodash'
-import liveCaptureService from '../../services/LiveCaptureService'
-import { getLogger } from '@shared/logger/main'
 import { IpcChannel } from '@shared/IpcChannel'
-import { powerWatcher } from '../os/Power'
+import { getLogger } from '@shared/logger/main'
 import dayjs from 'dayjs'
-import isBetween from 'dayjs/plugin/isBetween'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
+import isBetween from 'dayjs/plugin/isBetween'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
+import { BrowserWindow, ipcMain } from 'electron'
+import { pick } from 'lodash'
+
+import liveCaptureService from '../../services/LiveCaptureService'
+import { powerWatcher } from '../os/Power'
+import { ScreenSettings } from './../../../renderer/src/store/setting'
 
 dayjs.extend(isBetween)
 dayjs.extend(customParseFormat)
@@ -28,8 +29,6 @@ class ScreenMonitorTask {
   static globalStatus: 'running' | 'stopped' = 'stopped'
   private status: 'running' | 'stopped' = 'stopped'
   private modelConfig: Partial<ScreenSettings> = {}
-
-  constructor() {}
 
   public async init() {
     this.listenToScreenMonitorEvents()

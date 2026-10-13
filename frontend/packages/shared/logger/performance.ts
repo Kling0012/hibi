@@ -1,16 +1,16 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import { is } from '@electron-toolkit/utils'
+import dayjs from 'dayjs'
 import { app } from 'electron'
-import path from 'path'
+import Logger from 'electron-log/main'
 import fs from 'fs'
 import inspector from 'inspector'
+import path from 'path'
+import { monitorEventLoopDelay, PerformanceObserver } from 'perf_hooks'
 import pidusage from 'pidusage'
 import v8 from 'v8'
-import { PerformanceObserver, monitorEventLoopDelay } from 'perf_hooks'
-import { is } from '@electron-toolkit/utils'
-import Logger from 'electron-log/main'
-import dayjs from 'dayjs'
 
 const log = Logger.create({ logId: 'performance' })
 log.transports.console.level = false
@@ -96,7 +96,9 @@ class CPUProfiler {
       log.error(`[Profiler] ❌ Failed to start: ${err.message}`)
       try {
         this.session?.disconnect()
-      } catch {}
+      } catch {
+        /* best-effort cleanup; ignore disconnect errors */
+      }
       this.session = null
       this.isProfiling = false
     }
@@ -109,7 +111,9 @@ class CPUProfiler {
         this.isProfiling = false
         try {
           this.session?.disconnect()
-        } catch {}
+        } catch {
+          /* best-effort cleanup; ignore disconnect errors */
+        }
         this.session = null
         if (err) {
           log.error(`[Profiler] ❌ Failed to stop: ${err.message}`)

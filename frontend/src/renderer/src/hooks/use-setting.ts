@@ -1,10 +1,15 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import { RootState, useAppDispatch } from '@renderer/store'
+import {
+  ApplyToDays,
+  GeneralSettings,
+  setGeneralSettings as setGeneralSettingsAction,
+  setScreenSettings as setScreenSettingsAction
+} from '@renderer/store/setting'
 import { useCallback } from 'react'
 import { useSelector } from 'react-redux'
-import { RootState, useAppDispatch } from '@renderer/store'
-import { ApplyToDays, GeneralSettings, setScreenSettings as setScreenSettingsAction, setGeneralSettings as setGeneralSettingsAction } from '@renderer/store/setting'
 
 export const useSetting = () => {
   const dispatch = useAppDispatch()
@@ -12,9 +17,7 @@ export const useSetting = () => {
 
   const { recordInterval, recordingHours, enableRecordingHours, applyToDays } = screenSettings
 
-  const autoCheckUpdate = useSelector(
-    (state: RootState) => state.setting?.generalSettings?.autoCheckUpdate ?? true
-  )
+  const autoCheckUpdate = useSelector((state: RootState) => state.setting?.generalSettings?.autoCheckUpdate ?? true)
 
   const setRecordInterval = useCallback(
     (interval: number) => {

@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { getLogger } from '@shared/logger/renderer'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { Vault, VaultTreeNode } from '@renderer/types'
 import { findNodeById, findParentNodeById, removeNodeById, updateNodeById } from '@renderer/utils/vault'
+import { getLogger } from '@shared/logger/renderer'
 
 const logger = getLogger('Store:Vault')
 

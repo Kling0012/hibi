@@ -9,6 +9,7 @@ import { cn } from '@renderer/lib/utils'
 import type { ToolUIPart } from 'ai'
 import { CheckCircleIcon, ChevronDownIcon, CircleIcon, ClockIcon, WrenchIcon, XCircleIcon } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
+
 import { CodeBlock } from './code-block'
 
 export type ToolProps = ComponentProps<typeof Collapsible>

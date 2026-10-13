@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { FC, PropsWithChildren, useEffect } from 'react'
-import { useMemoizedFn } from 'ahooks'
-import mitt from 'mitt'
 import { POWER_MONITOR_KEY } from '@shared/constant/power-monitor'
 import { getLogger } from '@shared/logger/renderer'
+import { useMemoizedFn } from 'ahooks'
+import mitt from 'mitt'
+import { FC, PropsWithChildren, useEffect } from 'react'
 const logger = getLogger('EventLoopAtom')
 type Events<T extends string> = {
   [key in T]: (data: any) => void

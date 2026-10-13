@@ -1,8 +1,8 @@
-import React from 'react'
-import { Button, Typography, DatePicker } from '@arco-design/web-react'
-import { IconLeft, IconRight, IconDown } from '@arco-design/web-react/icon'
-import { useTranslation } from 'react-i18next'
+import { Button, DatePicker, Typography } from '@arco-design/web-react'
+import { IconDown, IconLeft, IconRight } from '@arco-design/web-react/icon'
 import { getResolvedLang } from '@renderer/i18n'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 const { Text } = Typography
 
@@ -30,10 +30,12 @@ const DateNavigation: React.FC<DateNavigationProps> = ({
   const { t } = useTranslation()
 
   const dayLabel = (date: Date): string =>
-    new Intl.DateTimeFormat(
-      { ja: 'ja-JP', en: 'en-US', zh: 'zh-CN' }[getResolvedLang()],
-      { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }
-    ).format(date)
+    new Intl.DateTimeFormat({ ja: 'ja-JP', en: 'en-US', zh: 'zh-CN' }[getResolvedLang()], {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short'
+    }).format(date)
 
   return (
     <div className="flex justify-between items-center mb-4">

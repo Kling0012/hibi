@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { combineReducers, configureStore } from '@reduxjs/toolkit'
+import { getLogger } from '@shared/logger/renderer'
 import { useDispatch, useSelector, useStore } from 'react-redux'
 import {
   createMigrate,
@@ -17,15 +18,13 @@ import {
 import storage from 'redux-persist/lib/storage'
 
 import storeSyncService from '../services/StoreSyncService'
+import chatHistory from './chat-history'
+import events from './events'
+import { migrations } from './migrations'
 import navigation from './navigation'
 import screen from './screen'
 import setting from './setting'
 import vault from './vault'
-import events from './events'
-import chatHistory from './chat-history'
-
-import { getLogger } from '@shared/logger/renderer'
-import { migrations } from './migrations'
 
 const logger = getLogger('Store')
 

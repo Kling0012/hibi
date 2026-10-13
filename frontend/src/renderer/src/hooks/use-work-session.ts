@@ -3,9 +3,9 @@
 // Shared access to the work-session state owned by the main process
 // (declare panel, sidebar indicator, sync-server pages).
 
-import { useEffect, useState } from 'react'
-import type { WorkSessionState } from '@shared/work-session'
 import i18n from '@renderer/i18n'
+import type { WorkSessionState } from '@shared/work-session'
+import { useEffect, useState } from 'react'
 
 export function useWorkSession(): WorkSessionState | null {
   const [state, setState] = useState<WorkSessionState | null>(null)
@@ -45,9 +45,7 @@ export function formatMinutes(min: number): string {
   const h = Math.floor(m / 60)
   const rest = m % 60
   if (h <= 0) return i18n.t('duration.minutes', { count: m })
-  return rest > 0
-    ? i18n.t('duration.hoursMinutes', { h, m: rest })
-    : i18n.t('duration.hours', { count: h })
+  return rest > 0 ? i18n.t('duration.hoursMinutes', { h, m: rest }) : i18n.t('duration.hours', { count: h })
 }
 
 export function syncBase(state: WorkSessionState | null): string {

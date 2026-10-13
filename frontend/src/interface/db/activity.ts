@@ -9,6 +9,7 @@
  * - JSON → generic object type (Record<string, any>, can be refined if the structure is known)
  * - DATETIME → string (datetime string, usually in ISO format like '2025-09-28 12:00:00')
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- ambient global type referenced across the app
 interface Activity {
   // Auto-incrementing primary key (integer)
   id: number

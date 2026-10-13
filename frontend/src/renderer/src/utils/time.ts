@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import i18n from '@renderer/i18n'
 import dayjs from 'dayjs'
 import isBetween from 'dayjs/plugin/isBetween'
 import utc from 'dayjs/plugin/utc'
-import i18n from '@renderer/i18n'
 dayjs.extend(isBetween)
 dayjs.extend(utc)
 

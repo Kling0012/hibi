@@ -1,19 +1,19 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { IpcChannel } from '@shared/IpcChannel'
-import type { LogLevel, LogSourceWithContext } from '@shared/config/logger'
-import type { Vault } from 'src/renderer/src/types/vault'
-import { Notification } from 'src/renderer/src/types/notification'
-import { serverPushAPI } from './server-push-api'
 import { CaptureSource } from '@interface/common/source'
-
-import { VaultDocumentType } from '@shared/enums/global-enum'
 import { ScreenSettings } from '@renderer/store/setting'
+import type { LogLevel, LogSourceWithContext } from '@shared/config/logger'
+import { VaultDocumentType } from '@shared/enums/global-enum'
 import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
+import { IpcChannel } from '@shared/IpcChannel'
 import type { WorkSessionResult, WorkSessionState } from '@shared/work-session'
+import { contextBridge, ipcRenderer } from 'electron'
+import { Notification } from 'src/renderer/src/types/notification'
+import type { Vault } from 'src/renderer/src/types/vault'
+
+import { serverPushAPI } from './server-push-api'
 
 // Custom APIs for renderer
 const api = {
@@ -29,13 +29,13 @@ const api = {
   },
   // Window event listeners
   onWindowShow: (callback) => {
-    // @ts-ignore
+    // @ts-ignore -- ipcRenderer passes (event, ...args); callback only takes args
     const wrappedCallback = (event, ...args) => callback(...args)
     ipcRenderer.on('window-show', wrappedCallback)
     return () => ipcRenderer.removeListener('window-show', wrappedCallback)
   },
   onAppActivate: (callback) => {
-    // @ts-ignore
+    // @ts-ignore -- ipcRenderer passes (event, ...args); callback only takes args
     const wrappedCallback = (event, ...args) => callback(...args)
     ipcRenderer.on('app-activate', wrappedCallback)
     return () => ipcRenderer.removeListener('app-activate', wrappedCallback)
@@ -102,8 +102,7 @@ const screenMonitorAPI = {
   setSettings: (key: string, value: unknown) => ipcRenderer.invoke(IpcChannel.Screen_Monitor_Set_Settings, key, value),
   clearSettings: (key: string) => ipcRenderer.invoke(IpcChannel.Screen_Monitor_Clear_Settings, key),
   getRecordingStats: () => ipcRenderer.invoke(IpcChannel.Screen_Monitor_Get_Recording_Stats),
-  updateModelConfig: (config: ScreenSettings) =>
-    ipcRenderer.invoke(IpcChannel.Task_Update_Model_Config, config),
+  updateModelConfig: (config: ScreenSettings) => ipcRenderer.invoke(IpcChannel.Task_Update_Model_Config, config),
   startTask: () => ipcRenderer.invoke(IpcChannel.Task_Start),
   stopTask: () => ipcRenderer.invoke(IpcChannel.Task_Stop),
   updateCurrentRecordApp: (appInfo: CaptureSource[]) =>
@@ -125,8 +124,7 @@ const eventLoop = {
 // Work session declaration, used by the home page WorkSessionPanel
 const workSessionAPI = {
   getState: (): Promise<WorkSessionState> => ipcRenderer.invoke(IpcChannel.WorkSession_GetState),
-  declare: (title: string): Promise<WorkSessionResult> =>
-    ipcRenderer.invoke(IpcChannel.WorkSession_Declare, title),
+  declare: (title: string): Promise<WorkSessionResult> => ipcRenderer.invoke(IpcChannel.WorkSession_Declare, title),
   endActive: (): Promise<WorkSessionResult> => ipcRenderer.invoke(IpcChannel.WorkSession_End),
   openManageUi: (): Promise<void> => ipcRenderer.invoke(IpcChannel.WorkSession_OpenManageUi),
   onStateChanged: (callback: (state: WorkSessionState) => void): (() => void) => {

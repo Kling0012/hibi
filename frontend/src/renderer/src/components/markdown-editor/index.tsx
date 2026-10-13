@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // TODO: Optimize the image upload function. Blob URLs should not be stored in the database; only local file URL addresses should be stored.
-import { Crepe } from '@milkdown/crepe'
-import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/react'
 import '@milkdown/crepe/theme/common/style.css'
 import '@milkdown/crepe/theme/frame.css'
 import './index.css'
+
+import { Crepe } from '@milkdown/crepe'
+import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/react'
 
 const CrepeEditor: React.FC<{ defaultValue: string; onChange: (value: string) => void }> = ({
   defaultValue,

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
 import rocketSvg from '@renderer/assets/icons/rocket.svg'
-import { UpdateInfo } from 'electron-updater'
-import { IpcChannel } from '@shared/IpcChannel'
-import { debounce } from 'lodash'
 import { useSetting } from '@renderer/hooks/use-setting'
+import { IpcChannel } from '@shared/IpcChannel'
+import { UpdateInfo } from 'electron-updater'
+import { debounce } from 'lodash'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 // First check 30s after startup, then every 6 hours.
@@ -44,12 +44,12 @@ export default function UpdateAvailableButton() {
     const ipcRenderer = window.electron.ipcRenderer
 
     const f1 = ipcRenderer.on(IpcChannel.UpdateDownloaded, () => {
-      console.log("UpdateDownloaded")
+      console.log('UpdateDownloaded')
       setIsDownloaded(true)
     })
 
     const f2 = ipcRenderer.on(IpcChannel.UpdateError, (_, err) => {
-      console.error("UpdateError", err)
+      console.error('UpdateError', err)
     })
     return () => {
       f1()
@@ -76,8 +76,7 @@ export default function UpdateAvailableButton() {
   return (
     <div
       className="relative w-full flex items-center bg-[#FFFEF9] justify-center rounded-[6px] px-2 py-1.5 bg-gradient-to-tr hover:from-[rgba(246,236,255,0.43)] to-[#FFFEF9] transition cursor-pointer"
-      onClick={handleClick}
-    >
+      onClick={handleClick}>
       <img src={rocketSvg} className="w-3 h-3" />
       <span className="text-[#3F3F51] text-[12px] ml-1">
         {isWindows ? t('update.restartToUpdatePrefix') : `${t('update.newVersion')} `}
@@ -87,5 +86,5 @@ export default function UpdateAvailableButton() {
 
       <span className="w-1.5 h-1.5 bg-[#5252FF] rounded-full absolute top-[-1px] right-[-1px]"></span>
     </div>
-  );
+  )
 }

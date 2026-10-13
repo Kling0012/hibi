@@ -19,14 +19,7 @@ export interface DocumentInfo {
 
 export interface ContextItem {
   source:
-    | 'document'
-    | 'web_search'
-    | 'agent_memory'
-    | 'context_db'
-    | 'chat_history'
-    | 'processed'
-    | 'entity'
-    | 'unknown'
+    'document' | 'web_search' | 'agent_memory' | 'context_db' | 'chat_history' | 'processed' | 'entity' | 'unknown'
   content: string
   title?: string
   relevance_score: number
@@ -52,24 +45,10 @@ export interface ChatStreamRequest {
 }
 
 export type EventType =
-  | 'session_start'
-  | 'thinking'
-  | 'running'
-  | 'done'
-  | 'fail'
-  | 'completed'
-  | 'stream_chunk'
-  | 'stream_complete'
+  'session_start' | 'thinking' | 'running' | 'done' | 'fail' | 'completed' | 'stream_chunk' | 'stream_complete'
 
 export type WorkflowStage =
-  | 'init'
-  | 'intent_analysis'
-  | 'context_gathering'
-  | 'execution'
-  | 'reflection'
-  | 'completed'
-  | 'failed'
-  | 'next'
+  'init' | 'intent_analysis' | 'context_gathering' | 'execution' | 'reflection' | 'completed' | 'failed' | 'next'
 
 export type NodeType = 'intent' | 'context' | 'execute' | 'reflect'
 

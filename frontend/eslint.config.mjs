@@ -33,7 +33,7 @@ export default defineConfig([
   {
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'none' }],
+      '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'none', ignoreRestSiblings: true }],
       '@typescript-eslint/no-unused-expressions': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
       '@eslint-react/hooks-extra/no-direct-set-state-in-use-effect': 'off',

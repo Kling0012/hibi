@@ -10,15 +10,15 @@ export const defaultScreenSettings = {
   enableRecordingHours: false,
   recordingHours: ['08:00:00', '20:00:00'] as [string, string],
   applyToDays: 'weekday' as ApplyToDays
-};
+}
 
-export type ScreenSettings = typeof defaultScreenSettings;
+export type ScreenSettings = typeof defaultScreenSettings
 
 export const defaultGeneralSettings = {
   autoCheckUpdate: true
-};
+}
 
-export type GeneralSettings = typeof defaultGeneralSettings;
+export type GeneralSettings = typeof defaultGeneralSettings
 
 const initialState = {
   screenSettings: defaultScreenSettings,
