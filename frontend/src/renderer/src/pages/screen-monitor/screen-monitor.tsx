@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Modal, Image, Form, Message } from '@arco-design/web-react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useSetting } from '@renderer/hooks/use-setting'
 import { useScreen } from '@renderer/hooks/use-screen'
 import dayjs from 'dayjs'
@@ -45,6 +46,7 @@ export interface Activity {
 const ScreenMonitor: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const {
     recordInterval,
     recordingHours,
@@ -461,7 +463,7 @@ const ScreenMonitor: React.FC = () => {
   const handleSave = useMemoizedFn(async () => {
     const values = form.getFieldsValue()
     if (![...(values.screenSources || []), ...(values.windowSources || [])].length) {
-      Message.info('画面かウィンドウを1つ以上選んでください')
+      Message.info(t('sm.selectSource'))
       return
     }
     const screenList = screenAllSources?.filter((source) => values.screenSources?.includes(source.id)) || []
@@ -538,7 +540,7 @@ const ScreenMonitor: React.FC = () => {
 
         <Modal
           style={{ width: '60%', minHeight: '30%' }}
-          title="スクリーンショット"
+          title={t('sm.screenshot')}
           visible={!!selectedImage}
           onCancel={() => setSelectedImage(null)}
           footer={null}>

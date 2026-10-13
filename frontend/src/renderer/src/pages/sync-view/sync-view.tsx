@@ -6,12 +6,14 @@
 import { ReactElement, useEffect, useState } from 'react'
 import { Button } from '@arco-design/web-react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { syncBase, useWorkSession } from '@renderer/hooks/use-work-session'
+import { getResolvedLang } from '@renderer/i18n'
 
-/** Builds `${server}${path}` with embed=1 (and extra query) before the hash. */
+/** Builds `${server}${path}` with embed=1 and the UI language before the hash. */
 export function embedUrl(base: string, path: string, query: Record<string, string> = {}): string {
   const [pathname, hash = ''] = path.split('#')
-  const params = new URLSearchParams({ embed: '1', ...query })
+  const params = new URLSearchParams({ embed: '1', lang: getResolvedLang(), ...query })
   return `${base}${pathname}?${params}${hash ? `#${hash}` : ''}`
 }
 
@@ -38,17 +40,18 @@ export function useServerReachable(base: string): boolean | null {
 
 export function SyncUnavailable({ base, reachable }: { base: string; reachable: boolean | null }): ReactElement {
   const navigate = useNavigate()
-  if (base && reachable === null) return <div className="hb-empty">同期サーバに接続しています…</div>
+  const { t } = useTranslation()
+  if (base && reachable === null) return <div className="hb-empty">{t('sync.connecting')}</div>
   return (
     <div className="hb-empty">
-      <h2>{base ? '同期サーバに接続できません' : '同期サーバが未設定です'}</h2>
+      <h2>{base ? t('sync.unreachableTitle') : t('sync.notConfiguredTitle')}</h2>
       <p>
         {base
-          ? `${base} に届きませんでした。サーバが起動しているか、ネットワークを確認してください。`
-          : 'タイムライン・日報・ブログは同期サーバに保存されます。設定でサーバの URL を指定してください。'}
+          ? t('sync.unreachableBody', { base })
+          : t('sync.notConfiguredBody')}
       </p>
       <Button type="primary" onClick={() => navigate('/settings')}>
-        設定を開く
+        {t('sync.openSettings')}
       </Button>
     </div>
   )
@@ -65,7 +68,10 @@ export default function SyncView({ title, sub, path }: Props): ReactElement {
   const state = useWorkSession()
   const base = syncBase(state)
   const reachable = useServerReachable(base)
+  const { t } = useTranslation()
   const [nonce, setNonce] = useState(0)
+  // Changing language re-renders this component (useTranslation) and thus
+  // recomputes src; the iframe key changes → it reloads with the new lang.
   const src = base ? embedUrl(base, path) : ''
 
   return (
@@ -76,10 +82,10 @@ export default function SyncView({ title, sub, path }: Props): ReactElement {
         {base && reachable && (
           <div className="hb-actions">
             <button className="hb-link" onClick={() => setNonce((n) => n + 1)}>
-              再読み込み
+              {t('sync.reload')}
             </button>
             <button className="hb-link" onClick={() => window.open(`${base}${path}`, '_blank')}>
-              ブラウザで開く
+              {t('sync.openInBrowser')}
             </button>
           </div>
         )}

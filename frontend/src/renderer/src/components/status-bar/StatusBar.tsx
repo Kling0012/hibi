@@ -4,7 +4,13 @@
 import React, { useState } from 'react'
 import { Input, Tag } from '@arco-design/web-react'
 import { Vault } from '@renderer/types'
-import dayjs from 'dayjs'
+import { useTranslation } from 'react-i18next'
+import { getResolvedLang } from '@renderer/i18n'
+
+const i18nLocale = (): string => {
+  const lang = getResolvedLang()
+  return lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'ja-JP'
+}
 
 interface StatusBarProps {
   vaultData: Vault | null
@@ -13,6 +19,7 @@ interface StatusBarProps {
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({ vaultData, onSummaryChange, onTagsChange }) => {
+  const { t } = useTranslation()
   const [isEditingSummary, setIsEditingSummary] = useState(false)
   const [isEditingTags, setIsEditingTags] = useState(false)
 
@@ -33,20 +40,29 @@ const StatusBar: React.FC<StatusBarProps> = ({ vaultData, onSummaryChange, onTag
   return (
     <div className="status-bar-container">
       {renderRow(
-        'Created at',
-        vaultData.created_at ? dayjs(vaultData.created_at).format('MMMM D, YYYY HH:mm:ss') : 'N/A'
+        t('statusBar.created'),
+        vaultData.created_at
+          ? new Intl.DateTimeFormat(i18nLocale(), {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            }).format(new Date(vaultData.created_at))
+          : 'N/A'
       )}
-      {renderRow('Capture method', 'Creation')}
-      {renderRow('Process method', 'Smart Summary')}
-      {renderRow('Context type', 'Knowledge Context')}
+      {renderRow(t('statusBar.captureMethod'), 'Creation')}
+      {renderRow(t('statusBar.processMethod'), 'Smart Summary')}
+      {renderRow(t('statusBar.contextType'), 'Knowledge Context')}
       {renderRow(
-        'Summary',
+        t('statusBar.summary'),
         isEditingSummary ? (
           <Input.TextArea
             defaultValue={vaultData.summary || ''}
             onChange={onSummaryChange}
             onBlur={() => setIsEditingSummary(false)}
-            placeholder="Enter summary"
+            placeholder={t('statusBar.placeholderSummary')}
             autoSize
             autoFocus
             className="w-full"
@@ -57,12 +73,12 @@ const StatusBar: React.FC<StatusBarProps> = ({ vaultData, onSummaryChange, onTag
               setIsEditingSummary(true)
             }}
             className="min-h-[22px] cursor-text w-full">
-            {vaultData.summary || <span className="text-[#aaa]">No summary</span>}
+            {vaultData.summary || <span className="text-[#aaa]">{t('statusBar.noSummary')}</span>}
           </div>
         )
       )}
       {renderRow(
-        'Tags',
+        t('statusBar.tags'),
         <div className="flex flex-wrap items-center min-h-[32px] gap-x-[4px] gap-y-[4px]">
           {tags.length > 0 ? (
             tags.map((tag, index) => (
@@ -71,7 +87,7 @@ const StatusBar: React.FC<StatusBarProps> = ({ vaultData, onSummaryChange, onTag
               </Tag>
             ))
           ) : (
-            <div className="text-[#aaa] mr-[8px]">No tags</div>
+            <div className="text-[#aaa] mr-[8px]">{t('statusBar.noTags')}</div>
           )}
           {isEditingTags ? (
             <Input
@@ -90,7 +106,7 @@ const StatusBar: React.FC<StatusBarProps> = ({ vaultData, onSummaryChange, onTag
                 }
               }}
               onBlur={() => setIsEditingTags(false)}
-              placeholder="Enter new tag"
+              placeholder={t('statusBar.placeholderTag')}
               autoFocus
               className="!w-[120px] mr-[8px] mb-[4px] !inline-block"
             />
@@ -101,7 +117,7 @@ const StatusBar: React.FC<StatusBarProps> = ({ vaultData, onSummaryChange, onTag
                 e.stopPropagation()
                 setIsEditingTags(true)
               }}>
-              + New tag
+              {t('statusBar.newTag')}
             </Tag>
           )}
         </div>,

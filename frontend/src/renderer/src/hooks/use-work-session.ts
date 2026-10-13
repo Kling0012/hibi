@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import type { WorkSessionState } from '@shared/work-session'
+import i18n from '@renderer/i18n'
 
 export function useWorkSession(): WorkSessionState | null {
   const [state, setState] = useState<WorkSessionState | null>(null)
@@ -38,11 +39,15 @@ export function formatElapsed(startedAtIso: string, now: Date): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
 }
 
-/** "1時間20分" / "45分". */
+/** "1時間20分" / "45分" (en: "1h 20m" / "45m", zh: "1小时20分钟"). */
 export function formatMinutes(min: number): string {
   const m = Math.max(0, Math.round(min))
   const h = Math.floor(m / 60)
-  return h > 0 ? `${h}時間${m % 60 ? `${m % 60}分` : ''}` : `${m}分`
+  const rest = m % 60
+  if (h <= 0) return i18n.t('duration.minutes', { count: m })
+  return rest > 0
+    ? i18n.t('duration.hoursMinutes', { h, m: rest })
+    : i18n.t('duration.hours', { count: h })
 }
 
 export function syncBase(state: WorkSessionState | null): string {

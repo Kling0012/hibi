@@ -5,6 +5,7 @@ import { app, BrowserWindow, Menu, nativeImage, NativeImage, Tray } from 'electr
 import path from 'path'
 import { getLogger } from '@shared/logger/main'
 import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
+import { tMain } from '@main/i18n'
 import screenshotService from './ScreenshotService'
 
 const logger = getLogger('TrayService')
@@ -157,6 +158,21 @@ export class TrayService {
   }
 
   /**
+   * Re-apply tray texts after the UI language changed (fail-soft).
+   */
+  onLanguageChanged(): void {
+    if (!this.tray) return
+    try {
+      this.tray.setToolTip(
+        this.isRecording ? `Hibi - ${tMain('tray.statusRecording')}` : `Hibi - ${tMain('tray.statusPaused')}`
+      )
+      this.tray.setContextMenu(this.buildContextMenu())
+    } catch (error) {
+      logger.warn('rebuilding tray menu after language change failed:', error)
+    }
+  }
+
+  /**
    * Show context menu
    */
   private showContextMenu(): void {
@@ -169,7 +185,7 @@ export class TrayService {
    * Build the context menu based on current state
    */
   private buildContextMenu(): Menu {
-    const recordingStatusLabel = this.isRecording ? '录制中' : '已暂停'
+    const recordingStatusLabel = this.isRecording ? tMain('tray.statusRecording') : tMain('tray.statusPaused')
 
     const menuTemplate: Electron.MenuItemConstructorOptions[] = [
       {
@@ -180,14 +196,14 @@ export class TrayService {
         type: 'separator'
       },
       {
-        label: '显示主窗口',
+        label: tMain('tray.showWindow'),
         click: () => {
           this.mainWindow.show()
           this.mainWindow.focus()
         }
       },
       {
-        label: this.isRecording ? '暂停录制' : '继续录制',
+        label: this.isRecording ? tMain('tray.pauseRecording') : tMain('tray.resumeRecording'),
         click: () => {
           this.toggleRecording()
         }
@@ -196,7 +212,7 @@ export class TrayService {
         type: 'separator'
       },
       {
-        label: '退出 Hibi',
+        label: tMain('tray.quit'),
         click: () => {
           this.quitApp()
         }
@@ -263,7 +279,7 @@ export class TrayService {
       }
 
       // Update tooltip
-      const tooltip = isRecording ? 'Hibi - 录制中' : 'Hibi - 已暂停'
+      const tooltip = isRecording ? `Hibi - ${tMain('tray.statusRecording')}` : `Hibi - ${tMain('tray.statusPaused')}`
       this.tray.setToolTip(tooltip)
 
       // Update context menu

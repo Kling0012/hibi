@@ -7,65 +7,77 @@
 
 import { useCallback, useState } from 'react'
 import { Button, Input } from '@arco-design/web-react'
+import { useTranslation } from 'react-i18next'
 import { formatElapsed, useNow, useWorkSession } from '@renderer/hooks/use-work-session'
+import { getResolvedLang } from '@renderer/i18n'
 
 const clock = (iso: string): string =>
-  new Date(iso).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+  new Date(iso).toLocaleTimeString(getResolvedLang() === 'en' ? 'en-GB' : getResolvedLang(), {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 
 export function WorkSessionPanel() {
   const state = useWorkSession()
   const now = useNow()
+  const { t } = useTranslation()
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
-  const submit = useCallback(async (): Promise<void> => {
-    if (busy) return
-    const value = title.trim()
-    if (!value) {
-      setMessage({ kind: 'err', text: '作業名を入力してください' })
-      return
-    }
-    setBusy(true)
-    setMessage(null)
-    try {
-      const result = await window.workSessionAPI.declare(value)
-      if (result.ok) {
-        setTitle('')
-      } else {
-        setMessage({ kind: 'err', text: result.error ?? '宣言できませんでした' })
+  const submit = useCallback(
+    async (): Promise<void> => {
+      if (busy) return
+      const value = title.trim()
+      if (!value) {
+        setMessage({ kind: 'err', text: t('declare.noTitle') })
+        return
       }
-    } finally {
-      setBusy(false)
-    }
-  }, [busy, title])
+      setBusy(true)
+      setMessage(null)
+      try {
+        const result = await window.workSessionAPI.declare(value)
+        if (result.ok) {
+          setTitle('')
+        } else {
+          setMessage({ kind: 'err', text: result.error ?? t('declare.declareFailed') })
+        }
+      } finally {
+        setBusy(false)
+      }
+    },
+    [busy, title, t]
+  )
 
-  const endActive = useCallback(async (): Promise<void> => {
-    if (busy) return
-    setBusy(true)
-    setMessage(null)
-    try {
-      const result = await window.workSessionAPI.endActive()
-      setMessage(
-        result.ok
-          ? { kind: 'ok', text: '作業を終了しました' }
-          : { kind: 'err', text: result.error ?? '終了できませんでした' }
-      )
-    } finally {
-      setBusy(false)
-    }
-  }, [busy])
+  const endActive = useCallback(
+    async (): Promise<void> => {
+      if (busy) return
+      setBusy(true)
+      setMessage(null)
+      try {
+        const result = await window.workSessionAPI.endActive()
+        setMessage(
+          result.ok
+            ? { kind: 'ok', text: t('declare.ended') }
+            : { kind: 'err', text: result.error ?? t('declare.endFailed') }
+        )
+      } finally {
+        setBusy(false)
+      }
+    },
+    [busy, t]
+  )
 
   const canDeclare = Boolean(state?.ready && state.enabled && state.connected) && !busy
   const active = state?.active ?? null
   const banner = !state
-    ? '読み込み中…'
+    ? t('common.loading')
     : !state.ready
-      ? 'バックエンドに接続中…'
+      ? t('declare.connectingBackend')
       : !state.enabled
-        ? '同期サーバが無効です（設定で有効化してください）'
+        ? t('declare.syncDisabled')
         : !state.connected
-          ? `同期サーバに接続できません${state.lastError ? `（${state.lastError}）` : ''}`
+          ? `${t('declare.syncUnreachable')}${state.lastError ? `（${state.lastError}）` : ''}`
           : null
 
   return (
@@ -75,28 +87,28 @@ export function WorkSessionPanel() {
           <span className="hb-pulse" />
           <div style={{ minWidth: 0 }}>
             <div className="hb-active-title">{active.title}</div>
-            <div className="hb-active-meta">{clock(active.startedAt)} から作業中 · 終わりは AI が画面から判断します</div>
+            <div className="hb-active-meta">{t('declare.activeMeta', { time: clock(active.startedAt) })}</div>
           </div>
           <span className="hb-elapsed">{formatElapsed(active.startedAt, now)}</span>
           <Button status="danger" loading={busy} onClick={() => void endActive()}>
-            終了
+            {t('declare.end')}
           </Button>
         </div>
       ) : (
-        <p className="hb-declare-q">これから何をする？</p>
+        <p className="hb-declare-q">{t('declare.q')}</p>
       )}
 
       <div className="hb-declare-row">
         <Input
           value={title}
-          placeholder={active ? '次の作業（Enter で切り替え）' : '例：同期サーバの管理画面を作る（Enter で開始）'}
+          placeholder={active ? t('declare.placeholderActive') : t('declare.placeholderIdle')}
           disabled={!canDeclare}
           maxLength={200}
           onChange={(value) => setTitle(value)}
           onPressEnter={() => void submit()}
         />
         <Button type="primary" disabled={!canDeclare} onClick={() => void submit()}>
-          {active ? '次の作業へ' : '開始'}
+          {active ? t('declare.next') : t('declare.start')}
         </Button>
       </div>
 
@@ -112,9 +124,7 @@ export function WorkSessionPanel() {
 
       {banner && <p className="hb-hint warn">{banner}</p>}
       {message && <p className={`hb-hint ${message.kind}`}>{message.text}</p>}
-      {active && !message && !banner && (
-        <p className="hb-hint">次の作業を始めると、今の作業はその時刻で終わります。</p>
-      )}
+      {active && !message && !banner && <p className="hb-hint">{t('declare.nextHint')}</p>}
     </section>
   )
 }

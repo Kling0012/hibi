@@ -25,6 +25,7 @@ import { initLog } from '@shared/logger/init'
 import { getLogger } from '@shared/logger/main'
 import { monitor } from '@shared/logger/performance'
 import { TrayService } from './services/TrayService'
+import { initMainLanguage } from './i18n'
 import { workSessionService } from './services/WorkSessionService'
 import { ScreenMonitorTask } from './background/task/screen-monitor-task'
 import { autoUpdater } from 'electron-updater'
@@ -272,6 +273,9 @@ app.whenReady().then(() => {
   openInspector(mainWindow)
   powerWatcher.run()
   startBackendInBackground(mainWindow)
+
+  // UI language for main-process texts (tray/dialogs) before the tray is built
+  initMainLanguage()
 
   // Initialize tray service
   trayService = new TrayService(mainWindow)

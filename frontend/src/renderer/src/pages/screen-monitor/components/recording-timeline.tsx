@@ -1,5 +1,6 @@
 import React from 'react'
 import { Typography, Timeline } from '@arco-design/web-react'
+import { useTranslation } from 'react-i18next'
 import { Activity } from '../screen-monitor'
 import { ActivityTimelineItem } from './activitie-timeline-item'
 import { formatTime } from '@renderer/utils/time'
@@ -24,6 +25,7 @@ const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
   activities,
   recordingStats
 }) => {
+  const { t } = useTranslation()
   console.log('[RecordingTimeline] Props:', {
     isMonitoring,
     isToday,
@@ -36,34 +38,30 @@ const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
     <div className="mt-5">
       <Timeline labelPosition="relative">
         {isToday && (
-          <TimelineItem label="今" className="!pb-[24px]">
+          <TimelineItem label={t('sm.now')} className="!pb-[24px]">
             {isMonitoring ? (
               canRecord ? (
                 <>
                   <div className="w-full text-sm">
                     <Text className="[&_.arco-typography]: !font-bold [&_.arco-typography]: !text-[#5252FF] [&_.arco-typography]: !text-xs">
-                      画面を記録しています…
+                      {t('sm.recordingNow')}
                     </Text>
-                    <div className="text-[#C9C9D4]">
-                      30 秒ごとに活動を要約し、画面が変わったときに文字を書き起こします。
-                    </div>
+                    <div className="text-[#C9C9D4]">{t('sm.recordingDesc')}</div>
                   </div>
                   <RecordingStatsCard stats={recordingStats} />
                 </>
               ) : (
                 <div className="w-full text-sm">
                   <Text className="[&_.arco-typography]: !font-bold [&_.arco-typography]: !text-[#FF4D4F] [&_.arco-typography]: !text-xs">
-                    記録は止まっています
+                    {t('sm.recordingStopped')}
                   </Text>
-                  <div className="text-[#C9C9D4]">
-                    今は記録する時間帯の外です。次の時間帯になると自動で始まります。
-                  </div>
+                  <div className="text-[#C9C9D4]">{t('sm.outsideHours')}</div>
                 </div>
               )
             ) : (
               <div style={{ width: '100%', fontSize: 14 }}>
-                <Text style={{ fontWeight: 'bold', color: '#FF4D4F', fontSize: 12 }}>記録は止まっています</Text>
-                <div style={{ color: '#C9C9D4' }}>いつでも記録を再開できます</div>
+                <Text style={{ fontWeight: 'bold', color: '#FF4D4F', fontSize: 12 }}>{t('sm.recordingStopped')}</Text>
+                <div style={{ color: '#C9C9D4' }}>{t('sm.canResume')}</div>
               </div>
             )}
           </TimelineItem>

@@ -5,6 +5,7 @@ import { AppDispatch, RootState } from '@renderer/store'
 import { ScreenshotRecord } from '@renderer/store/screen'
 
 import { getLogger } from '@shared/logger/renderer'
+import i18n from '@renderer/i18n'
 
 const logger = getLogger('ScreenThunk')
 
@@ -79,7 +80,7 @@ export const captureScreenshotThunk =
         timestamp: result.screenshotInfo.timestamp,
         base64_url: `data:image/png;base64,${imageBase64.data}`,
         image_url: result.screenshotInfo.url,
-        description: '自动截图',
+        description: i18n.t('sm.autoScreenshot'),
         group_id: groupTimestamp // 添加分组ID
       }
 

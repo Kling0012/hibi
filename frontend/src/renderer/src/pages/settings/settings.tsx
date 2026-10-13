@@ -4,6 +4,8 @@
 import { FC, useCallback, useEffect, useState } from 'react'
 import { Button, Input, InputNumber, Message, Select, Spin, Switch, Tabs, Typography } from '@arco-design/web-react'
 import { get } from 'lodash'
+import { useTranslation } from 'react-i18next'
+import { applyLangPref, getLangPref, type LangPref } from '@renderer/i18n'
 
 import {
   AIProviderConfig,
@@ -25,12 +27,12 @@ import { useSetting } from '@renderer/hooks/use-setting'
 const { Text } = Typography
 
 const ROUTE_KEYS = ['vision', 'chat', 'structured', 'embedding', 'exact'] as const
-const ROUTE_LABELS: Record<string, string> = {
-  vision: '画像の理解（vision）',
-  chat: 'チャット・エージェント（chat）',
-  structured: '構造化出力・JSON（structured）',
-  embedding: '埋め込み（embedding）',
-  exact: '画面の文字の正確な記録（exact）'
+const ROUTE_LABEL_KEYS: Record<string, string> = {
+  vision: 'settings.routeVision',
+  chat: 'settings.routeChat',
+  structured: 'settings.routeStructured',
+  embedding: 'settings.routeEmbedding',
+  exact: 'settings.routeExact'
 }
 const KIND_OPTIONS = [
   { value: 'openai_compat', label: 'openai_compat' },
@@ -59,6 +61,13 @@ const emptyProvider = (n: number): AIProviderConfig => ({
 const Settings: FC<SettingsProps> = (props) => {
   const { closeSetting, init } = props
   const { autoCheckUpdate, setGeneralSettings } = useSetting()
+  const { t } = useTranslation()
+  const [langPref, setLangPref] = useState<LangPref>(getLangPref())
+
+  const changeLangPref = (pref: LangPref): void => {
+    setLangPref(pref)
+    applyLangPref(pref)
+  }
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -85,7 +94,7 @@ const Settings: FC<SettingsProps> = (props) => {
         setOutputLanguage(ai.output_language || 'ja')
       }
     } catch (e) {
-      Message.error(get(e, 'message', 'Failed to load AI settings'))
+      Message.error(get(e, 'message', t('settings.loadFailed')))
     } finally {
       setLoading(false)
     }
@@ -151,7 +160,7 @@ const Settings: FC<SettingsProps> = (props) => {
       const result = await testAIProvider(provider)
       setTestResults((prev) => ({
         ...prev,
-        [provider.id]: result || { ok: false, message: 'no response' }
+        [provider.id]: result || { ok: false, message: t('settings.noResponse') }
       }))
     } catch (e) {
       setTestResults((prev) => ({ ...prev, [provider.id]: { ok: false, message: get(e, 'message', 'failed') } }))
@@ -163,7 +172,7 @@ const Settings: FC<SettingsProps> = (props) => {
   const save = async () => {
     const ids = providers.map((p) => p.id.trim()).filter(Boolean)
     if (providers.length === 0 || new Set(ids).size !== ids.length) {
-      Message.error('ID は空にできず、重複もできません')
+      Message.error(t('settings.duplicateId'))
       return
     }
     setSaving(true)
@@ -178,11 +187,11 @@ const Settings: FC<SettingsProps> = (props) => {
         output_language: outputLanguage
       }
       await updateAISettings(payload)
-      Message.success('AI の設定を保存しました')
+      Message.success(t('settings.aiSaved'))
       await load()
       if (init) closeSetting?.()
     } catch (e) {
-      Message.error(get(e, 'response.data.message') || get(e, 'message') || '保存できませんでした')
+      Message.error(get(e, 'response.data.message') || get(e, 'message') || t('settings.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -198,9 +207,9 @@ const Settings: FC<SettingsProps> = (props) => {
           .map((s) => s.trim())
           .filter(Boolean)
       })
-      Message.success('画面の記録の設定を保存しました')
+      Message.success(t('settings.captureSaved'))
     } catch (e) {
-      Message.error(get(e, 'response.data.message') || get(e, 'message') || '保存できませんでした')
+      Message.error(get(e, 'response.data.message') || get(e, 'message') || t('settings.saveFailed'))
     } finally {
       setCaptureSaving(false)
     }
@@ -215,9 +224,9 @@ const Settings: FC<SettingsProps> = (props) => {
         setSync(syncData.sync || {})
         setSyncStatus(syncData.status || null)
       }
-      Message.success('同期の設定を保存しました')
+      Message.success(t('settings.syncSaved'))
     } catch (e) {
-      Message.error(get(e, 'response.data.message') || get(e, 'message') || '保存できませんでした')
+      Message.error(get(e, 'response.data.message') || get(e, 'message') || t('settings.saveFailed'))
     } finally {
       setSyncSaving(false)
     }
@@ -227,16 +236,15 @@ const Settings: FC<SettingsProps> = (props) => {
     <Spin loading={loading} block className="[&_.arco-spin-children]:!h-full !h-full">
       <div className={`hb-page hb-settings${init ? ' hb-settings-init' : ''}`} style={{ height: '100%' }}>
         <div className="hb-page-head">
-          <h1>{init ? 'Hibi へようこそ' : '設定'}</h1>
-          {init && <span className="hb-sub">まず AI の接続先を設定してください</span>}
+          <h1>{init ? t('loading.welcome') : t('nav.settings')}</h1>
+          {init && <span className="hb-sub">{t('settings.getStartedSub')}</span>}
         </div>
         <div className="hb-scroll">
           <Tabs defaultActiveTab="ai" className="hb-tabs">
           <Tabs.TabPane key="ai" title="AI">
           <div className="mb-[12px]">
             <Text type="secondary" className="text-[13px]">
-              AI の接続先は用途ごとの順番で使われ、失敗すると次の候補に自動で切り替わります。
-              鍵はファイルのパスか、直接入力で指定します。
+              {t('settings.aiDesc')}
             </Text>
           </div>
 
@@ -248,7 +256,7 @@ const Settings: FC<SettingsProps> = (props) => {
                   <Input
                     value={provider.id}
                     onChange={(v) => updateProvider(index, { id: v })}
-                    placeholder="ID（重複不可）"
+                    placeholder={t('settings.providerIdPlaceholder')}
                     className="!w-[160px]"
                   />
                   <Select
@@ -260,34 +268,34 @@ const Settings: FC<SettingsProps> = (props) => {
                   <Input
                     value={provider.model}
                     onChange={(v) => updateProvider(index, { model: v })}
-                    placeholder="モデル名"
+                    placeholder={t('settings.modelPlaceholder')}
                     className="flex-1"
                   />
                   <Button size="small" onClick={() => test(provider)} loading={testing[provider.id]}>
-                    接続テスト
+                    {t('settings.testConnection')}
                   </Button>
                   <Button size="small" status="danger" onClick={() => removeProvider(provider.id)}>
-                    削除
+                    {t('common.delete')}
                   </Button>
                 </div>
                 <div className="flex items-center gap-2">
                   {provider.kind !== 'gemini_live' &&
                     (provider.options?.base_url_from_sync ? (
                       <Text type="secondary" className="flex-1 text-[13px] leading-[32px]">
-                        同期サーバの URL を使います
+                        {t('settings.usesSyncUrl')}
                       </Text>
                     ) : (
                       <Input
                         value={provider.base_url || ''}
                         onChange={(v) => updateProvider(index, { base_url: v })}
-                        placeholder="ベース URL（https://…）"
+                        placeholder={t('settings.baseUrlPlaceholder')}
                         className="flex-1"
                       />
                     ))}
                   <Input
                     value={provider.api_key_file || ''}
                     onChange={(v) => updateProvider(index, { api_key_file: v })}
-                    placeholder="API キーのファイルパス（~ 可）"
+                    placeholder={t('settings.apiKeyFilePlaceholder')}
                     className="flex-1"
                   />
                 </div>
@@ -295,14 +303,17 @@ const Settings: FC<SettingsProps> = (props) => {
                   <Input.Password
                     value={provider.api_key || ''}
                     onChange={(v) => updateProvider(index, { api_key: v })}
-                    placeholder={provider.has_api_key ? 'API キー（保存済み。空欄なら変更しません）' : 'API キー（ファイルパスを指定した場合は不要）'}
+                    placeholder={
+                      provider.has_api_key ? t('settings.apiKeySavedPlaceholder') : t('settings.apiKeyPlaceholder')
+                    }
                     className="flex-1"
                     defaultVisibility={false}
                   />
                 </div>
                 {testResults[provider.id] && (
                   <Text type={testResults[provider.id].ok ? 'success' : 'error'} className="text-[12px]">
-                    {testResults[provider.id].ok ? 'OK' : '失敗'}: {testResults[provider.id].message}
+                    {testResults[provider.id].ok ? t('common.ok') : t('settings.testFailed')}:{' '}
+                    {testResults[provider.id].message}
                   </Text>
                 )}
               </div>
@@ -311,16 +322,16 @@ const Settings: FC<SettingsProps> = (props) => {
               className="!w-[160px]"
               onClick={() => setProviders((prev) => [...prev, emptyProvider(prev.length + 1)])}
             >
-              ＋ 接続先を追加
+              {t('settings.addProvider')}
             </Button>
           </div>
 
           {/* Routes */}
-          <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">用途ごとの優先順</div>
+          <div className="mb-[12px] text-[16px] font-medium text-[#0B0B0F]">{t('settings.routeOrder')}</div>
           <div className="flex flex-col gap-4 mb-6">
             {ROUTE_KEYS.map((route) => (
               <div key={route} className="flex flex-col gap-1">
-                <Text className="text-[14px] font-medium">{ROUTE_LABELS[route]}</Text>
+                <Text className="text-[14px] font-medium">{t(ROUTE_LABEL_KEYS[route])}</Text>
                 <div className="flex flex-col gap-1">
                   {(routes[route] || []).map((pid, i) => (
                     <div key={pid} className="flex items-center gap-2">
@@ -343,12 +354,12 @@ const Settings: FC<SettingsProps> = (props) => {
                   ))}
                   {(routes[route] || []).length === 0 && (
                     <Text type="secondary" className="text-[12px]">
-                      未設定（この用途を使う機能は止まります）
+                      {t('settings.routeNotSet')}
                     </Text>
                   )}
                 </div>
                 <Select
-                  placeholder="＋ この用途に接続先を追加"
+                  placeholder={t('settings.routeAddPlaceholder')}
                   value={undefined as unknown as string}
                   options={providers
                     .filter((p) => !(routes[route] || []).includes(p.id))
@@ -362,7 +373,7 @@ const Settings: FC<SettingsProps> = (props) => {
 
           {/* Output language */}
           <div className="mb-6 flex items-center gap-3">
-            <Text className="text-[14px] font-medium">出力の言語</Text>
+            <Text className="text-[14px] font-medium">{t('settings.outputLanguage')}</Text>
             <Select
               value={outputLanguage}
               options={LANGUAGE_OPTIONS}
@@ -370,34 +381,34 @@ const Settings: FC<SettingsProps> = (props) => {
               className="!w-[160px]"
             />
             <Text type="secondary" className="text-[12px]">
-              要約や日報などの生成文をこの言語で書かせます。
+              {t('settings.outputLanguageDesc')}
             </Text>
           </div>
 
           <Spin loading={saving}>
             <Button type="primary" onClick={save} disabled={saving}>
-              {init ? 'はじめる' : 'AI の設定を保存'}
+              {init ? t('settings.getStarted') : t('settings.saveAi')}
             </Button>
           </Spin>
           </Tabs.TabPane>
 
           {/* Screen recording (P1-B) */}
-          <Tabs.TabPane key="capture" title="画面の記録">
+          <Tabs.TabPane key="capture" title={t('settings.captureTab')}>
           <div>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">記録を一時停止</Text>
+                <Text className="text-[14px] w-[240px]">{t('settings.excludeLabel')}</Text>
                 <Switch
                   size="small"
                   checked={!!capture.paused}
                   onChange={(v) => setCapture((prev) => ({ ...prev, paused: v }))}
                 />
                 <Text type="secondary" className="text-[12px]">
-                  画面の記録を一時的に止めます（画面は一切取得しません）。
+                  {t('settings.excludeHint')}
                 </Text>
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">ライブのフレームレート（fps）</Text>
+                <Text className="text-[14px] w-[240px]">{t('settings.liveFps')}</Text>
                 <InputNumber
                   size="small"
                   min={0.2}
@@ -408,11 +419,11 @@ const Settings: FC<SettingsProps> = (props) => {
                   className="!w-[120px]"
                 />
                 <Text type="secondary" className="text-[12px]">
-                  0.2〜1。記録を再開すると反映されます。
+                  {t('settings.liveFpsDesc')}
                 </Text>
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">ライブ要約の間隔（秒）</Text>
+                <Text className="text-[14px] w-[240px]">{t('settings.liveSummaryInterval')}</Text>
                 <InputNumber
                   size="small"
                   min={5}
@@ -423,11 +434,11 @@ const Settings: FC<SettingsProps> = (props) => {
                   className="!w-[120px]"
                 />
                 <Text type="secondary" className="text-[12px]">
-                  画面の流れを何秒ごとに活動としてまとめるか。
+                  {t('settings.liveSummaryIntervalDesc')}
                 </Text>
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">文字記録の最小間隔（秒）</Text>
+                <Text className="text-[14px] w-[240px]">{t('settings.minInterval')}</Text>
                 <InputNumber
                   size="small"
                   min={5}
@@ -438,11 +449,11 @@ const Settings: FC<SettingsProps> = (props) => {
                   className="!w-[120px]"
                 />
                 <Text type="secondary" className="text-[12px]">
-                  画面の文字を正確に記録する間隔の下限。
+                  {t('settings.minIntervalDesc')}
                 </Text>
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">変化のしきい値（dhash 距離）</Text>
+                <Text className="text-[14px] w-[240px]">{t('settings.threshold')}</Text>
                 <InputNumber
                   size="small"
                   min={1}
@@ -453,11 +464,11 @@ const Settings: FC<SettingsProps> = (props) => {
                   className="!w-[120px]"
                 />
                 <Text type="secondary" className="text-[12px]">
-                  大きいほど、大きな画面の変化でだけ記録します。
+                  {t('settings.thresholdDesc')}
                 </Text>
               </div>
               <div className="flex flex-col gap-1">
-                <Text className="text-[14px]">記録しないアプリ（1行に1つ）</Text>
+                <Text className="text-[14px]">{t('settings.excludeApps')}</Text>
                 <Input.TextArea
                   value={excludeAppsText}
                   onChange={(v) => setExcludeAppsText(v)}
@@ -466,11 +477,11 @@ const Settings: FC<SettingsProps> = (props) => {
                   className="!w-[400px]"
                 />
                 <Text type="secondary" className="text-[12px]">
-                  最前面にあるとき記録しません（アプリ名の部分一致）。
+                  {t('settings.excludeAppsDesc')}
                 </Text>
               </div>
               <Button className="!w-[120px]" loading={captureSaving} onClick={saveCapture}>
-                保存
+                {t('common.save')}
               </Button>
             </div>
           </div>
@@ -478,23 +489,22 @@ const Settings: FC<SettingsProps> = (props) => {
           </Tabs.TabPane>
 
           {/* Sync server (P1-B) */}
-          <Tabs.TabPane key="sync" title="同期">
+          <Tabs.TabPane key="sync" title={t('settings.syncTab')}>
           <div>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">同期サーバへ送る</Text>
+                <Text className="text-[14px] w-[240px]">{t('settings.syncSendLabel')}</Text>
                 <Switch
                   size="small"
                   checked={!!sync.enabled}
                   onChange={(v) => setSync((prev) => ({ ...prev, enabled: v }))}
                 />
                 <Text type="secondary" className="text-[12px]">
-                  記録はいったん手元に貯めてからまとめて送ります。サーバに届かない間も
-                  記録は続きます。
+                  {t('settings.syncSendDesc')}
                 </Text>
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">サーバの URL</Text>
+                <Text className="text-[14px] w-[240px]">{t('settings.syncUrlLabel')}</Text>
                 <Input
                   value={sync.server_url || ''}
                   onChange={(v) => setSync((prev) => ({ ...prev, server_url: v }))}
@@ -504,37 +514,43 @@ const Settings: FC<SettingsProps> = (props) => {
                 />
               </div>
               <div className="flex items-center gap-3">
-                <Text className="text-[14px] w-[240px]">端末名</Text>
+                <Text className="text-[14px] w-[240px]">{t('settings.syncDeviceLabel')}</Text>
                 <Input
                   value={sync.device_name || ''}
                   onChange={(v) => setSync((prev) => ({ ...prev, device_name: v }))}
-                  placeholder="（ホスト名）"
+                  placeholder={t('settings.syncDevicePlaceholder')}
                   className="!w-[340px]"
                   size="small"
                 />
               </div>
               {syncStatus && (
                 <div className="flex flex-col gap-1 text-[12px] text-[#6E718C]">
-                  <span>端末 ID: {syncStatus.device_id || '（未発行）'}</span>
-                  <span>最後の送信: {syncStatus.last_sync_at || 'まだありません'}</span>
-                  <span>未送信: {syncStatus.pending_count ?? '—'} 件</span>
+                  <span>
+                    {t('settings.syncDeviceId')}: {syncStatus.device_id || t('settings.syncDeviceIdNone')}
+                  </span>
+                  <span>
+                    {t('settings.syncLastSent')}: {syncStatus.last_sync_at || t('settings.syncLastSentNone')}
+                  </span>
+                  <span>{t('settings.syncPendingLine', { n: syncStatus.pending_count ?? '—' })}</span>
                   {syncStatus.last_error && (
-                    <Text type="error">直近のエラー: {syncStatus.last_error}</Text>
+                    <Text type="error">
+                      {t('settings.syncLastError')}: {syncStatus.last_error}
+                    </Text>
                   )}
                 </div>
               )}
               <Button className="!w-[120px]" loading={syncSaving} onClick={saveSync}>
-                保存
+                {t('common.save')}
               </Button>
             </div>
           </div>
 
           </Tabs.TabPane>
 
-          <Tabs.TabPane key="app" title="アプリ">
+          <Tabs.TabPane key="app" title={t('settings.appTab')}>
           <div>
             <div className="mb-[4px] flex items-center justify-between">
-              <span className="text-[14px] text-[#0B0B0F]">更新を自動で確認する</span>
+              <span className="text-[14px] text-[#0B0B0F]">{t('settings.updateAutoCheck')}</span>
               <Switch
                 size="small"
                 checked={autoCheckUpdate}
@@ -542,8 +558,25 @@ const Settings: FC<SettingsProps> = (props) => {
               />
             </div>
             <Text type="secondary" className="text-[12px]">
-              起動時と 6 時間ごとに GitHub のリリースを確認します。Windows
-              は裏でダウンロードし、再起動で更新します。Mac は新しい版のお知らせとダウンロードのページを開くボタンを出します。
+              {t('settings.updateAutoCheckDesc')}
+            </Text>
+            <div className="mt-4 mb-[4px] flex items-center justify-between">
+              <span className="text-[14px] text-[#0B0B0F]">{t('settings.language')}</span>
+              <Select
+                value={langPref}
+                options={[
+                  { value: 'auto', label: t('settings.langAuto') },
+                  { value: 'ja', label: '日本語' },
+                  { value: 'en', label: 'English' },
+                  { value: 'zh', label: '中文' }
+                ]}
+                onChange={changeLangPref}
+                className="!w-[160px]"
+                size="small"
+              />
+            </div>
+            <Text type="secondary" className="text-[12px]">
+              {t('settings.languageDesc')}
             </Text>
           </div>
           </Tabs.TabPane>

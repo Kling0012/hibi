@@ -1,6 +1,7 @@
 import React from 'react'
 import { Button, Space, Typography, Popover } from '@arco-design/web-react'
 import { IconPlayArrow, IconSettings, IconRecordStop } from '@arco-design/web-react/icon'
+import { useTranslation } from 'react-i18next'
 
 const { Title, Text } = Typography
 
@@ -26,23 +27,23 @@ const ScreenMonitorHeader: React.FC<ScreenMonitorHeaderProps> = ({
   onStartMonitoring,
   onStopMonitoring
 }) => {
+  const { t } = useTranslation()
   return (
     <div className="flex justify-between items-start mb-3 flex-col md:flex-row">
       <div className="w-full md:w-4/5">
         <Title
           heading={3}
           className="[&_.arco-typography]: !mt-1 [&_.arco-typography]: !font-bold [&_.arco-typography]: !text-[24px] [&_.arco-typography]: !text-black">
-          画面の記録
+          {t('sm.title')}
         </Title>
         <Text type="secondary" className="[&_.arco-typography]: !text-[13px]">
-          画面の様子を AI が読み取り、作業の記録に変えます。記録は同期サーバへ送られ、
-          タイムラインや日報に使われます。パスワード管理アプリなどは設定で除外できます。
+          {t('sm.desc')}
         </Text>
       </div>
       <div className="flex items-center ml-0 md:ml-6 mt-4 md:mt-0 justify-end">
         {hasPermission ? (
           <Space>
-            <Popover content="設定は記録を止めてから変更できます。" disabled={!isMonitoring}>
+            <Popover content={t('sm.targetsDisabledHint')} disabled={!isMonitoring}>
               <Button
                 type="outline"
                 icon={<IconSettings />}
@@ -50,12 +51,12 @@ const ScreenMonitorHeader: React.FC<ScreenMonitorHeaderProps> = ({
                 disabled={isMonitoring}
                 onClick={onOpenSettings}
                 className="[&_.arco-btn]: !bg-white [&_.arco-btn]: !border-gray-300 [&_.arco-btn]: !text-black [&_.arco-btn:hover]: !bg-gray-50">
-                記録の対象
+                {t('sm.targets')}
               </Button>
             </Popover>
             {!isMonitoring ? (
               <Popover
-                content="「記録の対象」から、記録する画面かウィンドウを選んでください。"
+                content={t('sm.startDisabledHint')}
                 disabled={!(screenAllSources.length === 0 && appAllSources.length === 0)}>
                 <Button
                   type="primary"
@@ -66,7 +67,7 @@ const ScreenMonitorHeader: React.FC<ScreenMonitorHeaderProps> = ({
                   style={{
                     background: '#000'
                   }}>
-                  記録を開始
+                  {t('sm.start')}
                 </Button>
               </Popover>
             ) : (
@@ -77,7 +78,7 @@ const ScreenMonitorHeader: React.FC<ScreenMonitorHeaderProps> = ({
                 size="large"
                 onClick={onStopMonitoring}
                 className="[&_.arco-btn-primary]: !bg-red-500 [&_.arco-btn-primary:hover]: !bg-red-600">
-                記録を停止
+                {t('sm.stop')}
               </Button>
             )}
           </Space>

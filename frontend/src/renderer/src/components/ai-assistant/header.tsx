@@ -4,6 +4,7 @@ import chatHistoryIcon from '@renderer/assets/icons/ai-assistant/chat-history.sv
 import { Button, Space, Divider, Popover } from '@arco-design/web-react'
 import { IconClose } from '@arco-design/web-react/icon'
 import { useMemoizedFn, useRequest } from 'ahooks'
+import { useTranslation } from 'react-i18next'
 import { conversationService } from '@renderer/services/conversation-service'
 import { ChatHistoryList } from './chat-history-list'
 import clsx from 'clsx'
@@ -16,6 +17,7 @@ export interface AIAssistantHeaderProps {
 }
 const AIAssistantHeader: FC<AIAssistantHeaderProps> = (props) => {
   const { onClose, startNewConversation, handleGetMessages, pageName } = props
+  const { t } = useTranslation()
   const {
     runAsync: getConversationList,
     data: conversationList,
@@ -59,7 +61,7 @@ const AIAssistantHeader: FC<AIAssistantHeaderProps> = (props) => {
         onClick={startNewConversation}
         style={{ padding: '12px 16px 12px 0' }}>
         <img src={addChatIcon} alt="add-chat" className="w-[16px] h-[16px] mr-[6px]" />
-        New chat
+        {t('ai.newChat')}
       </div>
       <Space>
         <Popover

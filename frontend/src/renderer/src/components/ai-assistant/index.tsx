@@ -13,6 +13,7 @@ import { useMemoizedFn, useRequest } from 'ahooks'
 import { conversationService } from '@renderer/services/conversation-service'
 import { getLogger } from '@shared/logger/renderer'
 import { messageService } from '@renderer/services/messages-service'
+import { useTranslation } from 'react-i18next'
 import { AIAssistantHeader } from './header'
 
 const { Text } = Typography
@@ -55,6 +56,7 @@ export const MarkdownContent: React.FC<{ content: string }> = ({ content }) => {
 
 const AIAssistant: FC<AIAssistantProps> = (props) => {
   const { visible, onClose, pageName, initConversationId } = props
+  const { t } = useTranslation()
   const [message, setMessage] = useState('')
   const {
     messages,
@@ -148,24 +150,27 @@ const AIAssistant: FC<AIAssistantProps> = (props) => {
   )
 
   // Get workflow stage display text
-  const getStageText = useCallback((stage?: string) => {
-    switch (stage) {
-      case 'intent_analysis':
-        return 'Analyzing intent'
-      case 'context_gathering':
-        return 'Collecting context'
-      case 'execution':
-        return 'Executing'
-      case 'reflection':
-        return 'Reflecting'
-      case 'completed':
-        return 'Completed'
-      case 'failed':
-        return 'Failed'
-      default:
-        return 'Processing'
-    }
-  }, [])
+  const getStageText = useCallback(
+    (stage?: string) => {
+      switch (stage) {
+        case 'intent_analysis':
+          return t('ai.stageAnalyzing')
+        case 'context_gathering':
+          return t('ai.stageCollecting')
+        case 'execution':
+          return t('ai.stageExecuting')
+        case 'reflection':
+          return t('ai.stageReflecting')
+        case 'completed':
+          return t('ai.stageCompleted')
+        case 'failed':
+          return t('ai.stageFailed')
+        default:
+          return t('ai.stageProcessing')
+      }
+    },
+    [t]
+  )
 
   // Get workflow stage color
   const getStageColor = useCallback((stage?: string) => {
@@ -235,20 +240,20 @@ const AIAssistant: FC<AIAssistantProps> = (props) => {
             <div className="mb-6">
               <img src={chatEditIcon} alt="chat-edit" className="w-12 h-12" />
             </div>
-            <Text style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>I am your Context - Aware AI partner</Text>
+            <Text style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>{t('ai.partnerIntro')}</Text>
             <Text type="secondary" style={{ textAlign: 'center', lineHeight: 1.5 }}>
-              Try asking me
+              {t('ai.tryAsking')}
             </Text>
             <div className="mt-6">
               <div
                 className="py-1 px-3  mb-2 cursor-pointer transition-all duration-200 text-[13px] text-gray-800 rounded-lg border border-gray-200 bg-white bg-opacity-50 hover:rounded-lg hover:border-gray-200 hover:bg-white hover:bg-opacity-50"
-                onClick={() => setMessage('Summarize my recent growth')}>
-                Summarize my recent growth
+                onClick={() => setMessage(t('ai.suggestGrowth'))}>
+                {t('ai.suggestGrowth')}
               </div>
               <div
                 className="py-1 px-3  mb-2 cursor-pointer transition-all duration-200 text-[13px] text-gray-800 rounded-lg border border-gray-200 bg-white bg-opacity-50 hover:rounded-lg hover:border-gray-200 hover:bg-white hover:bg-opacity-50"
-                onClick={() => setMessage('List what I have done in the last two hours')}>
-                List what I have done in the last two hours
+                onClick={() => setMessage(t('ai.suggestRecent'))}>
+                {t('ai.suggestRecent')}
               </div>
             </div>
           </div>
@@ -304,7 +309,7 @@ const AIAssistant: FC<AIAssistantProps> = (props) => {
                       }
                     }}
                     style={{ fontSize: 12 }}>
-                    Retry
+                    {t('common.retry')}
                   </Button>
                 </div>
               </div>
@@ -317,7 +322,7 @@ const AIAssistant: FC<AIAssistantProps> = (props) => {
         <div className="flex flex-col gap-2 bg-gray-50 rounded-xl p-3 border border-gray-200 transition-all duration-200">
           <div className="flex-1">
             <TextArea
-              placeholder={isLoading ? 'AI is thinking...' : 'Ask me anything'}
+              placeholder={isLoading ? t('ai.thinking') : t('ai.askPlaceholder')}
               value={message}
               onChange={setMessage}
               onKeyPress={handleKeyPress}

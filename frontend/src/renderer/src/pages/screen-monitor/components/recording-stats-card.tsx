@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { get } from 'lodash'
+import { useTranslation } from 'react-i18next'
 import axiosInstance from '@renderer/services/axiosConfig'
 
 /** Legacy shape still passed by the timeline; the card reads live status itself. */
@@ -55,6 +56,7 @@ async function loadCounts(): Promise<LiveCounts | null> {
 }
 
 const RecordingStatsCard: React.FC<{ stats?: RecordingStats | null }> = () => {
+  const { t } = useTranslation()
   const [c, setC] = useState<LiveCounts | null>(null)
 
   useEffect(() => {
@@ -75,21 +77,26 @@ const RecordingStatsCard: React.FC<{ stats?: RecordingStats | null }> = () => {
 
   return (
     <div className="mt-2 text-xs text-[#86909C] leading-5">
-      <span>起動してから </span>
+      <span>{t('smStats.statsSince')}</span>
       {n(c.frames)}
-      <span> 枚を AI に送信 · 活動の要約 </span>
+      <span>{t('smStats.statsActivities')}</span>
       {n(c.activities)}
-      <span> 件 · 画面の書き起こし </span>
+      <span>{t('smStats.statsSummaries')}</span>
       {n(c.summaries)}
-      <span> 件</span>
-      {c.excluded > 0 && <span> · 除外 {c.excluded} 枚</span>}
+      <span>{t('smStats.statsItemsSuffix')}</span>
+      {c.excluded > 0 && <span>{t('smStats.excluded', { count: c.excluded })}</span>}
       {c.sent !== null && (
         <span>
-          {' '}
-          · 同期サーバへ {c.sent} 件送信{c.pending ? `（未送信 ${c.pending} 件）` : ''}
+          {t('smStats.sent', { count: c.sent })}
+          {c.pending ? t('smStats.pending', { count: c.pending }) : ''}
         </span>
       )}
-      {c.lastError && <div className="text-[#FF4D4F]">同期のエラー: {c.lastError}</div>}
+      {c.lastError && (
+        <div className="text-[#FF4D4F]">
+          {t('smStats.syncErrorPrefix')}
+          {c.lastError}
+        </div>
+      )}
     </div>
   )
 }
