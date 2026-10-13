@@ -49,7 +49,7 @@ cd frontend && pnpm install && pnpm run dev
 | ディレクトリ | 中身 |
 |---|---|
 | `frontend/` | Electron 44 + React 19 のアプリ本体 |
-| `opencontext/` | 同梱する Python バックエンド（AI 要約、ToDo・ヒント、同期サーバへの送信） |
+| `opencontext/` | 同梱する Python バックエンド（画面の AI 要約、ToDo・ヒント、同期サーバへの送信） |
 | `config/` | 既定の設定（`config.yaml`） |
 | `docs/` | ドキュメントサイト（GitHub Pages） |
 
@@ -66,7 +66,7 @@ gh workflow run release.yml -R Kling0012/hibi -f tag=v0.1.0
 - AI を複数の接続先から用途ごとに選び、失敗時に自動で切り替える方式に変更（Gemini Live、OpenAI 互換）
 - 画面の記録を、Live API への連続送信と、変化時の正確な書き起こしの 2 段に変更
 - 同期サーバへの送信、作業の宣言、同期サーバの画面（タイムライン・日報・ブログ・検索）の表示を追加
-- フォルダ・文書・Web ページの取り込み、Doubao / Ark、補完機能、旧 Web 画面を削除
+- フォルダ・文書・Web ページの取り込み、Doubao / Ark、補完機能、旧 Web 画面、スクリーンショット解析とアプリ内のベクトル検索（chromadb）を削除
 - Electron 44、React 19、TypeScript 7、Python 3.12 / uv に更新
 
 ## ライセンス
