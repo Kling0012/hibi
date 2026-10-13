@@ -4,6 +4,8 @@ nav_order: 1
 permalink: /
 ---
 
+**日本語** · [English](en/index.html) · [中文](zh/index.html)
+
 # Hibi
 
 Hibi（日々）は、**自分が PC でしたこと**と **AI エージェントがしたこと**を、ひとつのタイムラインにまとめる個人用の作業記録システムです。

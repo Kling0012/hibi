@@ -3,6 +3,8 @@ title: 使い方
 nav_order: 3
 ---
 
+**日本語** · [English](en/usage.html) · [中文](zh/usage.html)
+
 # 使い方
 {: .no_toc }
 

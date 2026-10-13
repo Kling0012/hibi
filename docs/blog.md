@@ -3,6 +3,8 @@ title: 日報とブログ
 nav_order: 7
 ---
 
+**日本語** · [English](en/blog.html) · [中文](zh/blog.html)
+
 # 日報とブログ
 {: .no_toc }
 

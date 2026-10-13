@@ -3,6 +3,8 @@ title: セットアップ
 nav_order: 2
 ---
 
+**日本語** · [English](en/getting-started.html) · [中文](zh/getting-started.html)
+
 # セットアップ
 {: .no_toc }
 
