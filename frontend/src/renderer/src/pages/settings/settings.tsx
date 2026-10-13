@@ -542,8 +542,8 @@ const Settings: FC<SettingsProps> = (props) => {
               />
             </div>
             <Text type="secondary" className="text-[12px]">
-              既定はオフです。オンにすると、起動時に GitHub のリリースを確認し、
-              新しい版を裏でダウンロードします。
+              起動時と 6 時間ごとに GitHub のリリースを確認します。Windows
+              は裏でダウンロードし、再起動で更新します。Mac は新しい版のお知らせとダウンロードのページを開くボタンを出します。
             </Text>
           </div>
           </Tabs.TabPane>

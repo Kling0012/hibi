@@ -3,9 +3,14 @@ import { getLogger } from '@shared/logger/main'
 import { app, BrowserWindow } from 'electron'
 import { AppUpdater as _AppUpdater, autoUpdater, UpdateCheckResult, CancellationToken, UpdateInfo } from 'electron-updater'
 import { IpcChannel } from '@shared/IpcChannel'
+import { isPrereleaseVersion } from '@shared/version'
 // import { isDev } from '@main/constant'
 // import path from 'path'
 const logger = getLogger('AppUpdater')
+
+// The Mac build is unsigned, so Squirrel.Mac cannot auto-install. Windows uses
+// electron-updater to download and install on restart.
+const isWindows = process.platform === 'win32'
 
 export default class AppUpdater {
   autoUpdater: _AppUpdater = autoUpdater
@@ -23,7 +28,10 @@ export default class AppUpdater {
     //   logger.info('use dev update config2',  autoUpdater.updateConfigPath)
     // }
 
-    autoUpdater.autoDownload = false
+    // Pre-release builds (e.g. 0.1.0-dev.3) also pick up pre-release updates.
+    autoUpdater.allowPrerelease = isPrereleaseVersion(app.getVersion())
+    // Windows downloads in the background; the Mac build only notifies.
+    autoUpdater.autoDownload = isWindows
     autoUpdater.autoInstallOnAppQuit = false
 
     autoUpdater.on('checking-for-update', () => {
@@ -49,12 +57,6 @@ export default class AppUpdater {
   public async checkForUpdates() {
     try {
       this.updateCheckResult = await this.autoUpdater.checkForUpdates()
-      if (this.updateCheckResult?.isUpdateAvailable && !this.autoUpdater.autoDownload) {
-        // 如果 autoDownload 为 false，则需要再调用下面的函数触发下
-        // do not use await, because it will block the return of this function
-        logger.info('downloadUpdate manual by check for updates', this.cancellationToken)
-        this.autoUpdater.downloadUpdate(this.cancellationToken)
-      }
       logger.info(
         `update check result: ${this.updateCheckResult?.isUpdateAvailable}, channel: ${this.autoUpdater.channel}, currentVersion: ${this.autoUpdater.currentVersion}`
       )
@@ -63,6 +65,8 @@ export default class AppUpdater {
         updateInfo: this.updateCheckResult?.isUpdateAvailable ? this.updateCheckResult?.updateInfo : null
       }
     } catch (error) {
+      // Fail-soft: a missing release or a network failure only skips the
+      // update notice, the rest of the app keeps working.
       logger.error('Failed to check for update:', error as Error)
       return {
         currentVersion: app.getVersion(),

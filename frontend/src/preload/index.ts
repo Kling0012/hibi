@@ -42,7 +42,9 @@ const api = {
   },
   checkForUpdate: () => ipcRenderer.invoke(IpcChannel.App_CheckForUpdate),
   quitAndInstall: () => ipcRenderer.invoke(IpcChannel.App_QuitAndInstall),
-  cancelDownload: () => ipcRenderer.invoke(IpcChannel.App_CancelDownload)
+  cancelDownload: () => ipcRenderer.invoke(IpcChannel.App_CancelDownload),
+  openWebsite: (url: string) => ipcRenderer.invoke(IpcChannel.Open_Website, url),
+  platform: process.platform
 }
 
 const dbAPI = {

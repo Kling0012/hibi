@@ -153,11 +153,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_OPTIONS: --max-old-space-size=8192
 
-      # Release stays as a draft; review and publish it manually.
+      # Publish the release right away. Tags containing '-' (e.g. v0.1.0-dev.3)
+      # are marked as a prerelease so stable builds ignore them.
       - name: Release
         uses: ncipollo/release-action@v1
         with:
-          draft: true
+          draft: false
+          prerelease: ${{ contains(steps.get-tag.outputs.tag, '-') }}
           allowUpdates: true
           makeLatest: false
           tag: ${{ steps.get-tag.outputs.tag }}

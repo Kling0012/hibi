@@ -15,7 +15,7 @@ export const defaultScreenSettings = {
 export type ScreenSettings = typeof defaultScreenSettings;
 
 export const defaultGeneralSettings = {
-  autoCheckUpdate: false
+  autoCheckUpdate: true
 };
 
 export type GeneralSettings = typeof defaultGeneralSettings;

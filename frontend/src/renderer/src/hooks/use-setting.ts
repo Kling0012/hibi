@@ -13,7 +13,7 @@ export const useSetting = () => {
   const { recordInterval, recordingHours, enableRecordingHours, applyToDays } = screenSettings
 
   const autoCheckUpdate = useSelector(
-    (state: RootState) => state.setting?.generalSettings?.autoCheckUpdate ?? false
+    (state: RootState) => state.setting?.generalSettings?.autoCheckUpdate ?? true
   )
 
   const setRecordInterval = useCallback(
