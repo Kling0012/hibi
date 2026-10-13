@@ -7,7 +7,7 @@
 // get-windows. Everything is fail-soft: a failed capture or upload is
 // logged and skipped; the loop keeps running.
 
-import { desktopCapturer } from 'electron'
+import { desktopCapturer, systemPreferences } from 'electron'
 import axios from 'axios'
 import { getBackendPort } from '@main/backend'
 import { getLogger } from '@shared/logger/main'
@@ -21,7 +21,7 @@ interface WindowMeta {
 }
 
 // type only import (the package is ESM-only; loaded dynamically at runtime)
-type ActiveWindowFn = () => Promise<
+type ActiveWindowFn = (options?: { accessibilityPermission?: boolean; screenRecordingPermission?: boolean }) => Promise<
   | {
       title?: string
       url?: string
@@ -135,7 +135,17 @@ class LiveCaptureService {
       }
     }
     try {
-      const win = await this.activeWindow?.()
+      // On macOS get-windows prompts for Accessibility / Screen Recording on
+      // every call while the permission is missing (we call it every frame).
+      // Only ask for url/title when the permission is already granted.
+      const win = await this.activeWindow?.(
+        process.platform === 'darwin'
+          ? {
+              accessibilityPermission: systemPreferences.isTrustedAccessibilityClient(false),
+              screenRecordingPermission: systemPreferences.getMediaAccessStatus('screen') === 'granted'
+            }
+          : undefined
+      )
       return {
         app: win?.owner?.name ?? '',
         title: win?.title ?? '',
