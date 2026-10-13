@@ -144,6 +144,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_OPTIONS: --max-old-space-size=8192
 
+      # The packaged backend must not contain symlinks to absolute paths on
+      # this runner (they break on users' Macs: "Failed to load Python shared library").
+      - name: Check Mac app for absolute symlinks
+        if: matrix.os == 'macos-latest'
+        working-directory: frontend
+        shell: bash
+        run: |
+          app=$(find dist -maxdepth 3 -name 'Hibi.app' -type d | head -1)
+          [ -n "$app" ] || { echo "Hibi.app not found"; exit 1; }
+          bad=$(find "$app" -type l -lname '/*' | head -20)
+          if [ -n "$bad" ]; then echo "absolute symlinks found:"; echo "$bad"; exit 1; fi
+          test -e "$app/Contents/Resources/backend/_internal/Python"
+          echo "symlinks OK"
+
       - name: Build Windows
         if: matrix.os == 'windows-latest'
         working-directory: frontend
