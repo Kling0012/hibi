@@ -3,7 +3,6 @@ import { Typography, Timeline } from '@arco-design/web-react'
 import { Activity } from '../screen-monitor'
 import { ActivityTimelineItem } from './activitie-timeline-item'
 import { formatTime } from '@renderer/utils/time'
-import { SCREEN_INTERVAL_TIME } from '../constant'
 import RecordingStatsCard, { RecordingStats } from './recording-stats-card'
 import dayjs from 'dayjs'
 
@@ -46,7 +45,7 @@ const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
                       画面を記録しています…
                     </Text>
                     <div className="text-[#C9C9D4]">
-                      Every {SCREEN_INTERVAL_TIME} minutes, Hibi generates an Activity based on screen analysis.
+                      30 秒ごとに活動を要約し、画面が変わったときに文字を書き起こします。
                     </div>
                   </div>
                   <RecordingStatsCard stats={recordingStats} />

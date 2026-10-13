@@ -1,7 +1,13 @@
-import React from 'react'
-import { Tooltip, Image } from '@arco-design/web-react'
-import { pathToFileURL } from '@renderer/utils/file'
+// SPDX-License-Identifier: Apache-2.0
 
+// Live recording counters (since the app started): frames sent to the AI,
+// summaries created and events uploaded to the sync server.
+
+import React, { useEffect, useState } from 'react'
+import { get } from 'lodash'
+import axiosInstance from '@renderer/services/axiosConfig'
+
+/** Legacy shape still passed by the timeline; the card reads live status itself. */
 export interface RecordingStats {
   processed_screenshots: number
   failed_screenshots: number
@@ -15,71 +21,75 @@ export interface RecordingStats {
   recent_screenshots: string[]
 }
 
-interface RecordingStatsCardProps {
-  stats: RecordingStats | null
+interface LiveCounts {
+  frames: number
+  activities: number
+  summaries: number
+  excluded: number
+  sent: number | null
+  pending: number | null
+  lastError: string
 }
 
-const RecordingStatsCard: React.FC<RecordingStatsCardProps> = ({ stats }) => {
-  console.log('[RecordingStatsCard] Rendering with stats:', stats)
-
-  if (!stats) {
-    console.log('[RecordingStatsCard] Stats is null, not rendering')
+async function loadCounts(): Promise<LiveCounts | null> {
+  try {
+    const [live, sync] = await Promise.all([
+      axiosInstance.get('/api/live/status'),
+      axiosInstance.get('/api/sync_settings').catch(() => null)
+    ])
+    const m = get(live, 'data.data.monitor')
+    if (!m) return null
+    const s = sync ? get(sync, 'data.data.status') : null
+    return {
+      frames: Number(m.frames_pushed ?? m.frames_received ?? 0),
+      activities: Number(m.live_activities ?? 0),
+      summaries: Number(m.screen_summaries ?? 0),
+      excluded: Number(m.frames_excluded ?? 0),
+      sent: s ? Number(s.sent_count ?? 0) : null,
+      pending: s ? Number(s.pending_count ?? 0) : null,
+      lastError: s?.last_error ?? ''
+    }
+  } catch {
     return null
   }
+}
 
-  console.log('[RecordingStatsCard] Using stats:', stats)
+const RecordingStatsCard: React.FC<{ stats?: RecordingStats | null }> = () => {
+  const [c, setC] = useState<LiveCounts | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    const run = (): void => {
+      void loadCounts().then((v) => alive && setC(v))
+    }
+    run()
+    const timer = window.setInterval(run, 10_000)
+    return () => {
+      alive = false
+      window.clearInterval(timer)
+    }
+  }, [])
+
+  if (!c) return null
+  const n = (v: number): React.ReactElement => <span className="text-[#00B42A] font-medium">{v}</span>
 
   return (
-    <div className="mt-2">
-      {/* Recent screenshots display */}
-      {stats.recent_screenshots && stats.recent_screenshots.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-2">
-          <Image.PreviewGroup infinite className="[&_.arco-image-preview-img]:!scale-80">
-            {stats.recent_screenshots.map((path, index) => (
-              <Image
-                key={index}
-                src={pathToFileURL(path)}
-                width={110}
-                height={60}
-                alt={`screenshot-${index + 1}`}
-                className="cursor-pointer rounded-[8px] overflow-hidden"
-              />
-            ))}
-          </Image.PreviewGroup>
-        </div>
+    <div className="mt-2 text-xs text-[#86909C] leading-5">
+      <span>起動してから </span>
+      {n(c.frames)}
+      <span> 枚を AI に送信 · 活動の要約 </span>
+      {n(c.activities)}
+      <span> 件 · 画面の書き起こし </span>
+      {n(c.summaries)}
+      <span> 件</span>
+      {c.excluded > 0 && <span> · 除外 {c.excluded} 枚</span>}
+      {c.sent !== null && (
+        <span>
+          {' '}
+          · 同期サーバへ {c.sent} 件送信{c.pending ? `（未送信 ${c.pending} 件）` : ''}
+        </span>
       )}
-
-      {/* Stats text */}
-      <div className="text-xs text-[#86909C]">
-        <span className="text-[#00B42A] font-medium">{stats.processed_screenshots}</span>
-        <span> screenshot{stats.processed_screenshots !== 1 ? 's' : ''} processed</span>
-        {stats.failed_screenshots > 0 && (
-          <>
-            <span className="mx-2">•</span>
-            <Tooltip
-              content={
-                <div className="max-w-xs">
-                  <div className="font-medium mb-1">最近のエラー:</div>
-                  {stats.recent_errors.length > 0 ? (
-                    <ul className="text-xs space-y-1">
-                      {stats.recent_errors.map((error, index) => (
-                        <li key={index} className="break-words">
-                          {error.error_message}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <span className="text-xs">エラーの詳細はありません</span>
-                  )}
-                </div>
-              }>
-              <span className="text-[#FF4D4F] font-medium cursor-help underline decoration-dashed">
-                {stats.failed_screenshots} screenshot{stats.failed_screenshots > 1 ? 's' : ''} failed
-              </span>
-            </Tooltip>
-          </>
-        )}
-      </div>
+      {c.lastError && <div className="text-[#FF4D4F]">同期のエラー: {c.lastError}</div>}
     </div>
   )
 }
