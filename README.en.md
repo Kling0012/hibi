@@ -12,6 +12,10 @@ A personal work-tracking app that brings what you did on your PC and what your A
 > The original project is published under Apache License 2.0, and this repository follows the same license ([LICENSE](LICENSE)).
 > It is a different app with substantial changes to the name, UI, AI connection scheme, and recording mechanism. The original README is kept at [docs/upstream/](docs/upstream/README.md).
 
+## About development
+
+This repository is developed by AI. Everything from triaging issues and pull requests, reproducing and fixing bugs, to review, testing, merging and releasing is handled automatically by AI.
+
 ## The three repositories that make up Hibi
 
 | Repository | Role |

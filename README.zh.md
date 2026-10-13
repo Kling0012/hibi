@@ -12,6 +12,10 @@
 > 原项目以 Apache License 2.0 发布，本仓库遵循同一许可（[LICENSE](LICENSE)）。
 > 本项目在名称、界面、AI 接入方式、记录机制上都有大幅改动，是另一个应用。原 README 保留在 [docs/upstream/](docs/upstream/README.md)。
 
+## 关于开发
+
+本仓库的开发由 AI 负责。从确认 Issue 和 Pull Request、复现并修复问题，到评审、测试、合并和发布，全部由 AI 自动完成。
+
 ## 组成 Hibi 的三个仓库
 
 | 仓库 | 职责 |
