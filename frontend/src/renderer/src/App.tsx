@@ -95,6 +95,23 @@ function AppContent(): React.ReactElement {
     }
   })
 
+  // The sync server's pages (embedded in iframes) cannot write images to the
+  // clipboard over http, so they hand the share-card image to the app.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent): void => {
+      const d = e.data
+      if (d?.hibi !== 'copy-image' || typeof d.dataUrl !== 'string' || !d.dataUrl.startsWith('data:image/png;base64,')) return
+      const fromEmbed = Array.from(document.querySelectorAll('iframe')).some((f) => f.contentWindow === e.source)
+      if (!fromEmbed) return
+      void fetch(d.dataUrl)
+        .then((r) => r.blob())
+        .then((blob) => navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]))
+        .catch((error) => logger.warn('copying the share image failed', { error }))
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+
   useEffect(() => {
     window.serverPushAPI.getInitCheckData((data) => {
       const temp = JSON.parse(data)

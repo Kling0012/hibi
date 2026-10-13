@@ -133,22 +133,23 @@ const TodayCard = ({ base, reachable }: { base: string; reachable: boolean | nul
   )
 }
 
-/** Today's lanes from the sync server, sized to its content. */
-const TodayLanes = ({ base }: { base: string }): ReactElement => {
-  const [height, setHeight] = useState(140)
+/** A part of the sync server's page (`only=lanes|todos`), sized to its content. */
+const ServerPart = ({ base, only, title, minHeight }: { base: string; only: string; title: string; minHeight: number }): ReactElement => {
+  const [height, setHeight] = useState(minHeight)
   useEffect(() => {
     const onMessage = (e: MessageEvent): void => {
-      if (e.data?.hibi === 'height' && typeof e.data.h === 'number' && e.data.h > 0) setHeight(e.data.h)
+      const d = e.data
+      if (d?.hibi === 'height' && (d.only ?? only) === only && typeof d.h === 'number' && d.h > 0) setHeight(d.h)
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [])
+  }, [only])
   return (
     <iframe
       className="hb-lanes-frame"
       style={{ height }}
-      src={embedUrl(base, '/ui/#today', { only: 'lanes' })}
-      title="今日のタイムライン"
+      src={embedUrl(base, '/ui/#today', { only })}
+      title={title}
     />
   )
 }
@@ -187,11 +188,17 @@ const HomePage: React.FC = () => {
                 </div>
                 {base && reachable && (
                   <section className="hb-card">
-                    <TodayLanes base={base} />
+                    <ServerPart base={base} only="lanes" title="今日のタイムライン" minHeight={140} />
                   </section>
                 )}
                 <div className="hb-cols">
-                  <ToDoCard selectedDays={null} />
+                  {base && reachable ? (
+                    <section className="hb-card">
+                      <ServerPart base={base} only="todos" title="ToDo" minHeight={200} />
+                    </section>
+                  ) : (
+                    <ToDoCard selectedDays={null} />
+                  )}
                   <ProactiveFeedCard />
                 </div>
               </div>
