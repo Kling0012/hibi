@@ -39,7 +39,9 @@ const entries = fs.readdirSync(sourceOnedirPath)
 entries.forEach((entry) => {
   const src = path.join(sourceOnedirPath, entry)
   const dest = path.join(backendDir, entry)
-  fs.cpSync(src, dest, { recursive: true, force: true })
+  // verbatimSymlinks: keep PyInstaller's relative links (macOS _internal/Python ->
+  // Python.framework/...). Without it Node rewrites them to absolute build-machine paths.
+  fs.cpSync(src, dest, { recursive: true, force: true, verbatimSymlinks: true })
 })
 
 if (!fs.existsSync(destExecutablePath)) {
