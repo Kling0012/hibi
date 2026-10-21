@@ -36,6 +36,7 @@ dependencies = [
     "pypdfium2>=5.14.0",
     "python-docx>=1.2.0",
     "python-multipart>=0.0.32",
+    "tzdata>=2026.5; sys_platform == 'win32'",
 ]
 dev = [
     "black>=24.8.0",
