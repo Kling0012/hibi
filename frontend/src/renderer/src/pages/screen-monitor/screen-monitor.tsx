@@ -435,7 +435,7 @@ const ScreenMonitor: React.FC = () => {
     if (isMonitoring && enableRecordingHours) {
       interval = setInterval(() => {
         checkCanRecord()
-      }, 1000) // Match the main process policy check
+      }, 5000) // Display refresh only; the main process enforces recording policy every second
     }
     return () => {
       if (interval) {

@@ -756,6 +756,8 @@ class ScreenLiveMonitor:
             logger.info(
                 f"[ScreenLive] live activity saved (id={activity_id}, interval={seconds}s)")
             # Retain the id even if enqueue fails; the next extension retries it.
+            # Without an extension there is no retry before _last_activity is
+            # replaced or cleared; the local row remains but may not be synced.
             event_id = str(uuid.uuid4())
             event_id = self._enqueue_outbox(
                 kind="activity",
