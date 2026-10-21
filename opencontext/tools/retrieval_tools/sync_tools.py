@@ -212,6 +212,7 @@ class GetDayTimelineTool(BaseTool):
                     "type": item.get("type"),
                     "t": item.get("t"),
                     "event": item.get("event"),
+                    **({"session": item.get("session")} if item.get("type") == "session" else {}),
                 }
                 for item in data.get("items", [])
             ]
