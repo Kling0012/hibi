@@ -52,6 +52,8 @@
 
 ルートと `frontend/package.json` の `packageManager` は同じ版を指定しています。ルートへの指定は Issue #7・#8 の機能要件の範囲外ですが、検証時の `ERR_PNPM_BAD_PM_VERSION` を解消するために追加しました。pnpm を更新するときは両方の指定をそろえてください。
 
+`pnpm -C frontend run check:package-manager` で両方の指定が一致しているか確認できます。この確認は `pnpm -C frontend lint` でも実行され、版が異なる場合はエラーになります。
+
 ```sh
 uv sync
 uv run python -m opencontext.cli start   # Python バックエンド（127.0.0.1:1733）
