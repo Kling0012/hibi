@@ -13,6 +13,7 @@ tool returns a result object describing the problem instead of raising.
 """
 
 import os
+from datetime import datetime
 from typing import Any, Dict
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -53,12 +54,17 @@ def _local_tz_name() -> str:
         try:
             return ZoneInfo(tz_name).key
         except (ValueError, ZoneInfoNotFoundError):
-            # POSIX TZ strings are not IANA names; try the system zone instead.
+            # POSIX TZ strings need a system zone with the same current offset.
             pass
     try:
         target = os.path.realpath("/etc/localtime")
         if marker in target:
-            return ZoneInfo(target.split(marker, 1)[1]).key
+            zone = ZoneInfo(target.split(marker, 1)[1])
+            if not tz_name:
+                return zone.key
+            now = datetime.now().astimezone()
+            if now.utcoffset() == now.astimezone(zone).utcoffset():
+                return zone.key
     except (OSError, ValueError, ZoneInfoNotFoundError):
         pass
     raise ValueError("Local timezone is unknown or invalid; set TZ to a valid IANA name")
