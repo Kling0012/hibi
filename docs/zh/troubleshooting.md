@@ -45,6 +45,14 @@ xattr -dr com.apple.quarantine /Applications/Hibi.app
 - 确认电脑已连上 Tailscale。
 - 在浏览器打开 `http://<server>:18740/healthz`，确认返回 `{"ok":true,...}`。
 
+### 每日时间线工具的时区设置
+
+聊天中获取一天时间线的工具优先使用环境变量 `TZ` 中的 IANA 时区名。未设置时，工具从 `/etc/localtime` 的符号链接读取时区。Windows 等没有此链接的系统需要设置 `TZ`。日本时间使用 `Asia/Tokyo`，UTC 使用 `UTC`，纽约使用 `America/New_York`。IANA 名称也能正确表示夏令时切换。
+
+在 Windows 的用户环境变量中添加名称 `TZ`，值设为 `Asia/Tokyo` 等。完全退出应用，注销 Windows 并重新登录后，再启动应用。在 macOS 上手动设置时，请在启动应用的环境中设置 `TZ`，然后重启应用。
+
+名称无效或无法检测时区时，工具会返回要求配置时区的错误，仅停止每日时间线查询，不会回退到 UTC。搜索和屏幕记录仍可使用。此设置与同步服务器的 `TZ_DEFAULT` 不同。
+
 ### “未发送”条数不减少
 
 请查看**设置 → 同步**的“最近错误”。服务器不可达期间记录攒在本地，恢复后自动发送。记录不会丢失。

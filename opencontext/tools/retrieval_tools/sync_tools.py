@@ -14,6 +14,7 @@ tool returns a result object describing the problem instead of raising.
 
 import os
 from typing import Any, Dict
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
@@ -43,16 +44,25 @@ def _get_server_url() -> str:
 
 
 def _local_tz_name() -> str:
-    """IANA name of the local timezone ('UTC' as fallback)."""
+    """Validated IANA name from TZ or /etc/localtime; never guess UTC."""
+    tz_name = os.environ.get("TZ", "").removeprefix(":")
+    if not tz_name:
+        try:
+            target = os.path.realpath("/etc/localtime")
+            marker = "zoneinfo/"
+            idx = target.find(marker)
+            if idx != -1:
+                tz_name = target[idx + len(marker) :]
+        except OSError:
+            pass
+    if not tz_name:
+        raise ValueError("Local timezone is unknown; set TZ to an IANA timezone name")
     try:
-        target = os.path.realpath("/etc/localtime")
-        marker = "zoneinfo/"
-        idx = target.find(marker)
-        if idx != -1:
-            return target[idx + len(marker) :]
-    except Exception:
-        pass
-    return "UTC"
+        return ZoneInfo(tz_name).key
+    except (ValueError, ZoneInfoNotFoundError) as e:
+        raise ValueError(
+            "Local timezone is invalid or unavailable; set TZ to a valid IANA name"
+        ) from e
 
 
 def _error_result(reason: str) -> Dict[str, Any]:
@@ -200,9 +210,22 @@ class GetDayTimelineTool(BaseTool):
             return _error_result("sync server URL is not configured")
 
         try:
+            tz_name = _local_tz_name()
+        except Exception as e:
+            logger.warning(f"Sync timeline timezone detection failed: {e}")
+            return {
+                "error": str(e),
+                "message": (
+                    "ローカルのタイムゾーンを確認できないため、日別タイムラインを取得できません。"
+                    "環境変数 TZ に Asia/Tokyo などの IANA 名を設定してアプリを再起動してください。"
+                ),
+                "results": [],
+            }
+
+        try:
             response = httpx.get(
                 f"{server_url}/v1/timeline",
-                params={"date": date, "tz": _local_tz_name()},
+                params={"date": date, "tz": tz_name},
                 timeout=_REQUEST_TIMEOUT,
             )
             response.raise_for_status()
