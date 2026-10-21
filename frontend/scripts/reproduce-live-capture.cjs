@@ -47,8 +47,12 @@ function harness() {
     }
   }))
   const logger = {
-    info() {},
-    debug() {},
+    info() {
+      // Routine logs are irrelevant to the capture assertions.
+    },
+    debug() {
+      // Routine logs are irrelevant to the capture assertions.
+    },
     warn(...args) {
       errors.push(args.map(String).join(' '))
     },
@@ -86,10 +90,18 @@ function harness() {
     }
   }
   const powerWatcher = {
-    registerResumeCallback() {},
-    registerSuspendCallback() {},
-    registerLockScreenCallback() {},
-    registerUnlockScreenCallback() {}
+    registerResumeCallback() {
+      // Power events are not simulated by this harness.
+    },
+    registerSuspendCallback() {
+      // Power events are not simulated by this harness.
+    },
+    registerLockScreenCallback() {
+      // Power events are not simulated by this harness.
+    },
+    registerUnlockScreenCallback() {
+      // Power events are not simulated by this harness.
+    }
   }
   const sandbox = vm.createContext({
     Date: Clock,
