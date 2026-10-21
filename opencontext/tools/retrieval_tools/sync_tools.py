@@ -45,24 +45,23 @@ def _get_server_url() -> str:
 
 def _local_tz_name() -> str:
     """Validated IANA name from TZ or /etc/localtime; never guess UTC."""
+    marker = "zoneinfo/"
     tz_name = os.environ.get("TZ", "").removeprefix(":")
-    if not tz_name:
+    if tz_name:
+        if os.path.isabs(tz_name) and marker in tz_name:
+            tz_name = tz_name.split(marker, 1)[1]
         try:
-            target = os.path.realpath("/etc/localtime")
-            marker = "zoneinfo/"
-            idx = target.find(marker)
-            if idx != -1:
-                tz_name = target[idx + len(marker) :]
-        except OSError:
+            return ZoneInfo(tz_name).key
+        except (ValueError, ZoneInfoNotFoundError):
+            # POSIX TZ strings are not IANA names; try the system zone instead.
             pass
-    if not tz_name:
-        raise ValueError("Local timezone is unknown; set TZ to an IANA timezone name")
     try:
-        return ZoneInfo(tz_name).key
-    except (ValueError, ZoneInfoNotFoundError) as e:
-        raise ValueError(
-            "Local timezone is invalid or unavailable; set TZ to a valid IANA name"
-        ) from e
+        target = os.path.realpath("/etc/localtime")
+        if marker in target:
+            return ZoneInfo(target.split(marker, 1)[1]).key
+    except (OSError, ValueError, ZoneInfoNotFoundError):
+        pass
+    raise ValueError("Local timezone is unknown or invalid; set TZ to a valid IANA name")
 
 
 def _error_result(reason: str) -> Dict[str, Any]:

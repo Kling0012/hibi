@@ -50,6 +50,8 @@
 
 必要なもの: Python 3.12 と [uv](https://docs.astral.sh/uv/)、Node.js 22 以上と pnpm 10。
 
+ルートと `frontend/package.json` の `packageManager` は同じ版を指定しています。ルートへの指定は Issue #7・#8 の機能要件の範囲外ですが、検証時の `ERR_PNPM_BAD_PM_VERSION` を解消するために追加しました。pnpm を更新するときは両方の指定をそろえてください。
+
 ```sh
 uv sync
 uv run python -m opencontext.cli start   # Python バックエンド（127.0.0.1:1733）

@@ -133,6 +133,9 @@ class SyncOutbox:
             return None
         # a caller-supplied id re-sends the same event (server upserts on id,
         # e.g. when a record is extended); otherwise generate a fresh uuid
+        # REPLACE refreshes created_at too. Upload acknowledgement compares all
+        # columns, including created_at, rather than relying on a version number.
+        # An identical replacement with the same timestamp is safe to acknowledge.
         event_id = event_id or str(uuid.uuid4())
         try:
             connection = sqlite3.connect(db_path, timeout=30)
