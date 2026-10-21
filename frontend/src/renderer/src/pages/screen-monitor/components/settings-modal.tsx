@@ -2,10 +2,14 @@ import { Button, Checkbox, Form, Modal, Radio, Slider, Spin, Switch, TimePicker 
 import screenIcon from '@renderer/assets/icons/screen.svg'
 import { ApplyToDays } from '@renderer/store/setting'
 import clsx from 'clsx'
+import dayjs from 'dayjs'
+import customParseFormat from 'dayjs/plugin/customParseFormat'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Application } from './application'
+
+dayjs.extend(customParseFormat)
 
 interface SettingsModalProps {
   visible: boolean
@@ -47,6 +51,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onSetTempApplyToDays
 }) => {
   const { t } = useTranslation()
+  const validRecordingHours =
+    Array.isArray(tempRecordingHours) &&
+    tempRecordingHours.length === 2 &&
+    tempRecordingHours.every(
+      (value) => typeof value === 'string' && dayjs(value, ['HH:mm:ss', 'HH:mm'], true).isValid()
+    )
+  const invalidRecordingHours = tempEnableRecordingHours && !validRecordingHours
   return (
     <Modal
       title={t('sm.modalTitle')}
@@ -61,7 +72,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           <Button onClick={onCancel} className="[&_.arco-btn]: !text-xs">
             {t('common.cancel')}
           </Button>
-          <Button type="primary" onClick={onSave} className="[&_.arco-btn-primary]: !bg-black">
+          <Button
+            type="primary"
+            onClick={onSave}
+            disabled={invalidRecordingHours}
+            className="[&_.arco-btn-primary]: !bg-black">
             {t('common.save')}
           </Button>
         </>
@@ -112,7 +127,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </Form.Item>
             {tempEnableRecordingHours && (
               <div className="!mt-3">
-                <Form.Item label={t('sm.hoursLabel')} className="[&_.arco-form-item-label]:!text-xs">
+                <Form.Item
+                  label={t('sm.hoursLabel')}
+                  validateStatus={invalidRecordingHours ? 'error' : undefined}
+                  help={invalidRecordingHours ? t('sm.invalidRecordingHours') : undefined}
+                  className="[&_.arco-form-item-label]:!text-xs">
                   <TimePicker.RangePicker
                     format="HH:mm"
                     value={tempRecordingHours}
