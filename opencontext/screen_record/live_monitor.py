@@ -682,6 +682,8 @@ class ScreenLiveMonitor:
             self.status["live_activities"] += 1
             logger.info(
                 f"[ScreenLive] live activity saved (id={activity_id}, interval={seconds}s)")
+            # Retain the id even if enqueue fails; the next extension retries it.
+            event_id = str(uuid.uuid4())
             event_id = self._enqueue_outbox(
                 kind="activity",
                 started_at=start_dt,
@@ -690,7 +692,8 @@ class ScreenLiveMonitor:
                 title=win_title,
                 text=content,
                 meta={"windows": trigger.interval_meta},
-            )
+                event_id=event_id,
+            ) or event_id
             self._last_activity = {
                 "row_id": activity_id,
                 "event_id": event_id,
@@ -752,11 +755,11 @@ class ScreenLiveMonitor:
 
     @staticmethod
     def _enqueue_outbox(kind: str, started_at, ended_at, app: str, title: str, text: str, meta: Dict[str, Any],
-                        event_id: Optional[str] = None):
+                        event_id: Optional[str] = None) -> Optional[str]:
         try:
             from opencontext.screen_record.sync_outbox import enqueue_outbox_event
 
-            enqueue_outbox_event(
+            return enqueue_outbox_event(
                 kind=kind,
                 started_at=started_at,
                 ended_at=ended_at,
