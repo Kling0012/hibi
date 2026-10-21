@@ -50,7 +50,10 @@ async def post_live_frame(request: Request, _auth: str = auth_dependency):
 
         from opencontext.screen_record.live_monitor import get_live_monitor
 
-        result = get_live_monitor().submit_frame(jpeg, app=app, title=title, url=url)
+        result = get_live_monitor().submit_frame(
+            jpeg, app=app, title=title, url=url,
+            capture_generation=request.query_params.get("capture_generation"),
+        )
         return convert_resp(data=result)
     except Exception as e:
         # fail-soft: never let a bad frame break the API

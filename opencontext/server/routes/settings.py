@@ -429,12 +429,19 @@ async def get_general_settings(_auth: str = auth_dependency):
         if not config:
             return convert_resp(code=500, status=500, message="Configuration not initialized")
 
-        settings = {
-            "capture": config.get("capture", {}),
-            "processing": config.get("processing", {}),
-            "logging": config.get("logging", {}),
-            "content_generation": config.get("content_generation", {}),
-        }
+        from opencontext.config.capture_policy import capture_policy_lock
+
+        # The runtime token is separate from persisted capture settings.
+        with capture_policy_lock:
+            config_mgr = GlobalConfig.get_instance().get_config_manager()
+            config = GlobalConfig.get_instance().get_config()
+            settings = {
+                "capture": config.get("capture", {}),
+                "capture_generation": config_mgr.get_capture_generation(),
+                "processing": config.get("processing", {}),
+                "logging": config.get("logging", {}),
+                "content_generation": config.get("content_generation", {}),
+            }
 
         # Resolve environment variables in debug output path for display
         if "content_generation" in settings and "debug" in settings["content_generation"]:

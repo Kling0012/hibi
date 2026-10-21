@@ -40,6 +40,7 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
+from opencontext.config.capture_policy import capture_policy_lock, register_capture_listener
 from opencontext.utils.image import calculate_bytes2phash
 from opencontext.utils.logging_utils import get_logger
 
@@ -184,14 +185,16 @@ def _is_loading_only(text: str) -> bool:
 
 
 class _Frame:
-    __slots__ = ("jpeg", "app", "title", "url", "ts")
+    __slots__ = ("jpeg", "app", "title", "url", "ts", "generation")
 
-    def __init__(self, jpeg: bytes, app: str, title: str, url: str, ts: float):
+    def __init__(self, jpeg: bytes, app: str, title: str, url: str, ts: float,
+                 generation: int):
         self.jpeg = jpeg
         self.app = app or ""
         self.title = title or ""
         self.url = url or ""
         self.ts = ts
+        self.generation = generation
 
 
 class _Trigger:
@@ -200,7 +203,9 @@ class _Trigger:
     def __init__(self, kind: str, frame: Optional[_Frame] = None,
                  interval_start: Optional[float] = None,
                  interval_end: Optional[float] = None,
-                 interval_meta: Optional[List[Dict[str, str]]] = None):
+                 interval_meta: Optional[List[Dict[str, str]]] = None,
+                 generation: Optional[int] = None):
+        self.generation = frame.generation if frame is not None else generation
         self.kind = kind  # 'exact' | 'interval'
         self.frame = frame
         self.interval_start = interval_start
@@ -223,7 +228,10 @@ class ScreenLiveMonitor:
         return cls._instance
 
     def __init__(self):
-        self._state_lock = threading.Lock()
+        # Lock ordering: policy lock, then state lock. Network waits never hold
+        # either lock, so saving pause does not wait for a provider response.
+        self._state_lock = threading.RLock()
+        self._generation = 0
         self._frame_queue: "queue.Queue[_Frame]" = queue.Queue(maxsize=60)
         self._trigger_queue: "queue.Queue[_Trigger]" = queue.Queue(maxsize=20)
         self._stop = threading.Event()
@@ -255,6 +263,44 @@ class ScreenLiveMonitor:
             "away_since": None,
             "away_reason": None,
         }
+        register_capture_listener(self)
+
+    def capture_policy_changed(self) -> None:
+        """Invalidate queued and already-dequeued work when capture settings change."""
+        with capture_policy_lock, self._state_lock:
+            self._generation += 1
+            self._interval_start = None
+            self._interval_meta = []
+            self._last_hash = None
+            self._last_meta = ()
+            self._last_summary_ts = 0.0
+            self._last_activity = None
+            self._last_summary_by_window.clear()
+            for pending in (self._frame_queue, self._trigger_queue):
+                while True:
+                    try:
+                        pending.get_nowait()
+                    except queue.Empty:
+                        break
+
+    def _work_allowed(self, generation: int, ts: float) -> bool:
+        return (
+            not self._capture_config().get("paused")
+            and generation == self._generation
+            and self.status.get("away_since") is None
+            and ts > self._away_cutoff
+        )
+
+    async def _call_if_current(self, generation: int, ts: float, call, *args, **kwargs):
+        # Python >=3.12: start the provider coroutine before releasing the policy
+        # lock, then release at its first await. Merely creating a coroutine does
+        # not start the client call. Once started, pause cannot retract it.
+        with capture_policy_lock, self._state_lock:
+            if not self._work_allowed(generation, ts):
+                return False, None
+            task = asyncio.Task(
+                call(*args, **kwargs), loop=asyncio.get_running_loop(), eager_start=True)
+        return True, await task
 
     # -- lifecycle ---------------------------------------------------------------
     def start(self):
@@ -270,42 +316,51 @@ class ScreenLiveMonitor:
         logger.info("[ScreenLive] monitor started")
 
     # -- ingestion (called from the API route) ------------------------------------
-    def submit_frame(self, jpeg: bytes, app: str = "", title: str = "", url: str = "") -> Dict[str, Any]:
+    def submit_frame(self, jpeg: bytes, app: str = "", title: str = "", url: str = "",
+                     capture_generation: Optional[str] = None) -> Dict[str, Any]:
         """Queue one frame. Returns a small dict describing the decision."""
         self.start()
-        capture = self._capture_config()
-        if capture.get("paused"):
-            return {"accepted": False, "reason": "paused"}
-        if self.status.get("away_since") is not None:
-            return {"accepted": False, "reason": "away"}
-        if self._is_excluded(capture, app):
-            with self._state_lock:
+        with capture_policy_lock, self._state_lock:
+            capture = self._capture_config()
+            if capture.get("paused"):
+                return {"accepted": False, "reason": "paused"}
+            if capture_generation is not None:
+                from opencontext.config.global_config import GlobalConfig
+
+                manager = GlobalConfig.get_instance().get_config_manager()
+                if manager is None or capture_generation != manager.get_capture_generation():
+                    return {"accepted": False, "reason": "stale_generation"}
+            if self.status.get("away_since") is not None:
+                return {"accepted": False, "reason": "away"}
+            if self._is_excluded(capture, app):
                 # a fresh interval starts when recording resumes
                 self._interval_start = None
                 self._interval_meta = []
-            self.status["frames_excluded"] += 1
-            return {"accepted": False, "reason": "excluded_app"}
-        try:
-            self._frame_queue.put_nowait(
-                _Frame(jpeg, app, title, url, time.time()))
-            self.status["frames_received"] += 1
-            self.status["last_frame_at"] = datetime.datetime.now().isoformat()
-            return {"accepted": True}
-        except queue.Full:
-            self.status["frames_dropped"] += 1
-            now = time.time()
-            if now - self._last_drop_log > 30:
-                self._last_drop_log = now
-                logger.warning("[ScreenLive] frame backlog, dropping frames")
-            return {"accepted": False, "reason": "backlog"}
+                self.status["frames_excluded"] += 1
+                return {"accepted": False, "reason": "excluded_app"}
+            try:
+                self._frame_queue.put_nowait(
+                    _Frame(jpeg, app, title, url, time.time(), self._generation))
+                self.status["frames_received"] += 1
+                self.status["last_frame_at"] = datetime.datetime.now().isoformat()
+                return {"accepted": True}
+            except queue.Full:
+                self.status["frames_dropped"] += 1
+                now = time.time()
+                if now - self._last_drop_log > 30:
+                    self._last_drop_log = now
+                    logger.warning("[ScreenLive] frame backlog, dropping frames")
+                return {"accepted": False, "reason": "backlog"}
 
     def _capture_config(self) -> Dict[str, Any]:
         try:
             from opencontext.config.global_config import get_config
 
-            return get_config("capture") or {}
+            capture = get_config("capture")
+            return capture if isinstance(capture, dict) else {"paused": True}
         except Exception:
-            return {}
+            # A missing policy must not permit screen data to leave the process.
+            return {"paused": True}
 
     @staticmethod
     def _is_excluded(capture: Dict[str, Any], app: str) -> bool:
@@ -417,9 +472,10 @@ class ScreenLiveMonitor:
                 logger.error(f"[ScreenLive] frame handling failed: {e}")
 
     def _handle_frame(self, frame: _Frame):
-        if self.status.get("away_since") is not None or frame.ts <= self._away_cutoff:
-            return
-        capture = self._capture_config()
+        with capture_policy_lock, self._state_lock:
+            if not self._work_allowed(frame.generation, frame.ts):
+                return
+            capture = self._capture_config()
         new_hash = calculate_bytes2phash(frame.jpeg)
 
         # 1. stream the frame into the Live session (fail-soft)
@@ -430,9 +486,10 @@ class ScreenLiveMonitor:
             router = get_provider_router()
             self.status["live_available"] = router.has_live_provider()
             if self.status["live_available"]:
-                asyncio.run(router.live_stream_frame(frame.jpeg))
-                pushed = True
-                self.status["frames_pushed"] += 1
+                pushed, _ = asyncio.run(self._call_if_current(
+                    frame.generation, frame.ts, router.live_stream_frame, frame.jpeg))
+                if pushed:
+                    self.status["frames_pushed"] += 1
         except Exception as e:
             now = time.time()
             if now - self._last_push_error_log > 30:
@@ -440,32 +497,30 @@ class ScreenLiveMonitor:
                 logger.warning(f"[ScreenLive] live push failed: {e}")
             self.status["live_available"] = False
 
-        if self.status.get("away_since") is not None or frame.ts <= self._away_cutoff:
-            return
-
-        # 2. change detection (hash distance + window switch)
-        distance = None
-        if new_hash is not None:
-            if self._last_hash is not None:
-                distance = _hamming_hex(new_hash, self._last_hash)
-            self._last_hash = new_hash
-
-        meta_key = (frame.app, frame.title, frame.url)
-        window_changed = meta_key != self._last_meta
-        self._last_meta = meta_key
-
-        threshold = int(capture.get("change_hash_threshold", 10))
-        big_change = distance is not None and distance > threshold
-        min_interval = float(capture.get("capture_min_interval", 20))
-
-        if (window_changed or big_change) and (frame.ts - self._last_summary_ts) >= min_interval:
-            self._last_summary_ts = frame.ts
-            self._enqueue_trigger(_Trigger("exact", frame=frame))
-
-        # 3. interval bookkeeping
-        with self._state_lock:
-            if self.status.get("away_since") is not None or frame.ts <= self._away_cutoff:
+        with capture_policy_lock, self._state_lock:
+            if not self._work_allowed(frame.generation, frame.ts):
                 return
+
+            # 2. change detection (hash distance + window switch)
+            distance = None
+            if new_hash is not None:
+                if self._last_hash is not None:
+                    distance = _hamming_hex(new_hash, self._last_hash)
+                self._last_hash = new_hash
+
+            meta_key = (frame.app, frame.title, frame.url)
+            window_changed = meta_key != self._last_meta
+            self._last_meta = meta_key
+
+            threshold = int(capture.get("change_hash_threshold", 10))
+            big_change = distance is not None and distance > threshold
+            min_interval = float(capture.get("capture_min_interval", 20))
+
+            if (window_changed or big_change) and (frame.ts - self._last_summary_ts) >= min_interval:
+                self._last_summary_ts = frame.ts
+                self._enqueue_trigger(_Trigger("exact", frame=frame))
+
+            # 3. interval bookkeeping
             if self._interval_start is None:
                 self._interval_start = frame.ts
                 self._interval_meta = []
@@ -478,6 +533,7 @@ class ScreenLiveMonitor:
                     interval_start=self._interval_start,
                     interval_end=frame.ts,
                     interval_meta=list(self._interval_meta),
+                    generation=frame.generation,
                 )
                 self._interval_start = frame.ts
                 self._interval_meta = []
@@ -499,10 +555,16 @@ class ScreenLiveMonitor:
             self._interval_meta.append(entry)
 
     def _enqueue_trigger(self, trigger: _Trigger):
-        try:
-            self._trigger_queue.put_nowait(trigger)
-        except queue.Full:
-            logger.warning("[ScreenLive] summarizer backlog, dropping trigger")
+        with capture_policy_lock, self._state_lock:
+            if trigger.generation is None:
+                trigger.generation = self._generation
+            ts = trigger.frame.ts if trigger.frame is not None else trigger.interval_end
+            if not self._work_allowed(trigger.generation, ts):
+                return
+            try:
+                self._trigger_queue.put_nowait(trigger)
+            except queue.Full:
+                logger.warning("[ScreenLive] summarizer backlog, dropping trigger")
 
     # -- summarizer worker ----------------------------------------------------------
     def _summarizer_loop(self):
@@ -512,8 +574,10 @@ class ScreenLiveMonitor:
             except queue.Empty:
                 continue
             try:
-                if self.status.get("away_since") is not None:
-                    continue
+                with capture_policy_lock, self._state_lock:
+                    ts = trigger.frame.ts if trigger.frame is not None else trigger.interval_end
+                    if not self._work_allowed(trigger.generation, ts):
+                        continue
                 if trigger.kind == "exact":
                     self._process_exact(trigger.frame)
                 elif trigger.kind == "interval":
@@ -546,9 +610,11 @@ class ScreenLiveMonitor:
                 ],
             },
         ]
-        text = asyncio.run(router.generate(route="exact", messages=messages))
-        if self.status.get("away_since") is not None or frame.ts <= self._away_cutoff:
-            return
+        sent, text = asyncio.run(self._call_if_current(
+            frame.generation, frame.ts, router.generate, route="exact", messages=messages))
+        with capture_policy_lock, self._state_lock:
+            if not sent or not self._work_allowed(frame.generation, frame.ts):
+                return
         if not text or not text.strip():
             logger.info("[ScreenLive] empty exact response; screen_summary skipped")
             return
@@ -572,7 +638,9 @@ class ScreenLiveMonitor:
         title = content.splitlines()[0][:60] if content else ""
         self._save_screen_summary(title, content, frame)
         try:
-            self._last_summary_by_window[(frame.app or "", frame.title or "")] = (frame.ts, content)
+            with capture_policy_lock, self._state_lock:
+                if self._work_allowed(frame.generation, frame.ts):
+                    self._last_summary_by_window[(frame.app or "", frame.title or "")] = (frame.ts, content)
         except Exception:
             pass
 
@@ -627,9 +695,11 @@ class ScreenLiveMonitor:
         if not router.has_live_provider():
             logger.info("[ScreenLive] no live provider; interval summary skipped")
             return
-        answer = asyncio.run(router.live_ask(prompt))
-        if self.status.get("away_since") is not None or trigger.interval_end <= self._away_cutoff:
-            return
+        sent, answer = asyncio.run(self._call_if_current(
+            trigger.generation, trigger.interval_end, router.live_ask, prompt))
+        with capture_policy_lock, self._state_lock:
+            if not sent or not self._work_allowed(trigger.generation, trigger.interval_end):
+                return
         if not answer or not answer.strip():
             logger.info("[ScreenLive] empty live answer; activity skipped")
             return
@@ -659,7 +729,10 @@ class ScreenLiveMonitor:
         # the same window; fail-soft: on failure save a new record as before
         merged = False
         try:
-            prev = self._last_activity
+            with capture_policy_lock, self._state_lock:
+                if not self._work_allowed(trigger.generation, trigger.interval_end):
+                    return
+                prev = self._last_activity
             if prev is not None and _should_extend_activity(
                 prev["text"], prev["app"], prev["title"], prev["base_end"],
                 win_app, win_title, content, end_dt,
@@ -694,16 +767,18 @@ class ScreenLiveMonitor:
                 meta={"windows": trigger.interval_meta},
                 event_id=event_id,
             ) or event_id
-            self._last_activity = {
-                "row_id": activity_id,
-                "event_id": event_id,
-                "app": win_app,
-                "title": win_title,
-                "text": content,
-                "start_dt": start_dt,
-                "base_end": end_dt,
-                "windows": trigger.interval_meta,
-            }
+            with capture_policy_lock, self._state_lock:
+                if self._work_allowed(trigger.generation, trigger.interval_end):
+                    self._last_activity = {
+                        "row_id": activity_id,
+                        "event_id": event_id,
+                        "app": win_app,
+                        "title": win_title,
+                        "text": content,
+                        "start_dt": start_dt,
+                        "base_end": end_dt,
+                        "windows": trigger.interval_meta,
+                    }
 
     def _extend_activity(self, prev: Dict[str, Any], end_dt) -> None:
         """Prolong the previous activity record (text unchanged, same row id,

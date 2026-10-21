@@ -20,6 +20,12 @@ interface WindowMeta {
   url: string
 }
 
+interface CapturePolicy {
+  paused: boolean
+  fps: number
+  generation?: string
+}
+
 // type only import (the package is ESM-only; loaded dynamically at runtime)
 type ActiveWindowFn = (options?: { accessibilityPermission?: boolean; screenRecordingPermission?: boolean }) => Promise<
   | {
@@ -47,9 +53,9 @@ class LiveCaptureService {
     }
     this.running = true
     const generation = ++this.generation
-    const fps = await this.fetchLiveFps()
+    const policy = await this.fetchCapturePolicy()
     if (!this.running || generation !== this.generation) return
-    this.fps = fps
+    this.fps = policy?.fps ?? 1.0
     const intervalMs = Math.max(200, Math.round(1000 / this.fps))
     logger.info(`LiveCaptureService started (fps=${this.fps}, interval=${intervalMs}ms)`)
     this.timer = setInterval(() => {
@@ -78,19 +84,23 @@ class LiveCaptureService {
     this.awayPaused = paused
   }
 
-  private async fetchLiveFps(): Promise<number> {
+  private async fetchCapturePolicy(): Promise<CapturePolicy | null> {
     try {
       const res = await axios.get(`http://127.0.0.1:${getBackendPort()}/api/settings/general`, {
         timeout: 5000
       })
-      const fps = Number(res.data?.data?.capture?.live_fps)
-      if (Number.isFinite(fps) && fps > 0) {
-        return Math.min(1, Math.max(0.2, fps))
+      const data = res.data?.data
+      if (!data?.capture || typeof data.capture !== 'object') return null
+      const fps = Number(data.capture.live_fps)
+      return {
+        paused: !!data.capture.paused,
+        fps: Number.isFinite(fps) && fps > 0 ? Math.min(1, Math.max(0.2, fps)) : 1.0,
+        generation: data.capture_generation
       }
     } catch (e) {
-      logger.warn('failed to fetch capture settings; using default fps', e)
+      logger.warn('failed to fetch capture settings; skipping capture', e)
     }
-    return 1.0
+    return null
   }
 
   private async tick(): Promise<void> {
@@ -98,12 +108,15 @@ class LiveCaptureService {
       return
     }
     this.busy = true
+    const generation = this.generation
     try {
+      const policy = await this.fetchCapturePolicy()
+      if (!this.running || generation !== this.generation || this.awayPaused || !policy || policy.paused) return
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
         thumbnailSize: { width: 1280, height: 1280 }
       })
-      if (!this.running || this.awayPaused) return
+      if (!this.running || generation !== this.generation || this.awayPaused) return
       // prefer the primary display
       const primary = sources.find((s) => s.display_id !== '') || sources[0]
       if (!primary) {
@@ -114,12 +127,24 @@ class LiveCaptureService {
         return
       }
       const meta = await this.getWindowMeta()
-      if (!this.running || this.awayPaused) return
+      const current = await this.fetchCapturePolicy()
+      if (
+        !this.running ||
+        generation !== this.generation ||
+        this.awayPaused ||
+        !current ||
+        current.paused ||
+        current.generation !== policy.generation
+      )
+        return
       const params = new URLSearchParams({
         app: meta.app,
         title: meta.title,
         url: meta.url
       })
+      if (policy.generation) params.set('capture_generation', policy.generation)
+      // A POST already started cannot be retracted. The backend checks this
+      // token too, so pause/resume during transport cannot revive an old frame.
       await axios.post(`http://127.0.0.1:${getBackendPort()}/api/live/frame?${params.toString()}`, jpeg, {
         headers: { 'Content-Type': 'image/jpeg' },
         timeout: 5000
