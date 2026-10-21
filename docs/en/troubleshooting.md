@@ -45,6 +45,14 @@ xattr -dr com.apple.quarantine /Applications/Hibi.app
 - Check that the PC is connected to Tailscale.
 - Open `http://<server>:18740/healthz` in a browser and confirm it returns `{"ok":true,...}`.
 
+### Timezone setting for the daily timeline tool
+
+The chat tool that retrieves one day's timeline first uses an IANA timezone name from the `TZ` environment variable. If unset, it checks the `/etc/localtime` symlink. Set `TZ` on Windows or other systems without this symlink. Examples: `Asia/Tokyo` for Japan, `UTC` for UTC, or `America/New_York` for New York. IANA names also preserve daylight saving transitions.
+
+On Windows, add `TZ` to your user environment variables with a value such as `Asia/Tokyo`. Fully exit the app, sign out of Windows and sign back in, then launch the app. On macOS, set `TZ` in the environment used to launch the app and restart it.
+
+If the name is invalid or no timezone can be detected, the tool returns an error asking you to configure it and stops only the daily lookup. It does not fall back to UTC. Search and screen recording remain available. This setting is separate from the sync server's `TZ_DEFAULT`.
+
 ### The "unsent" count does not go down
 
 Look at "Most recent error" under **Settings → Sync**. While the server is unreachable, records accumulate locally and are sent automatically once it is reachable again. No records are lost.
