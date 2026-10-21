@@ -13,7 +13,7 @@ tool returns a result object describing the problem instead of raising.
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -54,16 +54,22 @@ def _local_tz_name() -> str:
         try:
             return ZoneInfo(tz_name).key
         except (ValueError, ZoneInfoNotFoundError):
-            # POSIX TZ strings need a system zone with the same current offset.
-            pass
+            logger.warning("TZ is not a valid IANA name; checking the system timezone")
     try:
         target = os.path.realpath("/etc/localtime")
         if marker in target:
             zone = ZoneInfo(target.split(marker, 1)[1])
             if not tz_name:
                 return zone.key
-            now = datetime.now().astimezone()
-            if now.utcoffset() == now.astimezone(zone).utcoffset():
+            # Resolve each sample through the process timezone separately:
+            # astimezone() without an argument returns a fixed-offset tzinfo.
+            # Seasonal samples detect common DST mismatches, not all rule differences.
+            now = datetime.now()
+            samples = (now, now + timedelta(days=183))
+            if all(
+                sample.astimezone().utcoffset() == sample.astimezone(zone).utcoffset()
+                for sample in samples
+            ):
                 return zone.key
     except (OSError, ValueError, ZoneInfoNotFoundError):
         pass
