@@ -26,7 +26,7 @@
     "lint": "pnpm run check:package-manager && eslint --cache .",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
-    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "typecheck": "pnpm run typecheck:node && pnpm run typecheck:web",
     "start": "electron-vite preview",
     "build:externals": "node -e \"if(process.platform!=='win32')require('child_process').execSync('chmod +x build-python.sh')\"",
     "dev": "electron-vite dev",

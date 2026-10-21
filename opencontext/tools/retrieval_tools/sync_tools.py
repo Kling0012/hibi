@@ -54,7 +54,7 @@ def _local_tz_name() -> str:
         try:
             return ZoneInfo(tz_name).key
         except (ValueError, ZoneInfoNotFoundError):
-            logger.warning("TZ is not a valid IANA name; checking the system timezone")
+            logger.debug("TZ is not a valid IANA name; checking the system timezone")
     try:
         target = os.path.realpath("/etc/localtime")
         if marker in target:
