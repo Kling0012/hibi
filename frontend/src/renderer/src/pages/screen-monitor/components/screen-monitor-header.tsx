@@ -43,17 +43,14 @@ const ScreenMonitorHeader: React.FC<ScreenMonitorHeaderProps> = ({
       <div className="flex items-center ml-0 md:ml-6 mt-4 md:mt-0 justify-end">
         {hasPermission ? (
           <Space>
-            <Popover content={t('sm.targetsDisabledHint')} disabled={!isMonitoring}>
-              <Button
-                type="outline"
-                icon={<IconSettings />}
-                size="large"
-                disabled={isMonitoring}
-                onClick={onOpenSettings}
-                className="[&_.arco-btn]: !bg-white [&_.arco-btn]: !border-gray-300 [&_.arco-btn]: !text-black [&_.arco-btn:hover]: !bg-gray-50">
-                {t('sm.targets')}
-              </Button>
-            </Popover>
+            <Button
+              type="outline"
+              icon={<IconSettings />}
+              size="large"
+              onClick={onOpenSettings}
+              className="[&_.arco-btn]: !bg-white [&_.arco-btn]: !border-gray-300 [&_.arco-btn]: !text-black [&_.arco-btn:hover]: !bg-gray-50">
+              {t('sm.targets')}
+            </Button>
             {!isMonitoring ? (
               <Popover
                 content={t('sm.startDisabledHint')}

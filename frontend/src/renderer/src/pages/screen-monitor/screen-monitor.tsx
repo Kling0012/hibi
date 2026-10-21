@@ -198,6 +198,7 @@ const ScreenMonitor: React.FC = () => {
       applyToDays
     })
     await window.screenMonitorAPI.startTask()
+    await checkCanRecord()
     // Start polling for new activities
     startActivityPolling()
     // Start polling for recording stats
@@ -420,10 +421,13 @@ const ScreenMonitor: React.FC = () => {
     return result
   })
 
-  // Check recording status on component mount
+  // Keep the running task in sync when recording settings are saved.
   useEffect(() => {
-    checkCanRecord()
-  }, [setCanRecord])
+    window.screenMonitorAPI
+      .updateModelConfig({ recordInterval, recordingHours, enableRecordingHours, applyToDays })
+      .then(() => checkCanRecord())
+      .catch((error) => logger.error('Failed to update recording settings:', error))
+  }, [recordInterval, recordingHours, enableRecordingHours, applyToDays, checkCanRecord])
 
   // Periodically check recording status
   useEffect(() => {
@@ -431,7 +435,7 @@ const ScreenMonitor: React.FC = () => {
     if (isMonitoring && enableRecordingHours) {
       interval = setInterval(() => {
         checkCanRecord()
-      }, 60000) // Check every minute
+      }, 1000) // Match the main process policy check
     }
     return () => {
       if (interval) {
@@ -465,17 +469,14 @@ const ScreenMonitor: React.FC = () => {
   const entry = useMemoizedFn(async () => {
     const screenIds = settingScreenSources?.map((v) => v.id) || []
     const windowIds = settingWindowSources?.map((v) => v.id) || []
-    const screenList = screenAllSources?.filter((source) => screenIds?.includes(source.id)) || []
-    const windowList = appAllSources?.filter((source) => windowIds?.includes(source.id)) || []
-    const screenSources = screenList.map((source) => source.id)
+    const hasSelection = screenIds.length > 0 || windowIds.length > 0
+    const screenList = hasSelection ? settingScreenSources || [] : screenAllSources.slice(0, 1)
+    const windowList = settingWindowSources || []
     form.setFieldsValue({
-      screenSources: screenSources.length > 0 ? screenSources : [get(screenAllSources[0], 'id')].filter(Boolean),
+      screenSources: screenList.map((source) => source.id),
       windowSources: windowList.map((source) => source.id)
     })
-    await window.screenMonitorAPI.updateCurrentRecordApp([
-      ...(screenList.length > 0 ? screenList : [get(screenAllSources, 0)].filter(Boolean)),
-      ...windowList
-    ])
+    await window.screenMonitorAPI.updateCurrentRecordApp([...screenList, ...windowList])
   })
 
   // Tips: The biggest problem with using Form for management is that when the user does not select any screen or window, it will cause the save to fail
@@ -485,8 +486,18 @@ const ScreenMonitor: React.FC = () => {
       Message.info(t('sm.selectSource'))
       return
     }
-    const screenList = screenAllSources?.filter((source) => values.screenSources?.includes(source.id)) || []
-    const windowList = appAllSources?.filter((source) => values.windowSources?.includes(source.id)) || []
+    const screenList = (values.screenSources || [])
+      .map(
+        (id) =>
+          screenAllSources.find((source) => source.id === id) || settingScreenSources.find((source) => source.id === id)
+      )
+      .filter((source): source is CaptureSource => !!source)
+    const windowList = (values.windowSources || [])
+      .map(
+        (id) =>
+          appAllSources.find((source) => source.id === id) || settingWindowSources.find((source) => source.id === id)
+      )
+      .filter((source): source is CaptureSource => !!source)
     await window.screenMonitorAPI.setSettings('settings', {
       screenList,
       windowList
@@ -504,7 +515,7 @@ const ScreenMonitor: React.FC = () => {
       setTempRecordingHours(recordingHours as [string, string])
       setTempApplyToDays(applyToDays)
     }
-  }, [settingSources, sources])
+  }, [settingSources, sources, entry, recordInterval, enableRecordingHours, recordingHours, applyToDays])
 
   const handleRequestPermission = useMemoizedFn(async () => {
     await grantPermission()

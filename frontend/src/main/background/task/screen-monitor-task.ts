@@ -6,7 +6,6 @@ import dayjs from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
 import isBetween from 'dayjs/plugin/isBetween'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
-import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
 import { BrowserWindow, ipcMain } from 'electron'
 import { pick } from 'lodash'
 
@@ -17,7 +16,6 @@ import { ScreenSettings } from './../../../renderer/src/store/setting'
 dayjs.extend(isBetween)
 dayjs.extend(customParseFormat)
 dayjs.extend(isSameOrAfter)
-dayjs.extend(isSameOrBefore)
 
 const logger = getLogger('ScreenMonitorTask')
 
@@ -29,8 +27,10 @@ class ScreenMonitorTask {
   static globalStatus: 'running' | 'stopped' = 'stopped'
   private status: 'running' | 'stopped' = 'stopped'
   private modelConfig: Partial<ScreenSettings> = {}
+  private policyTimer: NodeJS.Timeout | null = null
 
   public async init() {
+    liveCaptureService.setRecordingPolicy(this.checkCanRecord)
     this.listenToScreenMonitorEvents()
     logger.info('ScreenMonitorTask initialized')
   }
@@ -40,9 +40,12 @@ class ScreenMonitorTask {
         'ScreenMonitorTask updateCurrentRecordApp -->',
         appInfo.map((v) => pick(v, ['name', 'type']))
       )
+      liveCaptureService.setSources(appInfo)
     })
     ipcMain.handle(IpcChannel.Task_Update_Model_Config, (_, config: ScreenSettings) => {
       this.modelConfig = config
+      liveCaptureService.setRecordingPolicy(this.checkCanRecord)
+      if (this.status === 'running') this.syncRecordingPolicy()
     })
     ipcMain.handle(IpcChannel.Task_Start, () => {
       logger.info('render notify ScreenMonitorTask start')
@@ -87,15 +90,29 @@ class ScreenMonitorTask {
     }
 
     logger.info('ScreenMonitorTask startTask')
-    liveCaptureService.start().catch((e) => logger.warn('live capture failed to start:', e))
     this.status = 'running'
+    this.syncRecordingPolicy()
+    this.policyTimer = setInterval(() => this.syncRecordingPolicy(), 1000)
     this.broadcastStatus()
   }
+
+  private syncRecordingPolicy() {
+    if (this.checkCanRecord()) {
+      liveCaptureService.start().catch((e) => logger.warn('live capture failed to start:', e))
+    } else {
+      liveCaptureService.stop()
+    }
+  }
+
   private stopTask() {
     if (this.status === 'stopped') {
       return
     }
     logger.info('ScreenMonitorTask stopTask')
+    if (this.policyTimer) {
+      clearInterval(this.policyTimer)
+      this.policyTimer = null
+    }
     liveCaptureService.stop()
     this.status = 'stopped'
     this.broadcastStatus()
@@ -108,8 +125,9 @@ class ScreenMonitorTask {
   }
 
   public unregister() {
-    this.status = 'stopped'
+    this.stopTask()
 
+    ipcMain.removeHandler(IpcChannel.Task_Check_Can_Record)
     ipcMain.removeHandler(IpcChannel.Task_Update_Model_Config)
     ipcMain.removeHandler(IpcChannel.Task_Start)
     ipcMain.removeHandler(IpcChannel.Task_Stop)
@@ -133,23 +151,23 @@ class ScreenMonitorTask {
     }
 
     if (recordingHours && Array.isArray(recordingHours) && recordingHours.length === 2) {
-      const [startTimeStr, endTimeStr] = recordingHours as [string, string] // e.g., ["09:00", "18:00"]
+      const [startTimeStr, endTimeStr] = recordingHours as [string, string]
 
-      const start = dayjs(startTimeStr, 'HH:mm')
-      const end = dayjs(endTimeStr, 'HH:mm')
+      const start = dayjs(startTimeStr, ['HH:mm:ss', 'HH:mm'], true)
+      const end = dayjs(endTimeStr, ['HH:mm:ss', 'HH:mm'], true)
 
       if (!start.isValid() || !end.isValid()) {
-        logger.warn(`invalid record time format: ${startTimeStr}-${endTimeStr}。skip check`)
-        return true
+        logger.warn(`invalid record time format: ${startTimeStr}-${endTimeStr}; recording paused`)
+        return false
       }
 
       if (start.isAfter(end)) {
-        return now.isSameOrAfter(start) || now.isSameOrBefore(end)
+        return now.isSameOrAfter(start) || now.isBefore(end)
       } else {
-        return now.isBetween(start, end, null, '[]')
+        return now.isBetween(start, end, null, '[)')
       }
     }
-    return true
+    return false
   }
 }
 export { ScreenMonitorTask }
