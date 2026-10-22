@@ -111,3 +111,12 @@ Node が記録した POST の query と JPEG を、Python の実際の `post_liv
 - `node --test frontend/scripts/reproduce-live-capture.cjs`: 終了コード 0、12 件成功。
 
 フルテスト・遅いテスト・配布ビルドは、作業中の検証を関連部分に絞る指定により未実行。実 OS・物理ディスプレイ・実画面・外部 AI 通信も仕様に従い未実行。exact の除外による `generate` の呼び出し抑止と、Electron 部分を含む `tests/repro_capture_pause.py` 全体は未実行であり、今回の合格範囲には含めない。
+
+## 再審査ラウンドの再検証
+
+2026-10-22、要件の完了報告が欠けていた指摘を受けて、`5bdf4ff` 時点のコードで検証をやり直した。本体コードとテストコードは変更していない。
+
+- 実行方法に記載した再現コマンド: 終了コード 0、13 件成功。
+- `pnpm -C frontend typecheck` と `pnpm -C frontend lint`: ともに終了コード 0。lint の警告 112 件は前回と同じ扱い。
+- `uv sync`、`uv run python -c 'import opencontext'`、`uv run --with pytest pytest tests/test_live_monitor_dedupe.py`（15 件成功）、`node --test frontend/scripts/reproduce-live-capture.cjs`（12 件成功）、`PYTHONPATH=tests uv run --no-project --python 3.12 --with pyyaml --with loguru python -m unittest repro_capture_pause.CapturePauseReproduction`（12 件成功）: すべて終了コード 0。
+- 戻し確認: 本体 2 ファイルを `11c61b3` の内容へ書き戻すと、再現コマンドは終了コード 1、13 件中 9 件失敗。`git checkout --` で元へ戻すと終了コード 0、13 件成功。ログは worktree 外の `/home/wang/.cache/gh-auto/uv/hibi-19-revert-round-b7k2fx9d` に保存した。
