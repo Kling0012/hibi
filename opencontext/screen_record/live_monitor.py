@@ -283,20 +283,23 @@ class ScreenLiveMonitor:
                     except queue.Empty:
                         break
 
-    def _work_allowed(self, generation: int, ts: float) -> bool:
+    def _work_allowed(self, generation: int, ts: float, app: Optional[str] = None) -> bool:
+        capture = self._capture_config()
         return (
-            not self._capture_config().get("paused")
+            not capture.get("paused")
             and generation == self._generation
             and self.status.get("away_since") is None
             and ts > self._away_cutoff
+            and (app is None or not self._is_excluded(capture, app))
         )
 
-    async def _call_if_current(self, generation: int, ts: float, call, *args, **kwargs):
+    async def _call_if_current(self, generation: int, ts: float, call, *args,
+                               frame_app: Optional[str] = None, **kwargs):
         # Python >=3.12: start the provider coroutine before releasing the policy
         # lock, then release at its first await. Merely creating a coroutine does
         # not start the client call. Once started, pause cannot retract it.
         with capture_policy_lock, self._state_lock:
-            if not self._work_allowed(generation, ts):
+            if not self._work_allowed(generation, ts, frame_app):
                 return False, None
             task = asyncio.Task(
                 call(*args, **kwargs), loop=asyncio.get_running_loop(), eager_start=True)
@@ -364,14 +367,11 @@ class ScreenLiveMonitor:
 
     @staticmethod
     def _is_excluded(capture: Dict[str, Any], app: str) -> bool:
-        exclude = capture.get("exclude_apps") or []
-        app_l = (app or "").lower()
-        if not app_l:
-            return False
-        for entry in exclude:
-            if isinstance(entry, str) and entry.strip() and entry.strip().lower() in app_l:
-                return True
-        return False
+        exclude = [entry.strip().lower() for entry in (capture.get("exclude_apps") or [])
+                   if isinstance(entry, str) and entry.strip()]
+        app_l = (app or "").strip().lower()
+        # No exclusions means unidentified captures can continue as before.
+        return bool(exclude) and (not app_l or any(entry in app_l for entry in exclude))
 
     # -- away state (POST /api/live/away/start|end) ---------------------------------
 
@@ -473,7 +473,7 @@ class ScreenLiveMonitor:
 
     def _handle_frame(self, frame: _Frame):
         with capture_policy_lock, self._state_lock:
-            if not self._work_allowed(frame.generation, frame.ts):
+            if not self._work_allowed(frame.generation, frame.ts, frame.app):
                 return
             capture = self._capture_config()
         new_hash = calculate_bytes2phash(frame.jpeg)
@@ -487,7 +487,8 @@ class ScreenLiveMonitor:
             self.status["live_available"] = router.has_live_provider()
             if self.status["live_available"]:
                 pushed, _ = asyncio.run(self._call_if_current(
-                    frame.generation, frame.ts, router.live_stream_frame, frame.jpeg))
+                    frame.generation, frame.ts, router.live_stream_frame, frame.jpeg,
+                    frame_app=frame.app))
                 if pushed:
                     self.status["frames_pushed"] += 1
         except Exception as e:
@@ -498,7 +499,7 @@ class ScreenLiveMonitor:
             self.status["live_available"] = False
 
         with capture_policy_lock, self._state_lock:
-            if not self._work_allowed(frame.generation, frame.ts):
+            if not self._work_allowed(frame.generation, frame.ts, frame.app):
                 return
 
             # 2. change detection (hash distance + window switch)
@@ -611,9 +612,10 @@ class ScreenLiveMonitor:
             },
         ]
         sent, text = asyncio.run(self._call_if_current(
-            frame.generation, frame.ts, router.generate, route="exact", messages=messages))
+            frame.generation, frame.ts, router.generate, frame_app=frame.app,
+            route="exact", messages=messages))
         with capture_policy_lock, self._state_lock:
-            if not sent or not self._work_allowed(frame.generation, frame.ts):
+            if not sent or not self._work_allowed(frame.generation, frame.ts, frame.app):
                 return
         if not text or not text.strip():
             logger.info("[ScreenLive] empty exact response; screen_summary skipped")
@@ -639,7 +641,7 @@ class ScreenLiveMonitor:
         self._save_screen_summary(title, content, frame)
         try:
             with capture_policy_lock, self._state_lock:
-                if self._work_allowed(frame.generation, frame.ts):
+                if self._work_allowed(frame.generation, frame.ts, frame.app):
                     self._last_summary_by_window[(frame.app or "", frame.title or "")] = (frame.ts, content)
         except Exception:
             pass

@@ -3,7 +3,8 @@
 
 // Live screen capture (P1-B). Captures selected sources as JPEG at
 // capture.live_fps per selected source and posts each frame to /api/live/frame.
-// Window metadata is included only when it belongs to the captured source.
+// App identity is retained for exclusion checks; titles/URLs are included only
+// when the frontmost window belongs entirely to the captured source.
 // Everything is fail-soft: a failed capture or upload is
 // logged and skipped; the loop keeps running.
 
@@ -25,6 +26,7 @@ interface WindowMeta {
 interface CapturePolicy {
   paused: boolean
   fps: number
+  excludeApps: string[]
   generation?: string
 }
 
@@ -114,6 +116,11 @@ class LiveCaptureService {
       return {
         paused: !!data.capture.paused,
         fps: Number.isFinite(fps) && fps > 0 ? Math.min(1, Math.max(0.2, fps)) : 1.0,
+        excludeApps: Array.isArray(data.capture.exclude_apps)
+          ? data.capture.exclude_apps.filter(
+              (entry: unknown): entry is string => typeof entry === 'string' && !!entry.trim()
+            )
+          : [],
         generation: data.capture_generation
       }
     } catch (e) {
@@ -159,6 +166,14 @@ class LiveCaptureService {
         const meta = await this.getWindowMeta(source, selected.type)
         const current = await this.fetchCapturePolicy()
         if (!canCapture() || !current || current.paused || current.generation !== policy.generation) return
+        const app = meta.app.trim().toLowerCase()
+        // Unknown identity cannot establish safety when exclusions are configured.
+        if (
+          current.excludeApps.length &&
+          (!app || current.excludeApps.some((entry) => app.includes(entry.trim().toLowerCase())))
+        ) {
+          continue
+        }
         const params = new URLSearchParams({
           app: meta.app,
           title: meta.title,
@@ -186,6 +201,7 @@ class LiveCaptureService {
 
   private async getWindowMeta(source: DesktopCapturerSource, type: CaptureSource['type']): Promise<WindowMeta> {
     const fallback = { app: '', title: type === 'window' ? source.name : '', url: '' }
+    let identified = fallback
     if (!this.activeWindow && !this.activeWindowLoadFailed) {
       try {
         // ESM-only package: dynamic import from the CJS bundle
@@ -211,6 +227,7 @@ class LiveCaptureService {
       if (!win) return fallback
       if (type === 'window') {
         if (win.id === undefined || source.id.split(':')[1] !== String(win.id)) return fallback
+        identified = { ...fallback, app: win.owner?.name ?? '' }
       } else {
         if (!source.display_id || !win.bounds) return fallback
         // get-windows uses physical pixels on Windows; Electron displays use DIP.
@@ -218,25 +235,35 @@ class LiveCaptureService {
         const display = screen.getAllDisplays().find((candidate) => String(candidate.id) === source.display_id)
         if (
           !display ||
+          ![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) ||
           bounds.width <= 0 ||
           bounds.height <= 0 ||
+          bounds.x >= display.bounds.x + display.bounds.width ||
+          bounds.y >= display.bounds.y + display.bounds.height ||
+          bounds.x + bounds.width <= display.bounds.x ||
+          bounds.y + bounds.height <= display.bounds.y
+        ) {
+          return fallback
+        }
+        identified = { ...fallback, app: win.owner?.name ?? '' }
+        if (
           bounds.x < display.bounds.x ||
           bounds.y < display.bounds.y ||
           bounds.x + bounds.width > display.bounds.x + display.bounds.width ||
           bounds.y + bounds.height > display.bounds.y + display.bounds.height
         ) {
-          // A window spanning displays may expose a title or URL outside this frame.
-          return fallback
+          // Retain app identity for exclusion without attaching unrelated details.
+          return identified
         }
       }
       return {
-        app: win.owner?.name ?? '',
+        app: identified.app,
         title: win.title ?? fallback.title,
         url: win.url ?? ''
       }
     } catch (e) {
       logger.debug('activeWindow() failed:', e)
-      return fallback
+      return identified
     }
   }
 }
