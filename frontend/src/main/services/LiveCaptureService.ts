@@ -226,12 +226,24 @@ class LiveCaptureService {
               screenRecordingPermission: systemPreferences.getMediaAccessStatus('screen') === 'granted'
             }
           : undefined
-      if (type === 'window') {
-        const windows = await this.openWindows?.(options)
-        const target = windows?.find((win) => win.id !== undefined && source.id.split(':')[1] === String(win.id))
-        identified = { ...fallback, app: target?.owner?.name ?? '' }
+      let win: WindowInfo | undefined
+      try {
+        win = await this.activeWindow?.(options)
+      } catch (e) {
+        logger.debug('active window lookup failed:', e)
       }
-      const win = await this.activeWindow?.(options)
+      if (
+        type === 'window' &&
+        (win?.id === undefined || source.id.split(':')[1] !== String(win.id) || win.owner?.name === undefined)
+      ) {
+        try {
+          const windows = await this.openWindows?.(options)
+          const target = windows?.find((win) => win.id !== undefined && source.id.split(':')[1] === String(win.id))
+          identified = { ...fallback, app: target?.owner?.name ?? '' }
+        } catch (e) {
+          logger.debug('open windows lookup failed:', e)
+        }
+      }
       if (!win) return identified
       if (type === 'window') {
         if (win.id === undefined || source.id.split(':')[1] !== String(win.id)) return identified
