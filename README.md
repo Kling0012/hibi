@@ -50,6 +50,8 @@
 
 必要なもの: Python 3.12 と [uv](https://docs.astral.sh/uv/)、Node.js 22 以上と pnpm 10。
 
+Node.js の更新後に `pnpm` が見つからない場合は、現在使っている Node.js の環境で `corepack enable pnpm` を実行してください。`pnpm --version` が `packageManager` の指定版を返すことを確認してから、依存関係の導入や型検査・lint を再実行します。Corepack はこの指定に従って pnpm を選びます。
+
 ルートと `frontend/package.json` の `packageManager` は同じ版を指定しています。ルートへの指定は Issue #7・#8 の機能要件の範囲外ですが、検証時の `ERR_PNPM_BAD_PM_VERSION` を解消するために追加しました。pnpm を更新するときは両方の指定をそろえてください。
 
 `pnpm -C frontend run check:package-manager` で両方の指定が一致しているか確認できます。この確認は `pnpm -C frontend lint` でも実行され、版が異なる場合はエラーになります。
