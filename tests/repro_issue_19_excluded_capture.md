@@ -120,3 +120,17 @@ Node が記録した POST の query と JPEG を、Python の実際の `post_liv
 - `pnpm -C frontend typecheck` と `pnpm -C frontend lint`: ともに終了コード 0。lint の警告 112 件は前回と同じ扱い。
 - `uv sync`、`uv run python -c 'import opencontext'`、`uv run --with pytest pytest tests/test_live_monitor_dedupe.py`（15 件成功）、`node --test frontend/scripts/reproduce-live-capture.cjs`（12 件成功）、`PYTHONPATH=tests uv run --no-project --python 3.12 --with pyyaml --with loguru python -m unittest repro_capture_pause.CapturePauseReproduction`（12 件成功）: すべて終了コード 0。
 - 戻し確認: 本体 2 ファイルを `11c61b3` の内容へ書き戻すと、再現コマンドは終了コード 1、13 件中 9 件失敗。`git checkout --` で元へ戻すと終了コード 0、13 件成功。ログは worktree 外の `/home/wang/.cache/gh-auto/uv/hibi-19-revert-round-b7k2fx9d` に保存した。
+
+## 修正ラウンドの要件確認
+
+2026-10-22、結果 JSON の requirements_done に FR-1〜FR-14 の完了が報告されていない指摘を受けて、`ce6650c` 時点のコードで各 FR の実装箇所を確認し、検証をやり直した。本体コードとテストコードは変更していない。
+
+- FR-1・FR-3・FR-9・FR-10・FR-14: `frontend/src/main/services/LiveCaptureService.ts` の `getWindowMeta` は、選択画面と重なるウィンドウでは app（`identified`）を残し、完全包含でない場合は title と url を空にしたまま返す。重ならないウィンドウは従来どおり app も空の fallback を返す。
+- FR-2・FR-4・FR-5・FR-7・FR-11: 同ファイルの `tick` は、除外設定があり app が空か除外リストのいずれかを含むとき、POST の前に次のソースへ進む。画面またぎの除外は `getWindowMeta` の重なり判定とこの確認で担保する。
+- FR-8・FR-13: app が識別され除外に一致しないときは従来どおり POST する。除外設定がないときも識別できなくとも従来どおり処理する。
+- FR-6・FR-12: 再現コマンドの最大化・枠のはみ出し・負座標・メタデータの例外と欠落の各ケースで、POST と provider 呼び出しがともに 0 回であることを確認した。
+- バックエンド `opencontext/screen_record/live_monitor.py` の `_is_excluded` は、除外設定があるとき空の app を除外扱いにする。`_work_allowed` と `_call_if_current` が `_handle_frame`・`_process_exact`・`submit_frame` の各経路で除外を再確認し、キューに残ったフレームも provider 呼び出しに届かない。
+
+検証コマンドは再審査ラウンドと同じものを実行し、再現コマンド（13 件成功）、`pnpm -C frontend typecheck`、`pnpm -C frontend lint`（警告 112 件は従来どおり）、`uv run python -c 'import opencontext'`、`uv run --with pytest pytest tests/test_live_monitor_dedupe.py`（15 件成功）、`node --test frontend/scripts/reproduce-live-capture.cjs`（12 件成功）、`repro_capture_pause.CapturePauseReproduction`（12 件成功）のいずれも終了コード 0 だった。
+
+戻し確認もやり直した。本体 2 ファイルを `11c61b3` の内容へ戻すと再現コマンドは終了コード 1、13 件中 9 件失敗。`git checkout HEAD --` で戻すと終了コード 0、13 件成功になった。ログは worktree 外の `/home/wang/.cache/gh-auto/uv/hibi-19-revert-round-c-fix19` に保存した。
