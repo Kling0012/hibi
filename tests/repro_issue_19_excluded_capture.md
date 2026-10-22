@@ -1,6 +1,6 @@
 # Issue #19 再現記録
 
-2026-10-22、修正前の `ai/issue-19`（`11c61b3`）で再現した。本体コードは変更していない。
+2026-10-22、修正前の `ai/issue-19`（`11c61b3`）で再現した。以下の修正前の結果とコード上の経路は、この時点の記録である。修正後と修正ラウンドの検証結果は末尾に記載した。
 
 ## 実行方法
 
@@ -81,4 +81,33 @@ Node が記録した POST の query と JPEG を、Python の実際の `post_liv
 - 未実行: 実際の Electron アプリ起動、xvfb/CDP。報告と同じ合成条件を実際のサービスメソッドで実行した。
 - 未実行: exact ルートの `generate` による書き起こし。今回確認した provider 境界は Live の `live_stream_frame`。
 - 未実行: 全体テスト、アプリビルド、frontend の型検査。本体コードを変更しない再現工程のため、追加した再現スクリプトだけを実行した。
-- 未解決: 除外アプリの送信、空 app の受理、処理段階での除外確認不足。本体の修正は次工程で行う。
+- 再現時点の未解決: 除外アプリの送信、空 app の受理、処理段階での除外確認不足。以下の修正後の検証で、これらの経路が拒否されることを確認した。
+
+## 修正後の検証
+
+2026-10-22、`edc4502` の本体コードで、実行方法に記載した既存の再現コマンドを実行した。終了コードは 0、13 件すべて成功した。テストコードは変更していない。
+
+- 選択画面 `(0,0,1920,1080)` と除外ウィンドウ `(1800,100,600,500)` では app が `1Password` として残り、title/url は空になる。POST と provider 呼び出しはともに 0 回だった。
+- 最大化、最大化枠のはみ出し、負座標、メタデータの例外・欠落でも、除外設定がある場合の POST と provider 呼び出しは 0 回だった。
+- 通常アプリは画面内と画面またぎの両方で POST 1 回、provider 呼び出し 1 回だった。画面またぎでは title/url が空のままだった。除外設定なしの識別不能フレームも処理を継続した。
+- バックエンドへ直接渡した除外アプリ、除外設定ありの空 app、取り出し済みの除外フレームからは provider が呼ばれなかった。
+
+修正した本体 2 ファイルを一時的に `11c61b3` の内容へ戻し、同じコマンドで終了コード 1、13 件中 9 件の失敗を確認した。`finally` で復元すると終了コード 0、13 件成功となった。ログは worktree 外の `/home/wang/.cache/gh-auto/uv/hibi-19-revert-round-a9m68heh` に保存した。
+
+## pnpm の起動失敗と復旧
+
+修正ラウンドでは `/home/wang/.local/share/mise/installs/node/22/bin/pnpm -C frontend typecheck` を実行し、起動ファイル不在による終了コード 127 を再現した。`node/22` は `22.23.4` を指していた。Corepack は利用でき、`corepack pnpm --version` は `10.34.6` を返したが、同じ Node.js の `bin` に pnpm の起動ファイルがなかった。
+
+現在の Node.js 環境で `corepack enable pnpm` を実行し、元の絶対パスから `pnpm --version` が `10.34.6` を返すことを確認した。README の開発手順にも、この復旧方法を追記した。検証環境の復旧であり、本体コードや依存関係の指定は変更していない。
+
+復旧後に、失敗していた絶対パスのコマンドを再実行した。
+
+- `pnpm -C frontend install --frozen-lockfile`: 終了コード 0。postinstall のネイティブ依存導入も完了した。
+- `pnpm -C frontend typecheck`: 終了コード 0。node と web の型検査が成功した。
+- `pnpm -C frontend lint`: 終了コード 0。エラー 0 件、警告 112 件。packageManager の一致も確認した。警告の修正は今回の対象に含めない。
+- `uv sync` と `uv run python -c 'import opencontext'`: ともに終了コード 0。
+- `tests/test_live_monitor_dedupe.py`: 終了コード 0、15 件成功。
+- `repro_capture_pause.CapturePauseReproduction`: 終了コード 0、Python の一時停止検証 12 件成功。
+- `node --test frontend/scripts/reproduce-live-capture.cjs`: 終了コード 0、12 件成功。
+
+フルテスト・遅いテスト・配布ビルドは、作業中の検証を関連部分に絞る指定により未実行。実 OS・物理ディスプレイ・実画面・外部 AI 通信も仕様に従い未実行。exact の除外による `generate` の呼び出し抑止と、Electron 部分を含む `tests/repro_capture_pause.py` 全体は未実行であり、今回の合格範囲には含めない。
