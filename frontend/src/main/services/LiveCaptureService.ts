@@ -30,17 +30,18 @@ interface CapturePolicy {
   generation?: string
 }
 
-// type only import (the package is ESM-only; loaded dynamically at runtime)
-type ActiveWindowFn = (options?: { accessibilityPermission?: boolean; screenRecordingPermission?: boolean }) => Promise<
-  | {
-      id?: number
-      bounds?: { x: number; y: number; width: number; height: number }
-      title?: string
-      url?: string
-      owner?: { name?: string }
-    }
-  | undefined
->
+interface WindowInfo {
+  id?: number
+  bounds?: { x: number; y: number; width: number; height: number }
+  title?: string
+  url?: string
+  owner?: { name?: string }
+}
+
+type WindowOptions = { accessibilityPermission?: boolean; screenRecordingPermission?: boolean }
+// The package is ESM-only; loaded dynamically at runtime.
+type ActiveWindowFn = (options?: WindowOptions) => Promise<WindowInfo | undefined>
+type OpenWindowsFn = (options?: WindowOptions) => Promise<WindowInfo[]>
 
 class LiveCaptureService {
   private timer: NodeJS.Timeout | null = null
@@ -50,6 +51,7 @@ class LiveCaptureService {
   private awayPaused = false
   private fps = 1.0
   private activeWindow: ActiveWindowFn | null = null
+  private openWindows: OpenWindowsFn | null = null
   private activeWindowLoadFailed = false
   private consecutiveErrors = 0
   private sources: Pick<CaptureSource, 'id' | 'type' | 'windowId'>[] = []
@@ -200,13 +202,14 @@ class LiveCaptureService {
   }
 
   private async getWindowMeta(source: DesktopCapturerSource, type: CaptureSource['type']): Promise<WindowMeta> {
-    const fallback = { app: '', title: type === 'window' ? source.name : '', url: '' }
+    const fallback = { app: '', title: '', url: '' }
     let identified = fallback
     if (!this.activeWindow && !this.activeWindowLoadFailed) {
       try {
         // ESM-only package: dynamic import from the CJS bundle
         const mod = await import('get-windows')
         this.activeWindow = mod.activeWindow as ActiveWindowFn
+        this.openWindows = mod.openWindows as OpenWindowsFn
       } catch (e) {
         this.activeWindowLoadFailed = true
         logger.warn('get-windows unavailable; window metadata disabled:', e)
@@ -216,18 +219,23 @@ class LiveCaptureService {
       // On macOS get-windows prompts for Accessibility / Screen Recording on
       // every call while the permission is missing (we call it every frame).
       // Only ask for url/title when the permission is already granted.
-      const win = await this.activeWindow?.(
+      const options =
         process.platform === 'darwin'
           ? {
               accessibilityPermission: systemPreferences.isTrustedAccessibilityClient(false),
               screenRecordingPermission: systemPreferences.getMediaAccessStatus('screen') === 'granted'
             }
           : undefined
-      )
-      if (!win) return fallback
       if (type === 'window') {
-        if (win.id === undefined || source.id.split(':')[1] !== String(win.id)) return fallback
-        identified = { ...fallback, app: win.owner?.name ?? '' }
+        const windows = await this.openWindows?.(options)
+        const target = windows?.find((win) => win.id !== undefined && source.id.split(':')[1] === String(win.id))
+        identified = { ...fallback, app: target?.owner?.name ?? '' }
+      }
+      const win = await this.activeWindow?.(options)
+      if (!win) return identified
+      if (type === 'window') {
+        if (win.id === undefined || source.id.split(':')[1] !== String(win.id)) return identified
+        identified = { ...fallback, app: win.owner?.name ?? identified.app }
       } else {
         if (!source.display_id || !win.bounds) return fallback
         // get-windows uses physical pixels on Windows; Electron displays use DIP.
@@ -262,7 +270,7 @@ class LiveCaptureService {
         url: win.url ?? ''
       }
     } catch (e) {
-      logger.debug('activeWindow() failed:', e)
+      logger.debug('window metadata lookup failed:', e)
       return identified
     }
   }
