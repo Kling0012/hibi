@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { NotificationQueue } from '@renderer/utils/queue/NotificationQueue'
-import { Notification as NotificationType } from '@renderer/types/notification'
-import { isFocused } from '@renderer/utils/window'
 import { Notification, NotificationHookReturnType } from '@arco-design/web-react'
+import { Notification as NotificationType } from '@renderer/types/notification'
+import { NotificationQueue } from '@renderer/utils/queue/NotificationQueue'
+import { isFocused } from '@renderer/utils/window'
 import React, { createContext, use, useEffect, useMemo } from 'react'
 
 type NotificationContextType = {

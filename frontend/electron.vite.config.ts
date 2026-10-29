@@ -1,12 +1,12 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react-swc'
 import { CodeInspectorPlugin } from 'code-inspector-plugin'
-import { resolve } from 'path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import { resolve } from 'path'
 import { visualizer } from 'rollup-plugin-visualizer'
-import tailwindcss from '@tailwindcss/vite'
 // import react from '@vitejs/plugin-react'
 
 const visualizerPlugin = (type: 'renderer' | 'main') => {

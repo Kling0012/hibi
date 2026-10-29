@@ -2,15 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // electron/database.ts - SQLite Database Manager (ES Module Compatible)
-import Database from 'better-sqlite3'
 import path from 'node:path'
-import fs from 'fs'
-import { app } from 'electron'
-import { isValidIsoString, toSqliteDatetime } from '../utils/time'
+
 import { is } from '@electron-toolkit/utils'
-import { DB } from './Database'
 import { TODOActivity } from '@interface/db/todo'
 import { getLogger } from '@shared/logger/main'
+import Database from 'better-sqlite3'
+import { app } from 'electron'
+import fs from 'fs'
+
+import { isValidIsoString, toSqliteDatetime } from '../utils/time'
+import { DB } from './Database'
 import { VaultDatabaseService } from './VaultDatabaseService'
 const logger = getLogger('DatabaseManager')
 class DatabaseManager extends VaultDatabaseService {

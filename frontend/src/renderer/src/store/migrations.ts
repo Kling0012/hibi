@@ -1,5 +1,6 @@
 import { getLogger } from '@shared/logger/renderer'
 import { omit } from 'lodash'
+
 import { defaultGeneralSettings } from './setting'
 
 const logger = getLogger('migrations')

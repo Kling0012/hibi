@@ -582,6 +582,7 @@ dependencies = [
     { name = "python-docx" },
     { name = "python-multipart" },
     { name = "pyyaml" },
+    { name = "tzdata", marker = "sys_platform == 'win32'" },
     { name = "uvicorn" },
 ]
 
@@ -608,6 +609,7 @@ requires-dist = [
     { name = "python-docx", specifier = ">=1.2.0" },
     { name = "python-multipart", specifier = ">=0.0.32" },
     { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "tzdata", marker = "sys_platform == 'win32'", specifier = ">=2026.5" },
     { name = "uvicorn", specifier = ">=0.54.0" },
 ]
 

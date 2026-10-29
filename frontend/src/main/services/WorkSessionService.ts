@@ -10,10 +10,12 @@
 // feature (the home page panel shows the error) and never affects the rest.
 
 import os from 'node:os'
-import { getLogger } from '@shared/logger/main'
+
 import { getBackendPort } from '@main/backend'
 import { tMain } from '@main/i18n'
+import { getLogger } from '@shared/logger/main'
 import type { ActiveWork, WorkSession, WorkSessionResult, WorkSessionState } from '@shared/work-session'
+
 import { localStoreService } from './LocalStoreService'
 import {
   createWorkSession,
@@ -287,14 +289,9 @@ class WorkSessionService {
    * is still empty we generate one, persist it back through /api/sync_settings
    * and register the device on the sync-server. All best effort.
    */
-  private async ensureDeviceId(
-    _current: string,
-    serverUrl: string,
-    sync: Record<string, unknown>
-  ): Promise<string> {
+  private async ensureDeviceId(_current: string, serverUrl: string, sync: Record<string, unknown>): Promise<string> {
     const deviceId = crypto.randomUUID()
-    const deviceName =
-      (typeof sync.device_name === 'string' && sync.device_name.trim()) || os.hostname()
+    const deviceName = (typeof sync.device_name === 'string' && sync.device_name.trim()) || os.hostname()
     try {
       const port = getBackendPort()
       const res = await fetch(`http://127.0.0.1:${port}/api/sync_settings`, {
@@ -326,10 +323,7 @@ class WorkSessionService {
   }
 
   private writeLocalTitle(title: string): void {
-    const titles = [title, ...this.readLocalTitles().filter((t) => t !== title)].slice(
-      0,
-      RECENT_TITLES_LOCAL_MAX
-    )
+    const titles = [title, ...this.readLocalTitles().filter((t) => t !== title)].slice(0, RECENT_TITLES_LOCAL_MAX)
     try {
       localStoreService.setSetting(RECENT_TITLES_KEY, titles)
     } catch (error) {

@@ -1,19 +1,19 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { PushDataTypes } from '@renderer/constant/feed'
-import React, { FC, useMemo, useState } from 'react'
 import { Message } from '@arco-design/web-react'
 import { IconClose } from '@arco-design/web-react/icon'
-import dayjs from 'dayjs'
-import removeMarkdown from 'remove-markdown'
-import { useTranslation } from 'react-i18next'
-import { FeedEvent, useEvents } from '@renderer/hooks/use-events'
-import { ProactiveFeedModal } from '@renderer/components/proactive-feed-modal'
-import { formatRelativeTime } from '@renderer/utils/time'
 import chatIcon from '@renderer/assets/icons/chat-icon.svg'
 import feedEmptyIcon from '@renderer/assets/icons/feed-empty.svg'
+import { ProactiveFeedModal } from '@renderer/components/proactive-feed-modal'
+import { PushDataTypes } from '@renderer/constant/feed'
+import { FeedEvent, useEvents } from '@renderer/hooks/use-events'
 import { useNavigation } from '@renderer/hooks/use-navigation'
+import { formatRelativeTime } from '@renderer/utils/time'
+import dayjs from 'dayjs'
+import React, { FC, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import removeMarkdown from 'remove-markdown'
 
 // Define the properties received by the component
 interface FeedCardProps {
@@ -122,7 +122,7 @@ const ProactiveFeedCardItem: FC<FeedCardProps> = (props) => {
   )
 }
 
-const ProactiveFeedCard: React.FC = ({}) => {
+const ProactiveFeedCard: React.FC = () => {
   const { feedEvents } = useEvents()
   const { t } = useTranslation()
   const transferType = (event: FeedEvent): FeedCardProps => {

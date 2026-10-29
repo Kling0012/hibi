@@ -13,7 +13,9 @@ tool returns a result object describing the problem instead of raising.
 """
 
 import os
+from datetime import datetime, timedelta
 from typing import Any, Dict
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
@@ -43,16 +45,35 @@ def _get_server_url() -> str:
 
 
 def _local_tz_name() -> str:
-    """IANA name of the local timezone ('UTC' as fallback)."""
+    """Validated IANA name from TZ or /etc/localtime; never guess UTC."""
+    marker = "zoneinfo/"
+    tz_name = os.environ.get("TZ", "").removeprefix(":")
+    if tz_name:
+        if os.path.isabs(tz_name) and marker in tz_name:
+            tz_name = tz_name.split(marker, 1)[1]
+        try:
+            return ZoneInfo(tz_name).key
+        except (ValueError, ZoneInfoNotFoundError):
+            logger.debug("TZ is not a valid IANA name; checking the system timezone")
     try:
         target = os.path.realpath("/etc/localtime")
-        marker = "zoneinfo/"
-        idx = target.find(marker)
-        if idx != -1:
-            return target[idx + len(marker) :]
-    except Exception:
+        if marker in target:
+            zone = ZoneInfo(target.split(marker, 1)[1])
+            if not tz_name:
+                return zone.key
+            # Resolve each sample through the process timezone separately:
+            # astimezone() without an argument returns a fixed-offset tzinfo.
+            # Seasonal samples detect common DST mismatches, not all rule differences.
+            now = datetime.now()
+            samples = (now, now + timedelta(days=183))
+            if all(
+                sample.astimezone().utcoffset() == sample.astimezone(zone).utcoffset()
+                for sample in samples
+            ):
+                return zone.key
+    except (OSError, ValueError, ZoneInfoNotFoundError):
         pass
-    return "UTC"
+    raise ValueError("Local timezone is unknown or invalid; set TZ to a valid IANA name")
 
 
 def _error_result(reason: str) -> Dict[str, Any]:
@@ -200,9 +221,22 @@ class GetDayTimelineTool(BaseTool):
             return _error_result("sync server URL is not configured")
 
         try:
+            tz_name = _local_tz_name()
+        except Exception as e:
+            logger.warning(f"Sync timeline timezone detection failed: {e}")
+            return {
+                "error": str(e),
+                "message": (
+                    "ローカルのタイムゾーンを確認できないため、日別タイムラインを取得できません。"
+                    "環境変数 TZ に Asia/Tokyo などの IANA 名を設定してアプリを再起動してください。"
+                ),
+                "results": [],
+            }
+
+        try:
             response = httpx.get(
                 f"{server_url}/v1/timeline",
-                params={"date": date, "tz": _local_tz_name()},
+                params={"date": date, "tz": tz_name},
                 timeout=_REQUEST_TIMEOUT,
             )
             response.raise_for_status()
@@ -212,6 +246,7 @@ class GetDayTimelineTool(BaseTool):
                     "type": item.get("type"),
                     "t": item.get("t"),
                     "event": item.get("event"),
+                    **({"session": item.get("session")} if item.get("type") == "session" else {}),
                 }
                 for item in data.get("items", [])
             ]

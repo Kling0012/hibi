@@ -1,24 +1,23 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useState } from 'react'
 import { Message } from '@arco-design/web-react'
-import { useSelector } from 'react-redux'
-import { useMemoizedFn, useMount } from 'ahooks'
-import dayjs from 'dayjs'
-
+import { CaptureSource } from '@interface/common/source'
 import { RootState, useAppDispatch } from '@renderer/store'
 import {
-  setIsMonitoring as setIsMonitoringAction,
-  setCurrentSession as setCurrentSessionAction,
-  removeScreenshot as removeScreenshotAction,
   MonitorSession,
-  ScreenshotRecord
+  removeScreenshot as removeScreenshotAction,
+  ScreenshotRecord,
+  setCurrentSession as setCurrentSessionAction,
+  setIsMonitoring as setIsMonitoringAction
 } from '@renderer/store/screen'
-import { CaptureSource } from '@interface/common/source'
+import { captureScreenshotThunk } from '@renderer/store/thunk/screen-thunk'
 import { timeToISOTimeString } from '@renderer/utils/time'
 import { getLogger } from '@shared/logger/renderer'
-import { captureScreenshotThunk } from '@renderer/store/thunk/screen-thunk'
+import { useMemoizedFn, useMount } from 'ahooks'
+import dayjs from 'dayjs'
+import { useState } from 'react'
+import { useSelector } from 'react-redux'
 
 const logger = getLogger('useScreen')
 

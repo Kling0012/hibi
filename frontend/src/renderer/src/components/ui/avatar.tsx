@@ -1,10 +1,9 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import * as React from 'react'
 import * as AvatarPrimitive from '@radix-ui/react-avatar'
-
 import { cn } from '@renderer/lib/utils'
+import * as React from 'react'
 
 function Avatar({ className, ...props }: React.ComponentProps<typeof AvatarPrimitive.Root>) {
   return (
@@ -32,4 +31,4 @@ function AvatarFallback({ className, ...props }: React.ComponentProps<typeof Ava
   )
 }
 
-export { Avatar, AvatarImage, AvatarFallback }
+export { Avatar, AvatarFallback, AvatarImage }

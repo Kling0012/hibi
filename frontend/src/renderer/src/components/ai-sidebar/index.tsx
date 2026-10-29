@@ -3,11 +3,15 @@
 
 'use client'
 
+import { useChat } from '@ai-sdk/react'
+import ChatBubbleIcon from '@renderer/assets/icons/chat-bubble.svg'
+import { Action, Actions } from '@renderer/components/ai-elements/actions'
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton
 } from '@renderer/components/ai-elements/conversation'
+import { Loader } from '@renderer/components/ai-elements/loader'
 import { Message, MessageContent } from '@renderer/components/ai-elements/message'
 import {
   PromptInput,
@@ -22,16 +26,12 @@ import {
   PromptInputToolbar,
   PromptInputTools
 } from '@renderer/components/ai-elements/prompt-input'
-import { Actions, Action } from '@renderer/components/ai-elements/actions'
-import { Fragment, useState } from 'react'
-import { Response } from '@renderer/components/ai-elements/response'
-import { GlobeIcon, RefreshCcwIcon, CopyIcon } from 'lucide-react'
-import ChatBubbleIcon from '@renderer/assets/icons/chat-bubble.svg'
-import { Source, Sources, SourcesTrigger, SourcesContent } from '@renderer/components/ai-elements/sources'
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@renderer/components/ai-elements/reasoning'
-import { Loader } from '@renderer/components/ai-elements/loader'
-import { useChat } from '@ai-sdk/react'
+import { Response } from '@renderer/components/ai-elements/response'
+import { Source, Sources, SourcesContent, SourcesTrigger } from '@renderer/components/ai-elements/sources'
 import { DefaultChatTransport } from 'ai'
+import { CopyIcon, GlobeIcon, RefreshCcwIcon } from 'lucide-react'
+import { Fragment, useState } from 'react'
 
 const models = [
   {

@@ -1,8 +1,8 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { getLogger } from '@shared/logger/main'
 import { isDev, isLinux, isMac, isWin } from '@main/constant'
+import { getLogger } from '@shared/logger/main'
 import { app } from 'electron'
 import fs from 'fs'
 import os from 'os'

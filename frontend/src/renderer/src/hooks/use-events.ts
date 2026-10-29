@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { RootState, useAppDispatch } from '@renderer/store'
-import { useSelector } from 'react-redux'
-import GlobalEventService from '@renderer/services/GlobalEventService'
 import { PushDataTypes } from '@renderer/constant/feed'
+import GlobalEventService from '@renderer/services/GlobalEventService'
+import { RootState, useAppDispatch } from '@renderer/store'
 import { removeExistEvent, setActiveEvent, setIsModalVisible } from '@renderer/store/events'
+import { useSelector } from 'react-redux'
 
 export interface FeedEvent {
   id: string

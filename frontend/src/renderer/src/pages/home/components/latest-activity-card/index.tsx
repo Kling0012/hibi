@@ -2,12 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useNavigation } from '@renderer/hooks/use-navigation'
-import { FC, useState } from 'react'
-import { CardLayout } from '../layout'
-import { useMount, useUnmount } from 'ahooks'
 import { ActivityTimelineItem } from '@renderer/pages/screen-monitor/components/activitie-timeline-item'
-import { isEmpty } from 'lodash'
+import { useMount, useUnmount } from 'ahooks'
 import dayjs from 'dayjs'
+import { isEmpty } from 'lodash'
+import { FC, useState } from 'react'
+
+import { CardLayout } from '../layout'
 // import { useServiceHandler } from '@renderer/atom/event-loop.atom'
 // import { POWER_MONITOR_KEY } from '@shared/constant/power-monitor'
 

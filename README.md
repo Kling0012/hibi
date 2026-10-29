@@ -12,6 +12,10 @@
 > 元のプロジェクトは Apache License 2.0 で公開されており、このリポジトリも同じライセンスに従います（[LICENSE](LICENSE)）。
 > 名前、画面、AI の接続方式、記録のしくみを大きく変えた別のアプリです。元の README は [docs/upstream/](docs/upstream/README.md) にあります。
 
+## 開発について
+
+このリポジトリの開発は AI が担当しています。Issue や Pull Request の確認、不具合の再現と修正、レビュー、テスト、マージ、リリースまで、すべて AI が自動で行います。
+
 ## Hibi を構成する 3 つのリポジトリ
 
 | リポジトリ | 役割 |
@@ -45,6 +49,12 @@
 ## 開発
 
 必要なもの: Python 3.12 と [uv](https://docs.astral.sh/uv/)、Node.js 22 以上と pnpm 10。
+
+Node.js の更新後に `pnpm` が見つからない場合は、現在使っている Node.js の環境で `corepack enable pnpm` を実行してください。`pnpm --version` が `packageManager` の指定版を返すことを確認してから、依存関係の導入や型検査・lint を再実行します。Corepack はこの指定に従って pnpm を選びます。
+
+ルートと `frontend/package.json` の `packageManager` は同じ版を指定しています。ルートへの指定は Issue #7・#8 の機能要件の範囲外ですが、検証時の `ERR_PNPM_BAD_PM_VERSION` を解消するために追加しました。pnpm を更新するときは両方の指定をそろえてください。
+
+`pnpm -C frontend run check:package-manager` で両方の指定が一致しているか確認できます。この確認は `pnpm -C frontend lint` でも実行され、版が異なる場合はエラーになります。
 
 ```sh
 uv sync

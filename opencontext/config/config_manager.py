@@ -12,10 +12,12 @@ Configuration manager, responsible for loading and managing system configuration
 import logging
 import os
 import re
+import uuid
 from typing import Any, Dict, Optional
 
 import yaml
 
+from opencontext.config.capture_policy import capture_policy_lock, notify_capture_policy_changed
 from opencontext.utils.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -33,6 +35,22 @@ class ConfigManager:
         self._config: Optional[Dict[str, Any]] = None
         self._config_path: Optional[str] = None
         self._env_vars: Dict[str, str] = {}
+        # Runtime-only token: never written to user settings. A fresh manager
+        # also invalidates frames captured before a backend restart.
+        self._capture_generation = uuid.uuid4().hex
+
+    def get_capture_generation(self) -> str:
+        with capture_policy_lock:
+            return self._capture_generation
+
+    def _publish_config(self, config: Dict[str, Any]) -> None:
+        with capture_policy_lock:
+            previous = (self._config or {}).get("capture") or {}
+            capture = config.get("capture") or {}
+            self._config = config
+            if previous != capture:
+                self._capture_generation = uuid.uuid4().hex
+                notify_capture_policy_changed()
 
     def load_config(self, config_path: Optional[str] = None) -> bool:
         """
@@ -52,10 +70,14 @@ class ConfigManager:
 
         self._load_env_vars()
         config_data = self._replace_env_vars(config_data)
-        self._config = config_data
+        # Publish only the final merged policy; a reload must not briefly expose
+        # the defaults (e.g. paused=false) before applying user settings.
+        user_settings = self._read_user_settings(config_data)
+        if user_settings:
+            config_data = self.deep_merge(config_data, user_settings)
+        self._publish_config(config_data)
         self._config_path = found_config_path
         logger.info(f"Configuration loaded successfully: {self._config_path}")
-        self.load_user_settings()
 
         return True
 
@@ -140,30 +162,29 @@ class ConfigManager:
 
         return result
 
-    def load_user_settings(self) -> bool:
-        """
-        Load user settings and merge them into the main configuration
-        """
-        if not self._config:
-            return False
-        user_setting_path = self._config.get("user_setting_path")
+    def _read_user_settings(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        user_setting_path = config.get("user_setting_path")
         if not user_setting_path:
-            return False
+            return {}
         if not os.path.exists(user_setting_path):
             logger.info(f"User settings file does not exist, skipping: {user_setting_path}")
-            return False
-
+            return {}
         try:
             with open(user_setting_path, "r", encoding="utf-8") as f:
-                user_settings = yaml.safe_load(f)
-            if not user_settings:
-                return False
-            self._config = self.deep_merge(self._config, user_settings)
-            # logger.info(f"User settings loaded successfully: {user_settings}")
-            return True
+                return yaml.safe_load(f) or {}
         except Exception as e:
             logger.error(f"Failed to load user settings: {e}")
+            return {}
+
+    def load_user_settings(self) -> bool:
+        """Load user settings and publish the merged configuration."""
+        if not self._config:
             return False
+        user_settings = self._read_user_settings(self._config)
+        if not user_settings:
+            return False
+        self._publish_config(self.deep_merge(self._config, user_settings))
+        return True
 
     def save_user_settings(self, settings: Dict[str, Any]) -> bool:
         """
@@ -220,7 +241,7 @@ class ConfigManager:
             logger.info(f"User settings saved successfully: {user_setting_path}")
 
             # Merge into current config
-            self._config = self.deep_merge(self._config, user_settings)
+            self._publish_config(self.deep_merge(self._config, user_settings))
             return True
         except Exception as e:
             logger.error(f"Failed to save user settings: {e}")

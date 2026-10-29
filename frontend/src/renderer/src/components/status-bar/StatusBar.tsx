@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import React, { useState } from 'react'
 import { Input, Tag } from '@arco-design/web-react'
-import { Vault } from '@renderer/types'
-import { useTranslation } from 'react-i18next'
 import { getResolvedLang } from '@renderer/i18n'
+import { Vault } from '@renderer/types'
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const i18nLocale = (): string => {
   const lang = getResolvedLang()

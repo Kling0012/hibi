@@ -1,15 +1,15 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   ChatMessage,
   ChatStreamRequest,
+  chatStreamService,
   StreamEvent,
-  WorkflowStage,
-  chatStreamService
+  WorkflowStage
 } from '@renderer/services/ChatStreamService'
 import { get } from 'lodash'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export interface ChatState {
   messages: ChatMessage[]

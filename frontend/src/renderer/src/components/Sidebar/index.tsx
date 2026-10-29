@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { CSSProperties, ReactElement } from 'react'
-import { useTranslation } from 'react-i18next'
-import VaultTree from '@renderer/components/vault-tree'
+import './index.css'
+
 import UpdateAvailableButton from '@renderer/components/UpdateAvailableButton'
+import VaultTree from '@renderer/components/vault-tree'
 import { useNavigation } from '@renderer/hooks/use-navigation'
 import { formatElapsed, useNow, useWorkSession } from '@renderer/hooks/use-work-session'
+import { CSSProperties, ReactElement } from 'react'
+import { useTranslation } from 'react-i18next'
+
 import logo from '/src/assets/icons/hibi-logo.svg'
-import './index.css'
 
 const icon = (d: string): ReactElement => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -20,7 +22,12 @@ const NAV_ITEMS = [
   { key: 'timeline', labelKey: 'nav.timeline', path: '/timeline', icon: icon('M3 7h11M3 12h18M3 17h7M17 4v6M21 14v6') },
   { key: 'report', labelKey: 'nav.report', path: '/report', icon: icon('M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5') },
   { key: 'blog', labelKey: 'nav.blog', path: '/blog', icon: icon('M5 4h14v16H5zM8 8h8M8 12h8M8 16h5') },
-  { key: 'search', labelKey: 'nav.search', path: '/search', icon: icon('M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm4.6 11.1L20 20') },
+  {
+    key: 'search',
+    labelKey: 'nav.search',
+    path: '/search',
+    icon: icon('M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm4.6 11.1L20 20')
+  },
   {
     key: 'screen-monitor',
     labelKey: 'nav.screenMonitor',

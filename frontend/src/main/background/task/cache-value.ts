@@ -1,5 +1,4 @@
 import dayjs from 'dayjs'
-import _ from 'lodash'
 
 export interface CacheOptions<T> {
   fetchFn: () => Promise<T>

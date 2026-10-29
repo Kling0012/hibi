@@ -1,8 +1,8 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { Typography, Progress } from '@arco-design/web-react'
-import { useState, useEffect } from 'react'
+import { Progress, Typography } from '@arco-design/web-react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 const { Title, Text } = Typography
 import logo from '/src/assets/images/logo.png'

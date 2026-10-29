@@ -133,6 +133,9 @@ class SyncOutbox:
             return None
         # a caller-supplied id re-sends the same event (server upserts on id,
         # e.g. when a record is extended); otherwise generate a fresh uuid
+        # REPLACE refreshes created_at too. Upload acknowledgement compares all
+        # columns, including created_at, rather than relying on a version number.
+        # An identical replacement with the same timestamp is safe to acknowledge.
         event_id = event_id or str(uuid.uuid4())
         try:
             connection = sqlite3.connect(db_path, timeout=30)
@@ -219,7 +222,7 @@ class SyncOutbox:
             # Leave legacy queued todos in place, but never upload them.
             rows = connection.execute(
                 """
-                SELECT id, kind, started_at, ended_at, app, title, text, meta, source
+                SELECT id, kind, started_at, ended_at, app, title, text, meta, source, created_at
                 FROM sync_outbox WHERE kind != 'todo' ORDER BY created_at LIMIT ?
                 """,
                 (_BATCH_SIZE,),
@@ -254,8 +257,16 @@ class SyncOutbox:
                 timeout=_REQUEST_TIMEOUT,
             )
             response.raise_for_status()
+            # A producer may replace the same id during HTTP I/O. Acknowledge
+            # only the snapshot we sent, leaving newer updates queued for retry.
             connection.executemany(
-                "DELETE FROM sync_outbox WHERE id = ?", [(row["id"],) for row in rows]
+                """
+                DELETE FROM sync_outbox
+                WHERE id = ? AND kind IS ? AND started_at IS ? AND ended_at IS ?
+                  AND app IS ? AND title IS ? AND text IS ? AND meta IS ?
+                  AND source IS ? AND created_at IS ?
+                """,
+                [tuple(row) for row in rows],
             )
             connection.commit()
             self.sent_count += len(events)

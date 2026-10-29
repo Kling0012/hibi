@@ -1,8 +1,8 @@
-import React from 'react'
-import { Typography, Button } from '@arco-design/web-react'
-import Stopped from '@renderer/assets/images/screen-monitor/stopped.png'
+import { Button, Typography } from '@arco-design/web-react'
 import NeedPermission from '@renderer/assets/images/screen-monitor/need-permission.svg'
 import screenMonitorEmpty from '@renderer/assets/images/screen-monitor/screen-monitor-empty.svg'
+import Stopped from '@renderer/assets/images/screen-monitor/stopped.png'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 
 const { Text } = Typography
@@ -22,22 +22,20 @@ const EmptyStatePlaceholder: React.FC<EmptyStatePlaceholderProps> = ({ hasPermis
           isToday ? (
             <>
               <img src={Stopped} alt="Screen recording" style={{ width: 66, height: 78 }} />
-              <Text style={{ marginTop: 16, width: 270, color: '#6C7191', fontSize: 12 }}>
-                {t('sm.startHint')}
-              </Text>
+              <Text style={{ marginTop: 16, width: 270, color: '#6C7191', fontSize: 12 }}>{t('sm.startHint')}</Text>
             </>
           ) : (
             <>
               <img src={screenMonitorEmpty} alt="Screen recording" style={{ width: 66, height: 78 }} />
-              <Text style={{ marginTop: 16, width: 270, color: '#6C7191', fontSize: 12 }}>{t('sm.noRecordForDay')}</Text>
+              <Text style={{ marginTop: 16, width: 270, color: '#6C7191', fontSize: 12 }}>
+                {t('sm.noRecordForDay')}
+              </Text>
             </>
           )
         ) : (
           <>
             <img src={NeedPermission} alt="Need permission" style={{ width: 286, height: 168, marginLeft: 67 }} />
-            <Text style={{ marginTop: 16, width: 440, color: '#6C7191', fontSize: 12 }}>
-              {t('sm.permissionHint')}
-            </Text>
+            <Text style={{ marginTop: 16, width: 440, color: '#6C7191', fontSize: 12 }}>{t('sm.permissionHint')}</Text>
             <Button
               type="primary"
               size="large"

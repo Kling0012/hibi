@@ -1,10 +1,11 @@
 import { activityService } from '@main/services/ActivityService'
-import { ScheduleNextTask } from './schedule-next-task'
-import { BrowserWindow, ipcMain } from 'electron'
 import { IpcServerPushChannel } from '@shared/ipc-server-push-channel'
-import { powerWatcher } from '../os/Power'
 import { IpcChannel } from '@shared/IpcChannel'
 import { getLogger } from '@shared/logger/main'
+import { BrowserWindow, ipcMain } from 'electron'
+
+import { powerWatcher } from '../os/Power'
+import { ScheduleNextTask } from './schedule-next-task'
 
 const logger = getLogger('LatestActivityTask')
 

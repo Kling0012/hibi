@@ -1,8 +1,8 @@
 // Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useState, useEffect, useCallback } from 'react'
 import { typeIconMap } from '@renderer/utils/file'
+import { useCallback, useEffect, useState } from 'react'
 
 export interface Document {
   name: string
