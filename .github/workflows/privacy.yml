@@ -1,0 +1,34 @@
+name: privacy-check
+
+# Fails when the tree contains private names (hosts, user names, addresses).
+# The patterns come from the HIBI_PRIVACY_PATTERNS secret (one extended regex
+# per line) so they never appear in this public repo. Only file names and
+# match counts are printed, never the matching text.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for private names
+        env:
+          PATTERNS: ${{ secrets.HIBI_PRIVACY_PATTERNS }}
+        run: |
+          if [ -z "$PATTERNS" ]; then
+            echo "HIBI_PRIVACY_PATTERNS is not available (fork PR?); skipping."
+            exit 0
+          fi
+          pat=$(printf '%s\n' "$PATTERNS" | grep -v '^[[:space:]]*\(#\|$\)' | paste -sd'|')
+          if git grep -cIE "$pat" -- . > /tmp/hits; then
+            echo "Private names found (file:count):"
+            cat /tmp/hits
+            exit 1
+          fi
+          echo "No private names found."

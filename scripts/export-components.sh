@@ -55,7 +55,12 @@ MEMORY_BRANCH=$(git -C "$MEMORY_SRC" branch --show-current)
 
 # Private strings that must never appear in the exported trees. Explanatory
 # placeholders (100.x.y.z, <your-server>) do not match.
-AUDIT_PATTERN='100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]+\.[0-9]+|ts\.net|@gmail'
+# Private names (hosts, user names, addresses) must never appear in this public
+# repo, not even in this script: the patterns live in a local file outside git,
+# one extended regex per line.
+PATTERN_FILE=${HIBI_PRIVACY_PATTERNS:-$HOME/.config/hibi/privacy-patterns}
+[ -s "$PATTERN_FILE" ] || die "privacy pattern file not found: $PATTERN_FILE"
+AUDIT_PATTERN=$(grep -v '^[[:space:]]*\(#\|$\)' "$PATTERN_FILE" | paste -sd'|')
 
 TMP=$(mktemp -d /tmp/hibi-export.XXXXXX)
 trap 'echo "export-components: staging (and any replaced tree) kept at $TMP" >&2' EXIT
