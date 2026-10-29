@@ -1,0 +1,172 @@
+# Hibi all-in-one launcher: the sync server (server/) by default, plus the
+# shared AI memory (memory/) behind `--profile memory`.
+#
+#   docker compose up -d --build                    # sync server only
+#   -> http://127.0.0.1:18740  (admin UI /ui/, blog /blog/, health /healthz)
+#
+#   docker compose --profile memory up -d --build   # also the shared memory
+#   -> gateway on 127.0.0.1:8377 (needs memory/.env, see memory/README.md)
+#
+# The compose files inside server/ and memory/ stay canonical for running each
+# component on its own. Compose `include` can neither add profiles to included
+# services nor replace their ports (port lists get appended), so the services
+# are restated here:
+#   db/api                ~= server/docker-compose.yml + docker-compose.prod.yml
+#   gateway/valkey/falkordb ~= memory/docker-compose.yml, gated behind a profile
+#
+# Configuration: copy server/.env.example to .env next to this file (the LLM
+# endpoint is the only required setting) and put API-key files under
+# server/secrets/ as described in server/README.md. The memory gateway reads
+# memory/.env (copy memory/.env.example); it is optional, so the sync server
+# runs on a fresh checkout without it.
+#
+# NOTE: this file and server/docker-compose.yml are two ways to run the same
+# server (same project name and DB volume). Run one of them, never both.
+
+name: ${COMPOSE_PROJECT_NAME:-hibi}
+
+services:
+  # ----- sync server (default) ----------------------------------------------
+  db:
+    image: pgvector/pgvector:pg17
+    # Never publish the DB port; cap memory on small hosts.
+    mem_limit: 768m
+    environment:
+      POSTGRES_USER: sync
+      POSTGRES_PASSWORD: sync
+      POSTGRES_DB: sync
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sync -d sync"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build: ./server
+    mem_limit: 512m
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://sync:sync@db:5432/sync
+      EMBED_PROVIDER: ${EMBED_PROVIDER:-fake}
+      EMBED_BASE_URL: ${EMBED_BASE_URL:-}
+      EMBED_MODEL: ${EMBED_MODEL:-@cf/qwen/qwen3-embedding-0.6b}
+      EMBED_DIM: ${EMBED_DIM:-1024}
+      EMBED_API_KEY_FILE: ${EMBED_API_KEY_FILE:-}
+      EMBED_CF_ENV_FILE: ${EMBED_CF_ENV_FILE:-/run/secrets/cloudflare.env}
+      EMBED_CF_TIMEOUT_SEC: ${EMBED_CF_TIMEOUT_SEC:-60}
+      EMBED_INTERVAL_SEC: ${EMBED_INTERVAL_SEC:-5}
+      EMBED_BATCH: ${EMBED_BATCH:-32}
+      TZ_DEFAULT: ${TZ_DEFAULT:-Asia/Tokyo}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai_compat}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-glm-5.3-flash}
+      LLM_API_KEY_FILE: ${LLM_API_KEY_FILE:-/run/secrets/llm-key}
+      LLM_TIMEOUT_SEC: ${LLM_TIMEOUT_SEC:-30}
+      SESSION_JUDGE_INTERVAL: ${SESSION_JUDGE_INTERVAL:-120}
+      SESSION_END_THRESHOLD: ${SESSION_END_THRESHOLD:-0.75}
+      IDLE_MINUTES: ${IDLE_MINUTES:-15}
+      SESSION_AWAY_END_MINUTES: ${SESSION_AWAY_END_MINUTES:-30}
+      AM_IMPORT_ENABLED: ${AM_IMPORT_ENABLED:-1}
+      AM_BASE_URL: ${AM_BASE_URL:-}
+      AM_IMPORT_INTERVAL: ${AM_IMPORT_INTERVAL:-300}
+      AM_IMPORT_LOOKBACK_HOURS: ${AM_IMPORT_LOOKBACK_HOURS:-48}
+      AM_TIMEOUT_SEC: ${AM_TIMEOUT_SEC:-15}
+      REPORT_LLM_MODEL: ${REPORT_LLM_MODEL:-glm-5.3}
+      REPORT_LLM_FLASH_MODEL: ${REPORT_LLM_FLASH_MODEL:-glm-5.3-flash}
+      REPORT_LLM_TIMEOUT_SEC: ${REPORT_LLM_TIMEOUT_SEC:-420}
+      REPORT_CHUNK_CHARS: ${REPORT_CHUNK_CHARS:-12000}
+      REPORT_AUTO_ENABLED: ${REPORT_AUTO_ENABLED:-1}
+      YOMIYASU_POLISH: ${YOMIYASU_POLISH:-1}
+      BLOG_AUTO: ${BLOG_AUTO:-draft}
+      TODO_JUDGE_INTERVAL: ${TODO_JUDGE_INTERVAL:-300}
+      TODO_MATCH_THRESHOLD: ${TODO_MATCH_THRESHOLD:-0.7}
+      TODO_JUDGE_MAX_WINDOW_MIN: ${TODO_JUDGE_MAX_WINDOW_MIN:-30}
+      TODO_MERGE_GAP_MIN: ${TODO_MERGE_GAP_MIN:-5}
+      BIND_HOST: 0.0.0.0
+      BIND_PORT: 8000
+    ports:
+      # Closed network ONLY (no auth on the API): localhost by default; set
+      # BIND_ADDR to the server's address on a private network (e.g. a
+      # Tailscale tailnet IP like 100.x.y.z) to accept other devices.
+      # PROD_TAILNET_IP is the legacy name for BIND_ADDR and still wins when
+      # set. Never 0.0.0.0 / a public IP.
+      - "${PROD_TAILNET_IP:-${BIND_ADDR:-127.0.0.1}}:${PROD_PORT:-18740}:8000"
+    volumes:
+      # Secrets are file-mounted read-only; see server/README.md.
+      - ./server/secrets/llm-key:/run/secrets/llm-key:ro
+      - ./server/secrets/cloudflare.env:/run/secrets/cloudflare.env:ro
+    restart: unless-stopped
+
+  # ----- shared AI memory (only with `--profile memory`) ---------------------
+  gateway:
+    profiles: ["memory"]
+    image: agent-memory-gateway:local
+    build: ./memory
+    restart: unless-stopped
+    env_file:
+      # Copy memory/.env.example to memory/.env before starting the profile;
+      # optional so that the sync-server-only default needs nothing else.
+      - path: memory/.env
+        required: false
+    environment:
+      # The gateway runs on the host network, so it reaches Valkey/FalkorDB
+      # through their published ports (memory/docker-compose.yml pins the
+      # same values); the rest of its configuration comes from memory/.env.
+      VALKEY_URL: redis://127.0.0.1:16379/0
+      FALKORDB_HOST: 127.0.0.1
+      FALKORDB_PORT: "16380"
+      MEMORY_EMBEDDING_BASE_URL: http://127.0.0.1:8081/v1
+      GRAPHITI_TELEMETRY_ENABLED: "false"
+    depends_on:
+      valkey:
+        condition: service_healthy
+      falkordb:
+        condition: service_healthy
+    network_mode: host
+
+  valkey:
+    profiles: ["memory"]
+    image: valkey/valkey:8.1-alpine
+    restart: unless-stopped
+    command: ["valkey-server", "--appendonly", "yes", "--save", "60", "1"]
+    volumes:
+      - valkey-data:/data
+    ports:
+      - "127.0.0.1:16379:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [memory]
+
+  falkordb:
+    profiles: ["memory"]
+    image: falkordb/falkordb:v4.20.3
+    restart: unless-stopped
+    volumes:
+      - falkordb-data:/data
+    ports:
+      - "127.0.0.1:16380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [memory]
+
+networks:
+  memory:
+
+volumes:
+  db-data:
+    # Fixed name so backups/inspection don't depend on the project prefix
+    # (same volume as server/'s production compose).
+    name: ${PGDATA_VOLUME:-hibi-pgdata}
+  valkey-data:
+  falkordb-data:
