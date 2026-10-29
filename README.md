@@ -16,13 +16,13 @@
 
 このリポジトリの開発は AI が担当しています。Issue や Pull Request の確認、不具合の再現と修正、レビュー、テスト、マージ、リリースまで、すべて AI が自動で行います。
 
-## Hibi を構成する 3 つのリポジトリ
+## Hibi を構成する 3 つの部品
 
-| リポジトリ | 役割 |
+| 場所 | 役割 |
 |---|---|
-| **hibi**（ここ） | デスクトップアプリ（Apple シリコンの Mac / Windows）。画面の記録、作業の宣言、閲覧 |
-| [hibi-server](https://github.com/Kling0012/hibi-server) | 同期サーバ。記録の集約、検索、作業終了の判定、日報・ブログ、スマホ用の画面 |
-| [hibi-memory](https://github.com/Kling0012/hibi-memory) | AI の共有記憶。AI エージェントの作業記録の置き場 |
+| [`frontend/`](frontend/) と [`opencontext/`](opencontext/) | デスクトップアプリ（Apple シリコンの Mac / Windows）。画面の記録、作業の宣言、閲覧 |
+| [`server/`](server/) | 同期サーバ。記録の集約、検索、作業終了の判定、日報・ブログ、スマホ用の画面 |
+| [`memory/`](memory/)（任意） | AI の共有記憶。AI エージェントの作業記録の置き場 |
 
 ## できること
 
@@ -39,7 +39,7 @@
 
 ## はじめかた
 
-1. 同期サーバを立てる（[hibi-server](https://github.com/Kling0012/hibi-server)）
+1. 同期サーバを立てる（このリポジトリの `server/`。`docker compose up -d --build` で起動）
 2. [Releases](https://github.com/Kling0012/hibi/releases) からアプリを入れる
    - macOS は署名していないため、初回だけ `xattr -dr com.apple.quarantine /Applications/Hibi.app` を実行
 3. 初回の設定画面で AI の接続先と同期サーバの URL を入れる

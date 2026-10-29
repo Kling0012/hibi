@@ -5,10 +5,10 @@ nav_order: 5
 
 **日本語** · [English](en/server.html) · [中文](zh/server.html)
 
-# 同期サーバ（hibi-server）
+# 同期サーバ（server/）
 {: .no_toc }
 
-全端末の記録と AI の作業を集め、タイムライン・検索・作業終了の判定・日報・ブログを受け持つサーバです。リポジトリ: [Kling0012/hibi-server](https://github.com/Kling0012/hibi-server)
+全端末の記録と AI の作業を集め、タイムライン・検索・作業終了の判定・日報・ブログを受け持つサーバです。中身はリポジトリの [`server/`](https://github.com/Kling0012/hibi/tree/main/server) にあります。
 {: .fs-5 .fw-300 }
 
 1. TOC

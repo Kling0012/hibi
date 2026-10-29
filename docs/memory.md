@@ -5,10 +5,12 @@ nav_order: 6
 
 **日本語** · [English](en/memory.html) · [中文](zh/memory.html)
 
-# AI の共有記憶（hibi-memory）
+# AI の共有記憶（memory/）
 {: .no_toc }
 
-Claude Code や Codex などの AI エージェントが、決めたこと・調べたこと・直したことを書き残し、別の AI や別の端末からも探せるようにする記憶の置き場です。Hibi はここに残った記録を「AI の作業」としてタイムラインに載せます。リポジトリ: [Kling0012/hibi-memory](https://github.com/Kling0012/hibi-memory)
+Claude Code や Codex などの AI エージェントが、決めたこと・調べたこと・直したことを書き残し、別の AI や別の端末からも探せるようにする記憶の置き場です。Hibi はここに残った記録を「AI の作業」としてタイムラインに載せます。中身はリポジトリの [`memory/`](https://github.com/Kling0012/hibi/tree/main/memory) にあり、使わなくても Hibi は動きます。
+
+グラフ用のデータベースには FalkorDB を使います。このリポジトリには含めず、起動時に公式のイメージを取ってくる形です。FalkorDB のライセンスは SSPL v1 で、Hibi（Apache-2.0）とは別になります。
 {: .fs-5 .fw-300 }
 
 1. TOC
@@ -33,8 +35,8 @@ AI は gateway の MCP か REST だけを使い、DB には直接触りません
 ## 起動
 
 ```sh
-git clone https://github.com/Kling0012/hibi-memory.git
-cd hibi-memory
+git clone https://github.com/Kling0012/hibi.git
+cd hibi/memory
 cp .env.example .env   # LLM と埋め込みの接続先・鍵を書く
 docker compose up -d --build
 ./scripts/verify.sh    # /health と /status を確認

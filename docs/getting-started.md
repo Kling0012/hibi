@@ -35,8 +35,8 @@ nav_order: 2
 外部の API を使わない開発用の設定で起動できます。埋め込みと LLM は決定的なダミーになります。
 
 ```sh
-git clone https://github.com/Kling0012/hibi-server.git
-cd hibi-server
+git clone https://github.com/Kling0012/hibi.git
+cd hibi/server
 docker compose up -d --build
 curl -s http://127.0.0.1:18741/healthz
 # {"ok":true,"db":"ok","embed_pending":0}
@@ -57,7 +57,7 @@ mkdir -p secrets && chmod 700 secrets
 
 | 変数 | 例 | 意味 |
 |---|---|---|
-| `PROD_TAILNET_IP` | `100.x.y.z` | 待ち受ける Tailscale の IP（`tailscale ip -4` で確認） |
+| `BIND_ADDR` | `127.0.0.1` | 待ち受けるアドレス。既定はこの PC だけ。Tailscale から使うなら `tailscale ip -4` の値 |
 | `PROD_PORT` | `18740` | 待ち受けるポート |
 | `EMBED_PROVIDER` | `cloudflare` | 埋め込み。`cloudflare` / `openai_compat` / `fake` |
 | `LLM_BASE_URL` | `https://open.bigmodel.cn/api/coding/paas/v4` | 作業終了の判定・日報・ブログに使う OpenAI 互換 API |
@@ -122,7 +122,7 @@ macOS では、初回の記録開始時に「画面収録」の許可を求め�
 
 Claude Code や Codex の作業をタイムラインに載せたい場合だけ必要です。
 
-1. [hibi-memory](https://github.com/Kling0012/hibi-memory) を同じネットワーク内のサーバで起動します（[AI の共有記憶](memory.md)）。
+1. 共有記憶（リポジトリの [`memory/`](https://github.com/Kling0012/hibi/tree/main/memory)）を同じネットワーク内のサーバで起動します（[AI の共有記憶](memory.md)）。
 2. AI エージェントに MCP サーバとして登録します。
 
    ```sh
