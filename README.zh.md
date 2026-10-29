@@ -16,13 +16,13 @@
 
 本仓库的开发由 AI 负责。从确认 Issue 和 Pull Request、复现并修复问题，到评审、测试、合并和发布，全部由 AI 自动完成。
 
-## 组成 Hibi 的三个仓库
+## 组成 Hibi 的三个组件
 
-| 仓库 | 职责 |
+| 位置 | 职责 |
 |---|---|
-| **hibi**（本仓库） | 桌面应用（Apple 芯片 Mac / Windows）。屏幕记录、声明工作、查看 |
-| [hibi-server](https://github.com/Kling0012/hibi-server) | 同步服务器。记录汇集、搜索、工作结束判定、日报/博客、手机用界面 |
-| [hibi-memory](https://github.com/Kling0012/hibi-memory) | AI 共享记忆。AI 智能体工作记录的存放处 |
+| [`frontend/`](frontend/) 和 [`opencontext/`](opencontext/) | 桌面应用（Apple 芯片 Mac / Windows）。屏幕记录、声明工作、查看 |
+| [`server/`](server/) | 同步服务器。记录汇集、搜索、工作结束判定、日报/博客、手机用界面 |
+| [`memory/`](memory/)（可选） | AI 共享记忆。AI 智能体工作记录的存放处 |
 
 ## 功能一览
 
@@ -39,7 +39,7 @@
 
 ## 开始使用
 
-1. 搭建同步服务器（[hibi-server](https://github.com/Kling0012/hibi-server)）
+1. 搭建同步服务器（本仓库的 `server/`，用 `docker compose up -d --build` 启动）
 2. 从 [Releases](https://github.com/Kling0012/hibi/releases) 安装应用
    - macOS 版未签名，首次需执行一次 `xattr -dr com.apple.quarantine /Applications/Hibi.app`
 3. 在首次的设置界面里填写 AI 接入点和同步服务器 URL

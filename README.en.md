@@ -16,13 +16,13 @@ A personal work-tracking app that brings what you did on your PC and what your A
 
 This repository is developed by AI. Everything from triaging issues and pull requests, reproducing and fixing bugs, to review, testing, merging and releasing is handled automatically by AI.
 
-## The three repositories that make up Hibi
+## The three components that make up Hibi
 
-| Repository | Role |
+| Location | Role |
 |---|---|
-| **hibi** (this repo) | Desktop app (Apple silicon Mac / Windows). Screen recording, declaring work, viewing |
-| [hibi-server](https://github.com/Kling0012/hibi-server) | Sync server. Record aggregation, search, work-end detection, daily report / blog, mobile-friendly views |
-| [hibi-memory](https://github.com/Kling0012/hibi-memory) | Shared memory for AI. Where AI agents leave their work records |
+| [`frontend/`](frontend/) and [`opencontext/`](opencontext/) | Desktop app (Apple silicon Mac / Windows). Screen recording, declaring work, viewing |
+| [`server/`](server/) | Sync server. Record aggregation, search, work-end detection, daily report / blog, mobile-friendly views |
+| [`memory/`](memory/) (optional) | Shared memory for AI. Where AI agents leave their work records |
 
 ## What it can do
 
@@ -39,7 +39,7 @@ This repository is developed by AI. Everything from triaging issues and pull req
 
 ## Getting started
 
-1. Set up the sync server ([hibi-server](https://github.com/Kling0012/hibi-server))
+1. Set up the sync server (`server/` in this repository; start it with `docker compose up -d --build`)
 2. Install the app from [Releases](https://github.com/Kling0012/hibi/releases)
    - macOS builds are unsigned; run `xattr -dr com.apple.quarantine /Applications/Hibi.app` once
 3. In the first-run setup screen, enter the AI connections and the sync server URL

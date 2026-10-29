@@ -36,8 +36,8 @@ The sync server and the shared memory have no user authentication. Expose them o
 You can start it with a development configuration that uses no external APIs. Embeddings and the LLM become deterministic dummies.
 
 ```sh
-git clone https://github.com/Kling0012/hibi-server.git
-cd hibi-server
+git clone https://github.com/Kling0012/hibi.git
+cd hibi/server
 docker compose up -d --build
 curl -s http://127.0.0.1:18741/healthz
 # {"ok":true,"db":"ok","embed_pending":0}
@@ -58,7 +58,7 @@ Main entries in `.env`:
 
 | Variable | Example | Meaning |
 |---|---|---|
-| `PROD_TAILNET_IP` | `100.x.y.z` | Tailscale IP to listen on (check with `tailscale ip -4`) |
+| `BIND_ADDR` | `127.0.0.1` | Address to listen on. By default, only this PC can connect. For access via Tailscale, use the value from `tailscale ip -4` |
 | `PROD_PORT` | `18740` | Port to listen on |
 | `EMBED_PROVIDER` | `cloudflare` | Embeddings. `cloudflare` / `openai_compat` / `fake` |
 | `LLM_BASE_URL` | `https://open.bigmodel.cn/api/coding/paas/v4` | OpenAI-compatible API used for work-end detection, daily reports, and blog |
@@ -123,7 +123,7 @@ In the sidebar, open **Screen recording** → choose the screen to record under 
 
 Only needed if you want Claude Code or Codex work on the timeline.
 
-1. Start [hibi-memory](https://github.com/Kling0012/hibi-memory) on a server in the same network ([AI shared memory](memory.html)).
+1. Start the shared memory ([`memory/`](https://github.com/Kling0012/hibi/tree/main/memory) in this repository) on a server in the same network ([AI shared memory](memory.html)).
 2. Register it with your AI agents as an MCP server.
 
    ```sh

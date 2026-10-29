@@ -6,10 +6,12 @@ nav_order: 6
 
 [日本語](../memory.html) · [English](../en/memory.html) · **中文**
 
-# AI 共享记忆（hibi-memory）
+# AI 共享记忆（memory/）
 {: .no_toc }
 
-供 Claude Code、Codex 等 AI 智能体留存决定过的事、调查过的事、修复过的事，并让其他 AI、其他设备也能检索的记忆存放处。Hibi 把留在这里的记录作为“AI 的工作”放上时间线。仓库: [Kling0012/hibi-memory](https://github.com/Kling0012/hibi-memory)
+供 Claude Code、Codex 等 AI 智能体留存决定过的事、调查过的事、修复过的事，并让其他 AI、其他设备也能检索的记忆存放处。Hibi 把留在这里的记录作为“AI 的工作”放上时间线。源码在本仓库的 [`memory/`](https://github.com/Kling0012/hibi/tree/main/memory) 中，不使用它也能运行 Hibi。
+
+图数据库使用 FalkorDB。它不包含在本仓库中，启动时会下载官方镜像。FalkorDB 的许可为 SSPL v1，与 Hibi（Apache-2.0）不同。
 {: .fs-5 .fw-300 }
 
 1. TOC
@@ -34,8 +36,8 @@ AI 只使用 gateway 的 MCP 或 REST，不直接接触数据库。
 ## 启动
 
 ```sh
-git clone https://github.com/Kling0012/hibi-memory.git
-cd hibi-memory
+git clone https://github.com/Kling0012/hibi.git
+cd hibi/memory
 cp .env.example .env   # 填写 LLM 和嵌入的接入点与密钥
 docker compose up -d --build
 ./scripts/verify.sh    # 检查 /health 和 /status

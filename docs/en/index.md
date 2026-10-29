@@ -16,18 +16,18 @@ Hibi (meaning "day by day") is a personal work-tracking system that brings **wha
 - From each day's records, the AI writes a daily report and a blog post.
 - Records are collected on your own server, so whether you work on a Mac or Windows, you can view the same records from your phone or iPad.
 
-## The three repositories
+## The three components
 
-Hibi consists of three repositories with different roles. Each works on its own, and together they form the whole.
+Hibi consists of three components with different roles, all included in this repository. Each works on its own, and together they form the whole. To start just the sync server, run `docker compose up -d --build` from the repository root (add `--profile memory` to run the shared memory as well).
 
-| Repository | Role | Where it runs |
+| Location | Role | Where it runs |
 |---|---|---|
-| [hibi](https://github.com/Kling0012/hibi) | Desktop app. Screen recording, declaring work, viewing | Your Mac / Windows |
-| [hibi-server](https://github.com/Kling0012/hibi-server) | Sync server. Aggregating records, search, daily report / blog generation, mobile-friendly views | One small always-on server |
-| [hibi-memory](https://github.com/Kling0012/hibi-memory) | Shared memory for AI. Where AI agents leave their work | An always-on server (can be the same one as the sync server) |
+| [`frontend/`](https://github.com/Kling0012/hibi/tree/main/frontend) | Desktop app. Screen recording, declaring work, viewing | Your Mac / Windows |
+| [`server/`](https://github.com/Kling0012/hibi/tree/main/server) | Sync server. Aggregating records, search, daily report / blog generation, mobile-friendly views | One small always-on server |
+| [`memory/`](https://github.com/Kling0012/hibi/tree/main/memory) (optional) | Shared memory for AI. Where AI agents leave their work | An always-on server (can be the same one as the sync server) |
 
 ```
- Mac / Windows                         Sync server (hibi-server)
+ Mac / Windows                         Sync server (server/)
 ┌──────────────────────┐   records  ┌──────────────────────────────┐
 │ Hibi desktop app     │ ───────▶   │ PostgreSQL + pgvector         │
 │  screen recording    │            │ timeline / search             │
@@ -37,7 +37,7 @@ Hibi consists of three repositories with different roles. Each works on its own,
                                     └──────────────▲───────────────┘
                                                    │ periodic import (read-only)
                                     ┌──────────────┴───────────────┐
- Claude Code / Codex etc. ───────▶  │ AI shared memory (hibi-memory)│
+ Claude Code / Codex etc. ───────▶  │ AI shared memory (memory/)    │
          record / search via MCP    └──────────────────────────────┘
 ```
 

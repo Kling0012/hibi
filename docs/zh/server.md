@@ -6,10 +6,10 @@ nav_order: 5
 
 [日本語](../server.html) · [English](../en/server.html) · **中文**
 
-# 同步服务器（hibi-server）
+# 同步服务器（server/）
 {: .no_toc }
 
-收集所有设备的记录与 AI 的工作，负责时间线、搜索、工作结束判定、日报、博客的服务器。仓库: [Kling0012/hibi-server](https://github.com/Kling0012/hibi-server)
+收集所有设备的记录与 AI 的工作，负责时间线、搜索、工作结束判定、日报、博客的服务器。源码在本仓库的 [`server/`](https://github.com/Kling0012/hibi/tree/main/server) 中。
 {: .fs-5 .fw-300 }
 
 1. TOC

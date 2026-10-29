@@ -6,10 +6,10 @@ nav_order: 5
 
 [日本語](../server.html) · **English** · [中文](../zh/server.html)
 
-# Sync server (hibi-server)
+# Sync server (server/)
 {: .no_toc }
 
-The server that collects records from all devices and AI work, and handles the timeline, search, work-end detection, daily reports, and blog. Repository: [Kling0012/hibi-server](https://github.com/Kling0012/hibi-server)
+The server that collects records from all devices and AI work, and handles the timeline, search, work-end detection, daily reports, and blog. Its source is in [`server/`](https://github.com/Kling0012/hibi/tree/main/server) in this repository.
 {: .fs-5 .fw-300 }
 
 1. TOC

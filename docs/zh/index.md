@@ -16,18 +16,18 @@ Hibi（意为“日日”）是一个个人工作记录系统，把**你在电�
 - AI 根据当天的记录撰写日报和博客文章。
 - 记录汇集到自己的服务器，无论在 Mac 还是 Windows 上工作，都能从手机或 iPad 看到同一份记录。
 
-## 三个仓库
+## 三个组件
 
-Hibi 由职责不同的三个仓库组成。每个都能单独运行，组合起来就是完整整体。
+Hibi 由职责不同的三个组件组成，都包含在本仓库中。每个都能单独运行，组合起来就是完整整体。只运行同步服务器时，在仓库根目录执行 `docker compose up -d --build` 即可启动（要同时运行共享记忆则加上 `--profile memory`）。
 
-| 仓库 | 职责 | 运行位置 |
+| 位置 | 职责 | 运行位置 |
 |---|---|---|
-| [hibi](https://github.com/Kling0012/hibi) | 桌面应用。屏幕记录、声明工作、查看 | 自己的 Mac / Windows |
-| [hibi-server](https://github.com/Kling0012/hibi-server) | 同步服务器。记录汇集、搜索、日报/博客生成、手机用界面 | 一台常驻的小服务器 |
-| [hibi-memory](https://github.com/Kling0012/hibi-memory) | AI 共享记忆。AI 智能体留存工作内容的地方 | 常驻服务器（可与同步服务器同台） |
+| [`frontend/`](https://github.com/Kling0012/hibi/tree/main/frontend) | 桌面应用。屏幕记录、声明工作、查看 | 自己的 Mac / Windows |
+| [`server/`](https://github.com/Kling0012/hibi/tree/main/server) | 同步服务器。记录汇集、搜索、日报/博客生成、手机用界面 | 一台常驻的小服务器 |
+| [`memory/`](https://github.com/Kling0012/hibi/tree/main/memory)（可选） | AI 共享记忆。AI 智能体留存工作内容的地方 | 常驻服务器（可与同步服务器同台） |
 
 ```
- Mac / Windows                         同步服务器（hibi-server）
+ Mac / Windows                         同步服务器（server/）
 ┌──────────────────────┐    记录   ┌──────────────────────────────┐
 │ Hibi 桌面应用         │ ───────▶ │ PostgreSQL + pgvector         │
 │  屏幕记录 / AI 摘要   │           │ 时间线 / 搜索                  │
@@ -37,7 +37,7 @@ Hibi 由职责不同的三个仓库组成。每个都能单独运行，组合起
                                    └──────────────▲───────────────┘
                                                   │ 定期导入（只读）
                                    ┌──────────────┴───────────────┐
- Claude Code / Codex 等 ───────▶   │ AI 共享记忆（hibi-memory）     │
+ Claude Code / Codex 等 ───────▶   │ AI 共享记忆（memory/）         │
          通过 MCP 记录 / 搜索       └──────────────────────────────┘
 ```
 

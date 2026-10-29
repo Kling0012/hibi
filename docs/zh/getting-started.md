@@ -36,8 +36,8 @@ nav_order: 2
 可以用不依赖外部 API 的开发配置启动。嵌入和 LLM 变成确定性的假实现。
 
 ```sh
-git clone https://github.com/Kling0012/hibi-server.git
-cd hibi-server
+git clone https://github.com/Kling0012/hibi.git
+cd hibi/server
 docker compose up -d --build
 curl -s http://127.0.0.1:18741/healthz
 # {"ok":true,"db":"ok","embed_pending":0}
@@ -58,7 +58,7 @@ mkdir -p secrets && chmod 700 secrets
 
 | 变量 | 示例 | 含义 |
 |---|---|---|
-| `PROD_TAILNET_IP` | `100.x.y.z` | 监听的 Tailscale IP（用 `tailscale ip -4` 确认） |
+| `BIND_ADDR` | `127.0.0.1` | 监听地址。默认只允许本机访问。通过 Tailscale 访问时，使用 `tailscale ip -4` 的值 |
 | `PROD_PORT` | `18740` | 监听端口 |
 | `EMBED_PROVIDER` | `cloudflare` | 嵌入。`cloudflare` / `openai_compat` / `fake` |
 | `LLM_BASE_URL` | `https://open.bigmodel.cn/api/coding/paas/v4` | 用于工作结束判定、日报、博客的 OpenAI 兼容 API |
@@ -123,7 +123,7 @@ macOS 在首次开始记录时会请求“屏幕录制”权限。
 
 只有想把 Claude Code 或 Codex 的工作放到时间线上时才需要。
 
-1. 在同一网络内的服务器上启动 [hibi-memory](https://github.com/Kling0012/hibi-memory)（[AI 共享记忆](memory.html)）。
+1. 在同一网络内的服务器上启动共享记忆（本仓库的 [`memory/`](https://github.com/Kling0012/hibi/tree/main/memory)）（[AI 共享记忆](memory.html)）。
 2. 把它作为 MCP 服务器注册到 AI 智能体。
 
    ```sh

@@ -6,10 +6,12 @@ nav_order: 6
 
 [日本語](../memory.html) · **English** · [中文](../zh/memory.html)
 
-# AI shared memory (hibi-memory)
+# AI shared memory (memory/)
 {: .no_toc }
 
-A memory store where AI agents such as Claude Code and Codex leave behind decisions, findings, and fixes, so that other AIs and other devices can find them later. Hibi puts the records left here on the timeline as "AI work". Repository: [Kling0012/hibi-memory](https://github.com/Kling0012/hibi-memory)
+A memory store where AI agents such as Claude Code and Codex leave behind decisions, findings, and fixes, so that other AIs and other devices can find them later. Hibi puts the records left here on the timeline as "AI work". Its source is in [`memory/`](https://github.com/Kling0012/hibi/tree/main/memory) in this repository, and Hibi works without it.
+
+FalkorDB is used as the graph database. It is not included in this repository; its official image is downloaded at startup. FalkorDB is licensed under SSPL v1, separately from Hibi (Apache-2.0).
 {: .fs-5 .fw-300 }
 
 1. TOC
@@ -34,8 +36,8 @@ AIs use only the gateway's MCP or REST interface; they never touch the DB direct
 ## Startup
 
 ```sh
-git clone https://github.com/Kling0012/hibi-memory.git
-cd hibi-memory
+git clone https://github.com/Kling0012/hibi.git
+cd hibi/memory
 cp .env.example .env   # fill in LLM and embedding endpoints and keys
 docker compose up -d --build
 ./scripts/verify.sh    # checks /health and /status
