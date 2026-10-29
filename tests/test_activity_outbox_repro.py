@@ -19,6 +19,7 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
+from opencontext.config.global_config import get_config
 from opencontext.llm import provider_router
 from opencontext.screen_record import sync_outbox
 from opencontext.screen_record.live_monitor import ScreenLiveMonitor, _Trigger
@@ -54,6 +55,12 @@ def recorder(tmp_path, monkeypatch):
         live_ask=AsyncMock(return_value=CONTENT),
     )
     monkeypatch.setattr(provider_router, "get_provider_router", lambda: router)
+    # The app loads config at startup, before the monitor exists; do the same
+    # here. The process's first get_config("capture") publishes the initial
+    # capture policy (config_manager._publish_config), which bumps the
+    # generation of every already-registered monitor and would drop this
+    # monitor's triggers as stale work.
+    get_config("capture")
     monitor = ScreenLiveMonitor()
     remote = {}
     batches = []
@@ -84,11 +91,16 @@ def recorder(tmp_path, monkeypatch):
     monkeypatch.setattr(httpx, "put", register)
 
     def save_interval(end_seconds, windows=WINDOWS):
+        # _enqueue_trigger fills a missing generation with the monitor's
+        # current one before the summarizer sees the trigger; doing the same
+        # here keeps the direct _process_interval call on the live path
+        # (a None generation is rejected as stale work by _work_allowed).
         monitor._process_interval(_Trigger(
             "interval",
             interval_start=(BASE + datetime.timedelta(seconds=end_seconds - 30)).timestamp(),
             interval_end=(BASE + datetime.timedelta(seconds=end_seconds)).timestamp(),
             interval_meta=deepcopy(windows),
+            generation=monitor._generation,
         ))
 
     def rows(table):
