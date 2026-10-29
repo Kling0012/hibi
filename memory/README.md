@@ -11,7 +11,7 @@ Graphiti-powered FalkorDB knowledge graph.
 > memory" of [Hibi](https://github.com/Kling0012/hibi), which keeps a single
 > timeline of everything you and your AI agents worked on.
 > Docs: https://kling0012.github.io/hibi/memory.html /
-> Sync server: [hibi-server](https://github.com/Kling0012/hibi-server)
+> Sync server: [hibi-server](https://github.com/Kling0012/hibi/tree/main/server)
 
 ## How it works
 

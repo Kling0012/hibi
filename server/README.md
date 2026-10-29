@@ -7,15 +7,15 @@ The sync server for [Hibi](https://github.com/Kling0012/hibi), a desktop work jo
 | Repository | Role |
 |---|---|
 | [hibi](https://github.com/Kling0012/hibi) | Desktop app (Mac / Windows) |
-| **hibi-server** (this repo) | Sync server |
-| [hibi-memory](https://github.com/Kling0012/hibi-memory) | Shared AI memory |
+| **server/** (this directory) | Sync server |
+| [memory/](https://github.com/Kling0012/hibi/tree/main/memory) | Shared AI memory |
 
 ## What it does
 
 - Ingests records from all your devices and stores them per device, in time order
 - Hybrid search combining semantic similarity (pgvector) and text matching (pg_trgm)
 - Work-session declarations with AI-judged endings (the end time is the last related record's time)
-- Periodic import of AI agent work from the shared memory ([hibi-memory](https://github.com/Kling0012/hibi-memory))
+- Periodic import of AI agent work from the shared memory ([hibi-memory](https://github.com/Kling0012/hibi/tree/main/memory))
 - Nightly daily reports and blog drafts (AI can also write via MCP)
 - Admin UI at `/ui/`, blog at `/blog/`, MCP server at `/mcp`
 
@@ -30,8 +30,8 @@ Requires Docker with the Compose plugin.
 1. Get the code and copy the example config:
 
    ```sh
-   git clone https://github.com/Kling0012/hibi-server.git
-   cd hibi-server
+   git clone https://github.com/Kling0012/hibi.git
+   cd hibi/server
    cp .env.example .env
    ```
 

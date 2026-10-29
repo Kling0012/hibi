@@ -65,12 +65,15 @@ mkdir "$TMP/server"
 git -C "$SERVER_SRC" archive --format=tar HEAD \
   | tar -x -C "$TMP/server" \
       --exclude='scripts/repro_issue_*' \
+      --exclude='scripts/*repro*' \
+      --exclude='scripts/regression_issue*' \
       --exclude='docs/repro-issue-*.md' \
+      --exclude='docs/*repro*' \
       --exclude='.github' \
       --exclude='.github/*'
 
 shopt -s nullglob
-leftover=("$TMP/server"/scripts/repro_issue_* "$TMP/server"/docs/repro-issue-*.md)
+leftover=("$TMP/server"/scripts/*repro* "$TMP/server"/scripts/regression_issue* "$TMP/server"/docs/*repro*)
 shopt -u nullglob
 [ ${#leftover[@]} -eq 0 ] || die "exclusion failed: ${leftover[*]}"
 [ ! -e "$TMP/server/.github" ] || die "exclusion failed: $TMP/server/.github"
