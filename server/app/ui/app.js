@@ -229,19 +229,20 @@ function renderLanes(items) {
   for (let h = 0; h <= 24; h++) grid.push(el("div", { class: "grid", style: `left:${h * pxh}px` }));
   if (pxh >= 120) for (let h = 0; h < 24; h++) grid.push(el("div", { class: "grid half", style: `left:${(h + 0.5) * pxh}px` }));
   const nowEl = state.day === todayStr() ? el("div", { class: "now", style: `left:${x(new Date().toISOString())}px` }) : null;
-  canvas.replaceChildren(...grid, axis, ...rows, nowEl);
+  canvas.replaceChildren(...grid, axis, ...rows, ...(nowEl ? [nowEl] : []));
 
   // 初回だけ、今（今日）か最初の記録の位置へスクロール
   if (lanesScrolledFor !== state.day) {
     lanesScrolledFor = state.day;
-    scrollLanesTo(state.day === todayStr() ? new Date().toISOString() : items[0]?.t, x);
+    if (state.day === todayStr()) scrollLanesTo(new Date().toISOString(), x, 0.7);
+    else scrollLanesTo((items.find((i) => i.type === "session") || items[0])?.t, x, 0.1);
   }
 }
 
-function scrollLanesTo(iso, x) {
+function scrollLanesTo(iso, x, at = 0.7) {
   const sc = $("lane-scroll");
   if (!iso) { sc.scrollLeft = 0; return; }
-  sc.scrollLeft = Math.max(0, x(iso) - sc.clientWidth * 0.7);
+  sc.scrollLeft = Math.max(0, x(iso) - sc.clientWidth * at);
 }
 
 function laneMark(it, x) {

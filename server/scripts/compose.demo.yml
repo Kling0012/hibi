@@ -1,0 +1,61 @@
+# Local filming fixtures only. Use demo_up.sh / demo_down.sh, never a prod override.
+# No .env interpolation, host mounts, external volumes, or external AI services.
+name: hibi-demo
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: demo
+    volumes:
+      - demo-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo -d demo"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    image: hibi-demo-api:local
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://demo:demo@db:5432/demo
+      EMBED_PROVIDER: fake
+      EMBED_MODEL: fake-embed
+      EMBED_DIM: "1024"
+      LLM_PROVIDER: fake
+      AM_IMPORT_ENABLED: "0"
+      REPORT_AUTO_ENABLED: "0"
+      BLOG_AUTO: "off"
+      YOMIYASU_POLISH: "0"
+      TZ_DEFAULT: Asia/Tokyo
+      BIND_HOST: 0.0.0.0
+      BIND_PORT: "8000"
+    ports:
+      - "127.0.0.1:18790:8000"
+    networks:
+      - default
+      - ui
+    restart: unless-stopped
+
+volumes:
+  demo-data:
+    name: hibi-demo-db-data
+
+networks:
+  default:
+    internal: true
+    # Separate from the E2E subnet; also works when default pools are exhausted.
+    ipam:
+      config:
+        - subnet: 10.253.222.0/24
+  ui:
+    # Docker needs a non-internal bridge to publish the loopback UI port.
+    ipam:
+      config:
+        - subnet: 10.253.223.0/24
