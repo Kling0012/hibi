@@ -1,0 +1,46 @@
+/* ブログ（管理画面の app.css の色・部品を土台に、読みやすさを優先） */
+body.blog { padding-bottom: 40px; }
+.topbar .brand { color: var(--text); text-decoration: none; }
+.toplink { font-size: 13px; color: var(--muted); text-decoration: none; }
+.toplink:hover { color: var(--accent); }
+.blog-main { max-width: 760px; margin: 0 auto; padding: 16px; }
+
+.blog-search input { width: 100%; border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 11px 14px; outline: none; }
+.blog-search input:focus { border-color: var(--accent); }
+.blog-search { margin-bottom: 10px; }
+.active-tag { margin: 4px 0 10px; font-size: 13px; color: var(--muted); }
+.active-tag button { border: 0; background: transparent; color: var(--accent); cursor: pointer; font: inherit; }
+
+.posts { list-style: none; margin: 8px 0 0; padding: 0; }
+.post-card { display: block; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; text-decoration: none; color: inherit; transition: border-color .15s; }
+.post-card:hover { border-color: var(--accent); }
+.post-card .meta { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.post-card h3 { margin: 0 0 6px; font-size: 17px; line-height: 1.45; }
+.post-card p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.7; }
+.kind { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.kind.summary { color: var(--k-session); }
+.kind.learning { color: var(--k-ai); }
+.more { text-align: center; margin: 8px 0 20px; }
+
+.tagcloud-wrap { margin-top: 18px; }
+.tagcloud { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); color: var(--muted); text-decoration: none; }
+.tag:hover { border-color: var(--accent); color: var(--accent); }
+.tag .n { margin-left: 4px; opacity: .7; }
+
+.back { display: inline-block; font-size: 14px; color: var(--muted); text-decoration: none; margin: 4px 0 14px; }
+.back:hover { color: var(--accent); }
+.post-head { margin-bottom: 18px; }
+.post-meta { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+.post-head h1 { font-size: 26px; line-height: 1.4; margin: 8px 0 10px; letter-spacing: .01em; }
+.post-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.post-body { font-size: 16px; line-height: 1.95; }
+.post-body h2 { font-size: 19px; margin-top: 30px; }
+.post-body p { margin: 12px 0; }
+.post-foot { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.post-foot a { color: var(--accent); }
+.prevnext { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.prevnext a { display: block; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); text-decoration: none; color: inherit; font-size: 14px; }
+.prevnext a:hover { border-color: var(--accent); }
+.prevnext .lbl { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.prevnext .next { text-align: right; grid-column: 2; }

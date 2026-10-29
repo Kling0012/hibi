@@ -1,0 +1,19 @@
+[
+  {
+    "name": "temporal-current-database",
+    "memories": [
+      "Project X used Supabase until 2026-09-01.",
+      "Project X uses Neon from 2026-09-01."
+    ],
+    "query": "What database does Project X currently use?",
+    "expected": "Neon",
+    "must_not_answer": "Supabase"
+  },
+  {
+    "name": "rejected-experiment",
+    "memories": ["Experiment A degraded performance by 9.69 percent and was rejected."],
+    "query": "Which experiment was rejected?",
+    "expected": "Experiment A"
+  }
+]
+

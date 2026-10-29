@@ -1,0 +1,82 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: sync
+      POSTGRES_PASSWORD: sync
+      POSTGRES_DB: sync
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sync -d sync"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://sync:sync@db:5432/sync
+      EMBED_PROVIDER: ${EMBED_PROVIDER:-fake}
+      EMBED_BASE_URL: ${EMBED_BASE_URL:-}
+      EMBED_MODEL: ${EMBED_MODEL:-fake-embed}
+      EMBED_DIM: ${EMBED_DIM:-1024}
+      EMBED_API_KEY_FILE: ${EMBED_API_KEY_FILE:-}
+      EMBED_CF_ENV_FILE: ${EMBED_CF_ENV_FILE:-}
+      EMBED_CF_TIMEOUT_SEC: ${EMBED_CF_TIMEOUT_SEC:-60}
+      EMBED_INTERVAL_SEC: ${EMBED_INTERVAL_SEC:-5}
+      EMBED_BATCH: ${EMBED_BATCH:-64}
+      TZ_DEFAULT: ${TZ_DEFAULT:-Asia/Tokyo}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai_compat}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-glm-5.3-flash}
+      LLM_API_KEY_FILE: ${LLM_API_KEY_FILE:-}
+      LLM_TIMEOUT_SEC: ${LLM_TIMEOUT_SEC:-30}
+      SESSION_JUDGE_INTERVAL: ${SESSION_JUDGE_INTERVAL:-120}
+      SESSION_END_THRESHOLD: ${SESSION_END_THRESHOLD:-0.75}
+      IDLE_MINUTES: ${IDLE_MINUTES:-15}
+      SESSION_AWAY_END_MINUTES: ${SESSION_AWAY_END_MINUTES:-30}
+      AM_IMPORT_ENABLED: ${AM_IMPORT_ENABLED:-1}
+      AM_BASE_URL: ${AM_BASE_URL:-}
+      AM_IMPORT_INTERVAL: ${AM_IMPORT_INTERVAL:-300}
+      AM_IMPORT_LOOKBACK_HOURS: ${AM_IMPORT_LOOKBACK_HOURS:-48}
+      AM_TIMEOUT_SEC: ${AM_TIMEOUT_SEC:-15}
+      REPORT_LLM_MODEL: ${REPORT_LLM_MODEL:-glm-5.3}
+      REPORT_LLM_FLASH_MODEL: ${REPORT_LLM_FLASH_MODEL:-glm-5.3-flash}
+      REPORT_LLM_TIMEOUT_SEC: ${REPORT_LLM_TIMEOUT_SEC:-420}
+      REPORT_CHUNK_CHARS: ${REPORT_CHUNK_CHARS:-12000}
+      REPORT_AUTO_ENABLED: ${REPORT_AUTO_ENABLED:-1}
+      YOMIYASU_POLISH: ${YOMIYASU_POLISH:-1}
+      BLOG_AUTO: ${BLOG_AUTO:-draft}
+      TODO_JUDGE_INTERVAL: ${TODO_JUDGE_INTERVAL:-300}
+      TODO_MATCH_THRESHOLD: ${TODO_MATCH_THRESHOLD:-0.7}
+      TODO_JUDGE_MAX_WINDOW_MIN: ${TODO_JUDGE_MAX_WINDOW_MIN:-30}
+      TODO_MERGE_GAP_MIN: ${TODO_MERGE_GAP_MIN:-5}
+      BIND_HOST: 0.0.0.0
+      BIND_PORT: 8000
+    ports:
+      # Host-side binding defaults to localhost; set BIND_HOST to expose on
+      # a closed-network interface (e.g. BIND_HOST=100.x.y.z on a tailnet).
+      - "${BIND_HOST:-127.0.0.1}:${API_PORT:-18741}:8000"
+    restart: unless-stopped
+
+  # E2E only (does not start without `--profile e2e`): a fake agent-memory
+  # serving the production /v1/memories response shape, so tests never touch
+  # the real shared memory. FAKE_AM_ARGS adds "--extra" for the recovery test.
+  fake-agent-memory:
+    image: python:3.12-slim
+    profiles: ["e2e"]
+    volumes:
+      - ./scripts/fake_agent_memory.py:/app/fake_agent_memory.py:ro
+    environment:
+      FAKE_AM_ARGS: ${FAKE_AM_ARGS:-}
+    entrypoint:
+      ["sh", "-c", "python /app/fake_agent_memory.py --port 8377 --page-size 2 $FAKE_AM_ARGS"]
+    restart: unless-stopped
+
+volumes:
+  db-data:

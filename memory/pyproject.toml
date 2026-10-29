@@ -1,0 +1,31 @@
+[project]
+name = "agent-memory-gateway"
+version = "1.0.0"
+description = "Vendor-neutral shared memory gateway for multiple AI agents"
+requires-python = ">=3.11,<4"
+dependencies = [
+  "fastapi>=0.116,<1",
+  "uvicorn[standard]>=0.35,<1",
+  "pydantic>=2.11,<3",
+  "pydantic-settings>=2.10,<3",
+  "redis>=6.4,<7",
+  "graphiti-core[falkordb]==0.30.2",
+  "mcp>=1.26,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.4,<9", "pytest-asyncio>=1.1,<2", "fakeredis>=2.31,<3", "httpx>=0.28,<1"]
+
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["gateway*", "schemas*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["gateway/tests"]
+
+[tool.ruff]
+line-length = 100

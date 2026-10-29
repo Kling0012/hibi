@@ -1,0 +1,10 @@
+# 本番用の環境設定（.env.example からコピーして使う）
+.env
+
+# 秘密ファイル（cloudflare.env / llm-key など）
+secrets/
+
+# DB バックアップ（scripts/backup.sh の出力先）
+backups/
+# Python cache
+__pycache__/

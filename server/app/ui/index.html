@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Hibi">
+  <title>Hibi</title>
+  <script>if (new URLSearchParams(location.search).has("embed")) document.documentElement.classList.add("embed", "light"); const only = new URLSearchParams(location.search).get("only"); if (only === "lanes") document.documentElement.classList.add("lanes-only"); if (only === "todos") document.documentElement.classList.add("todos-only");</script>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Hibi</div>
+    <a class="toplink" href="../blog/" data-i18n="nav.blog">ブログ</a>
+    <div class="health" id="health" title="サーバの状態" data-i18n-title="health.title"><span class="dot"></span><span class="label" data-i18n="health.connecting">接続中…</span></div>
+  </header>
+
+  <main>
+    <!-- 今日 -->
+    <section class="view" id="view-today" data-view="today">
+      <div class="layout">
+        <div class="col-main">
+          <div class="card declare" id="declare">
+            <div class="active" id="active" hidden>
+              <div class="active-head">
+                <span class="pulse"></span>
+                <span class="active-label" data-i18n="active.working">作業中</span>
+                <span class="elapsed" id="elapsed">0:00</span>
+              </div>
+              <div class="active-title" id="active-title"></div>
+              <div class="active-meta" id="active-meta"></div>
+              <div class="row">
+                <button class="btn danger" id="btn-end" data-i18n="btn.end">終了する</button>
+                <button class="btn ghost" id="btn-cancel" data-i18n="btn.cancel">取り消し</button>
+              </div>
+            </div>
+            <form class="declare-form" id="declare-form" autocomplete="off">
+              <label for="declare-input" class="declare-label" id="declare-label" data-i18n="declare.prompt">これから何をする？</label>
+              <div class="row">
+                <input id="declare-input" type="text" placeholder="例：同期サーバの管理画面を作る" data-i18n-placeholder="declare.placeholder" maxlength="200" required>
+                <button class="btn primary" type="submit" data-i18n="btn.start">開始</button>
+              </div>
+              <p class="hint" data-i18n="declare.hint">終わりは画面の様子から AI が判断して記録します。手動で終了しても構いません。</p>
+            </form>
+          </div>
+
+          <div class="daynav">
+            <button class="btn icon" id="prev-day" aria-label="前の日" data-i18n-aria-label="day.prev">‹</button>
+            <button class="daylabel" id="daylabel"></button>
+            <button class="btn icon" id="next-day" aria-label="次の日" data-i18n-aria-label="day.next">›</button>
+          </div>
+
+          <div class="card lanes-card">
+            <div class="lanes-head">
+              <h2 data-i18n="timeline.title">タイムライン</h2>
+              <div class="zoom">
+                <button class="btn icon small" id="zoom-out" aria-label="縮小" data-i18n-aria-label="zoom.out">−</button>
+                <button class="btn small ghost" id="zoom-now" data-i18n="zoom.now">今</button>
+                <button class="btn icon small" id="zoom-in" aria-label="拡大" data-i18n-aria-label="zoom.in">＋</button>
+              </div>
+            </div>
+            <div class="lanes" id="lanes">
+              <div class="lane-labels" id="lane-labels"></div>
+              <div class="lane-scroll" id="lane-scroll">
+                <div class="lane-canvas" id="lane-canvas"></div>
+              </div>
+            </div>
+            <div class="lane-pop" id="lane-pop" hidden></div>
+          </div>
+
+          <div class="filters" id="filters">
+            <button class="chip on" data-kind="all" data-i18n="filter.all">すべて</button>
+            <button class="chip" data-kind="session" data-i18n="filter.session">作業</button>
+            <button class="chip" data-kind="mine" data-i18n="filter.mine">自分の記録</button>
+            <button class="chip" data-kind="ai_work" data-i18n="filter.ai">AI の作業</button>
+          </div>
+
+          <ol class="timeline" id="timeline"></ol>
+          <p class="empty" id="timeline-empty" data-i18n="today.empty" hidden>この日の記録はまだありません。</p>
+        </div>
+
+        <aside class="col-side">
+          <div class="card todo-card" id="todo-card">
+            <div class="lanes-head">
+              <h2 data-i18n="todo.title">ToDo</h2>
+              <label class="mini-check"><input type="checkbox" id="todo-show-done"> <span data-i18n="todo.showDone">完了も表示</span></label>
+            </div>
+            <form class="todo-form" id="todo-form" autocomplete="off">
+              <input id="todo-input" type="text" placeholder="ToDo を追加" data-i18n-placeholder="todo.placeholder" maxlength="200" required>
+              <button class="btn primary small" type="submit" data-i18n="btn.add">追加</button>
+            </form>
+            <ul class="todos" id="todos"></ul>
+            <p class="empty small" id="todos-empty" data-i18n="todo.empty" hidden>未完了の ToDo はありません。</p>
+            <p class="hint" data-i18n="todo.hint">記録からその ToDo に取り組んでいたと分かった時間は、自動で足されます。</p>
+          </div>
+          <div class="card heat-card">
+            <div class="lanes-head">
+              <h2 id="heat-title" data-i18n="heat.title">この1か月</h2>
+              <div class="seg-switch" id="heat-metric">
+                <button class="on" data-m="active_minutes" data-i18n="heat.mine">自分</button>
+                <button data-m="ai_active_minutes" data-i18n="heat.ai">AI</button>
+                <button data-m="session_minutes" data-i18n="heat.sessions">作業時間</button>
+              </div>
+            </div>
+            <div class="heat-week"><span data-i18n="week.mon">月</span><span data-i18n="week.tue">火</span><span data-i18n="week.wed">水</span><span data-i18n="week.thu">木</span><span data-i18n="week.fri">金</span><span data-i18n="week.sat">土</span><span data-i18n="week.sun">日</span></div>
+            <div class="heat" id="heat"></div>
+            <div class="heat-legend"><span data-i18n="heat.less">少</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span data-i18n="heat.more">多</span></div>
+            <p class="hint" id="heat-note"></p>
+          </div>
+          <div class="card">
+            <div class="lanes-head">
+              <h2 data-i18n="stats.workTime">作業時間</h2>
+              <button class="btn small" id="share-open" type="button" data-i18n="share.button">自慢する</button>
+            </div>
+            <div class="total" id="total">0分</div>
+            <ul class="totals" id="totals"></ul>
+          </div>
+          <div class="card">
+            <h2 data-i18n="stats.breakdown">内訳</h2>
+            <ul class="counts" id="counts"></ul>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 日報 -->
+    <section class="view" id="view-report" data-view="report" hidden>
+      <div class="daynav">
+        <button class="btn icon" id="r-prev" aria-label="前の日" data-i18n-aria-label="day.prev">‹</button>
+        <button class="daylabel" id="r-daylabel"></button>
+        <button class="btn icon" id="r-next" aria-label="次の日" data-i18n-aria-label="day.next">›</button>
+      </div>
+      <div class="card report-card">
+        <div class="report-bar">
+          <span class="sub" id="r-meta"></span>
+          <button class="btn small" id="r-generate" data-i18n="report.generate">作成</button>
+        </div>
+        <article class="md" id="r-body"></article>
+      </div>
+    </section>
+
+    <!-- 検索 -->
+    <section class="view" id="view-search" data-view="search" hidden>
+      <form class="card search-form" id="search-form" autocomplete="off">
+        <div class="row">
+          <input id="search-input" type="search" placeholder="例：データベースの移行作業" data-i18n-placeholder="search.placeholder" required>
+          <button class="btn primary" type="submit" data-i18n="search.button">検索</button>
+        </div>
+        <div class="row small">
+          <label><input type="checkbox" id="search-mine" checked> <span data-i18n="filter.mine">自分の記録</span></label>
+          <label><input type="checkbox" id="search-ai" checked> <span data-i18n="filter.ai">AI の作業</span></label>
+        </div>
+      </form>
+      <ol class="timeline results" id="results"></ol>
+      <p class="empty" id="results-empty" data-i18n="search.empty" hidden>見つかりませんでした。</p>
+    </section>
+
+    <!-- 状態 -->
+    <section class="view" id="view-status" data-view="status" hidden>
+      <div class="card">
+        <h2 data-i18n="status.language">表示言語</h2>
+        <div class="filters" id="lang-select"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="status.server">サーバ</h2>
+        <dl class="kv" id="server-kv"></dl>
+      </div>
+      <div class="card">
+        <h2 data-i18n="status.importer">AI の作業記録の取り込み</h2>
+        <dl class="kv" id="importer-kv"></dl>
+        <button class="btn" id="btn-import" data-i18n="status.importNow">今すぐ取り込む</button>
+      </div>
+      <div class="card">
+        <h2 data-i18n="status.devices">端末（この日）</h2>
+        <ul class="devices" id="devices"></ul>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab on" data-tab="today"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4v5l3 2"/></svg><span data-i18n="tab.today">今日</span></button>
+    <button class="tab" data-tab="report"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5"/></svg><span data-i18n="tab.report">日報</span></button>
+    <button class="tab" data-tab="search"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm4.6 11.1L20 20"/></svg><span data-i18n="tab.search">検索</span></button>
+    <button class="tab" data-tab="status"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span data-i18n="tab.status">状態</span></button>
+  </nav>
+
+  <dialog id="edit-dialog">
+    <form method="dialog" id="edit-form">
+      <h2 data-i18n="edit.heading">作業を修正</h2>
+      <label><span data-i18n="edit.titleLabel">内容</span><input id="edit-title" type="text" required maxlength="200"></label>
+      <label><span data-i18n="edit.noteLabel">メモ</span><input id="edit-note" type="text" maxlength="500"></label>
+      <div class="row">
+        <label><span data-i18n="edit.startLabel">開始</span><input id="edit-start" type="time" step="60" required></label>
+        <label><span data-i18n="edit.endLabel">終了</span><input id="edit-end" type="time" step="60"></label>
+      </div>
+      <p class="hint" id="edit-reason"></p>
+      <div class="row end">
+        <button class="btn ghost" value="cancel" formnovalidate data-i18n="btn.close">閉じる</button>
+        <button class="btn primary" value="save" id="edit-save" data-i18n="edit.save">確定して保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+  <script src="app.js" type="module"></script>
+</body>
+</html>

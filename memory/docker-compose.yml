@@ -1,0 +1,66 @@
+name: agent-memory
+
+services:
+  gateway:
+    image: agent-memory-gateway:local
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MEMORY_HOST: "${MEMORY_BIND_ADDRESS:-127.0.0.1}"
+      MEMORY_PORT: "${MEMORY_PUBLISHED_PORT:-8377}"
+      VALKEY_URL: redis://127.0.0.1:16379/0
+      FALKORDB_HOST: 127.0.0.1
+      FALKORDB_PORT: "16380"
+      MEMORY_EMBEDDING_BASE_URL: http://127.0.0.1:8081/v1
+      MEMORY_EMBEDDING_MODE: "${MEMORY_EMBEDDING_MODE:-cloudflare}"
+      MEMORY_EMBEDDING_CLOUDFLARE_TIMEOUT_SECONDS: "${MEMORY_EMBEDDING_CLOUDFLARE_TIMEOUT_SECONDS:-60}"
+      SEMAPHORE_LIMIT: "${MEMORY_GRAPHITI_SEMAPHORE_LIMIT:-3}"
+      MEMORY_INGESTION_MODE: "${MEMORY_INGESTION_MODE:-graphiti}"
+      MEMORY_NODE_RESOLUTION_PROVIDER: "${MEMORY_NODE_RESOLUTION_PROVIDER:-jev}"
+      MEMORY_NODE_PARTIAL_FALLBACK_MODE: "${MEMORY_NODE_PARTIAL_FALLBACK_MODE:-shadow}"
+      MEMORY_SEARCH_RERANK_MODE: "${MEMORY_SEARCH_RERANK_MODE:-on}"
+      MEMORY_DECISION_BACKEND: "${MEMORY_DECISION_BACKEND:-typesafe}"
+      GRAPHITI_TELEMETRY_ENABLED: "false"
+    depends_on:
+      valkey:
+        condition: service_healthy
+      falkordb:
+        condition: service_healthy
+    network_mode: host
+
+  valkey:
+    image: valkey/valkey:8.1-alpine
+    restart: unless-stopped
+    command: ["valkey-server", "--appendonly", "yes", "--save", "60", "1"]
+    volumes:
+      - valkey-data:/data
+    ports:
+      - "127.0.0.1:16379:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [memory]
+
+  falkordb:
+    image: falkordb/falkordb:v4.20.3
+    restart: unless-stopped
+    volumes:
+      - falkordb-data:/data
+    ports:
+      - "127.0.0.1:16380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [memory]
+
+networks:
+  memory:
+
+volumes:
+  valkey-data:
+  falkordb-data:

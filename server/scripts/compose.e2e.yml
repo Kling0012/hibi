@@ -1,0 +1,7 @@
+# E2E only: avoid allocating from Docker's default address pools.
+# Override E2E_SUBNET if this range overlaps a local network.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${E2E_SUBNET:-10.253.221.0/24}

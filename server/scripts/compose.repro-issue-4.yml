@@ -1,0 +1,39 @@
+# Run from the repository root:
+# sudo docker compose -p hibi-repro-issue-4 -f scripts/compose.repro-issue-4.yml up --abort-on-container-exit --exit-code-from repro
+# The database is isolated, in memory, and never published to the host.
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: repro
+      POSTGRES_PASSWORD: repro
+      POSTGRES_DB: issue4
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U repro -d issue4"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  repro:
+    image: hibi-repro-issue-4-api:local
+    build:
+      context: ..
+    working_dir: /srv
+    volumes:
+      - ..:/srv:ro
+    environment:
+      DATABASE_URL: postgresql+psycopg://repro:repro@db:5432/issue4
+      EMBED_PROVIDER: fake
+      EMBED_MODEL: fake-embed
+      EMBED_DIM: "1024"
+      LLM_PROVIDER: fake
+      AM_IMPORT_ENABLED: "0"
+      REPORT_AUTO_ENABLED: "0"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "scripts/repro_issue_4.py"]

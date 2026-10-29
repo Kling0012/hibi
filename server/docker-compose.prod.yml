@@ -1,0 +1,52 @@
+# Production override: real LLM provider, optional Cloudflare embeddings,
+# read-only secret file mounts. Everything deployment-specific (bind address,
+# port, credential paths, model endpoints) comes from .env — see .env.example.
+# Used as:
+#   cp .env.example .env   # then fill in LLM_BASE_URL (+ secrets/llm-key)
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# The base file stays dev-shaped (127.0.0.1:18741, fake providers).
+name: ${COMPOSE_PROJECT_NAME:-hibi}
+
+services:
+  db:
+    # Never publish the DB port; cap memory on small hosts.
+    mem_limit: 768m
+
+  api:
+    mem_limit: 512m
+    environment:
+      # "fake" (default from .env.example) keeps search on full text only;
+      # set "cloudflare" in .env for semantic search via Workers AI.
+      EMBED_PROVIDER: ${EMBED_PROVIDER:-cloudflare}
+      EMBED_MODEL: "@cf/qwen/qwen3-embedding-0.6b"
+      EMBED_DIM: "1024"
+      # Workers AI rejects very large batches; 32 keeps requests well inside limits.
+      EMBED_BATCH: "32"
+      EMBED_CF_ENV_FILE: /run/secrets/cloudflare.env
+      LLM_PROVIDER: openai_compat
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-glm-5.3-flash}
+      LLM_API_KEY_FILE: /run/secrets/llm-key
+      AM_BASE_URL: ${AM_BASE_URL:-}
+      EMBED_INTERVAL_SEC: "10"
+      SESSION_JUDGE_INTERVAL: "300"
+      TZ_DEFAULT: ${TZ_DEFAULT:-Asia/Tokyo}
+      BLOG_AUTO: ${BLOG_AUTO:-draft}
+      REPORT_LLM_MODEL: ${REPORT_LLM_MODEL:-glm-5.3}
+      REPORT_LLM_FLASH_MODEL: ${REPORT_LLM_FLASH_MODEL:-glm-5.3-flash}
+    ports: !override
+      # Closed network ONLY (no auth on the API): localhost by default; set
+      # BIND_ADDR to the server's address on a private network (e.g. a
+      # Tailscale tailnet IP like 100.x.y.z) to accept other devices.
+      # PROD_TAILNET_IP is the legacy name for BIND_ADDR and still wins when
+      # set. Never 0.0.0.0 / a public IP.
+      - "${PROD_TAILNET_IP:-${BIND_ADDR:-127.0.0.1}}:${PROD_PORT:-18740}:8000"
+    volumes:
+      # Secrets are file-mounted read-only; host-side paths come from .env.
+      - ${CF_ENV_FILE:-./secrets/cloudflare.env}:/run/secrets/cloudflare.env:ro
+      - ${LLM_KEY_FILE:-./secrets/llm-key}:/run/secrets/llm-key:ro
+
+volumes:
+  db-data:
+    # Fixed name so backups/inspection don't depend on the project prefix.
+    name: ${PGDATA_VOLUME:-hibi-pgdata}
